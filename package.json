@@ -1,0 +1,37 @@
+{
+  "name": "jumpa",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/arkade-01/jumpa#readme",
+  "bugs": {
+    "url": "https://github.com/arkade-01/jumpa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arkade-01/jumpa.git"
+  },
+  "license": "ISC",
+  "author": "arkade",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon index.ts",
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "@types/axios": "^0.9.36",
+    "@types/dotenv": "^6.1.1",
+    "axios": "^1.12.2",
+    "dotenv": "^17.2.3",
+    "mongoose": "^8.19.0",
+    "nodemon": "^3.1.10",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.2",
+    "ts-node": "^10.9.2"
+  }
+}
