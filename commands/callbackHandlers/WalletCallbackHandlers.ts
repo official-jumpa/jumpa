@@ -2,6 +2,7 @@ import { Context, Markup } from "telegraf";
 import getUser from "../../services/getUserInfo";
 import { config } from "../../config/config";
 import Withdrawal from "../../models/withdrawal";
+import { WithdrawSolToNgn } from "../WithdrawSolToNgn";
 
 export class WalletCallbackHandlers {
     static async handleDeposit(ctx: Context): Promise<void> {
@@ -95,7 +96,7 @@ export class WalletCallbackHandlers {
                 Markup.button.callback("0.01 SOL", "withdraw_amount:0.01"),
                 Markup.button.callback("0.02 SOL", "withdraw_amount:0.02"),
                 Markup.button.callback("0.03 SOL", "withdraw_amount:0.03"),
-                Markup.button.callback("0.05 SOL", "withdraw_amount0.05"),
+                Markup.button.callback("0.05 SOL", "withdraw_amount:0.05"),
             ], [
                 Markup.button.callback("0.1 SOL", "withdraw_amount:0.1"),
                 Markup.button.callback("0.2 SOL", "withdraw_amount:0.2"),
@@ -141,7 +142,10 @@ export class WalletCallbackHandlers {
             ],
         ]);
 
-        await ctx.reply(message, keyboard);
+        const response = await ctx.reply(message, keyboard);
+        setTimeout(async () => {
+            await ctx.deleteMessage(response.message_id);
+        }, 30000); //clear 
     }
 
     static async handleWithdrawConfirmation(ctx: Context): Promise<void> {
@@ -200,14 +204,22 @@ export class WalletCallbackHandlers {
         console.log("payment options: ", paymentOptions)
 
         try {
+           
             const getPaymentWidget = await fetch(widget, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-yara-public-key": config.yaraApiKey
+                    "x-yara-public-key": config.yaraApiKey,
+                    "Accept": "application/json"
                 },
                 body: JSON.stringify(paymentOptions),
-            })
+            });
+
+            if (!getPaymentWidget.ok) {
+                const errorText = await getPaymentWidget.text();
+                throw new Error(`Payment widget API error: ${getPaymentWidget.status} - ${errorText}`);
+            }
+
             const paymentWidget = await getPaymentWidget.json();
             console.log("payment widget generated: ", paymentWidget)
 
@@ -226,24 +238,38 @@ export class WalletCallbackHandlers {
                     transaction_id: paymentWidget.data.id,
                     fiatPayoutAmount: fiatPayoutAmount,
                     depositAmount: depositAmount,
-                    yaraSolAddress: solAddress,
+                    yaraSolAddress: solAddress
                 })
                 console.log("withdrawal saved to db: ", saveTxtoDb)
 
-                await ctx.reply(`✅ Withdrawal of ${depositAmount} SOL was successful. ₦${fiatPayoutAmount} will be added to your account shortly.`);
-                return;
+                const initTx = await WithdrawSolToNgn(ctx, solAddress, depositAmount);
+                console.log("init tx", initTx);
+
+                if (initTx.success) {
+
+                    await ctx.reply(`✅ Withdrawal of ${depositAmount} SOL was successful. ₦${fiatPayoutAmount} will be added to your account shortly.`);
+                    return;
+                } else {
+                    await ctx.reply(`❌ Withdrawal of ${depositAmount} SOL failed. ${initTx.error}`);
+                    return;
+                }
 
             }
 
         } catch (error) {
-            await ctx.reply(`❌ server error`);
+            console.error("Withdrawal error:", {
+                error: error.message,
+                stack: error.stack,
+                response: error.response ? await error.response.text() : null
+            });
+            await ctx.reply(`❌ Server error: ${error.message}`);
             return;
         }
     }
 
     static async handleRefreshBalance(ctx: Context): Promise<void> { }
     static async handleCopyAddress(ctx: Context): Promise<void> { }
-    static async handleShowPrivateKey(ctx: Context): Promise<void> { }
+    static async handleShowPrivatexKey(ctx: Context): Promise<void> { }
     static async handleWalletDetails(ctx: Context): Promise<void> { }
     static async handleCloseWallet(ctx: Context): Promise<void> { }
 }
