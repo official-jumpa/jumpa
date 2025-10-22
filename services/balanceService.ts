@@ -7,7 +7,7 @@ export async function updateGroupBalance(group_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     // Calculate total balance from member contributions
@@ -202,7 +202,7 @@ export async function trackMemberContribution(
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const memberIndex = ajoGroup.members.findIndex(

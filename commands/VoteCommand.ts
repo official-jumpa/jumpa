@@ -64,10 +64,10 @@ export class VoteCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group
+      // Get group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -76,7 +76,7 @@ export class VoteCommand extends BaseCommand {
       if (!isMember) {
         await ctx.reply(
           "❌ You must be a member of this group to vote.\n\n" +
-          "Join the group first with `/ajo join`",
+          "Join the group first with `/join`",
           { parse_mode: "Markdown" }
         );
         return;
@@ -123,7 +123,7 @@ export class VoteCommand extends BaseCommand {
 *Transaction:* \`${result.signature}\`
 
 *Next Steps:*
-• Check proposal status with /ajo polls
+• Check proposal status with /polls
 • Votes are counted automatically
 • Proposal executes when threshold is reached`;
 

@@ -13,7 +13,7 @@ export function isValidSolanaAddress(address: string): boolean {
 }
 
 /**
- * Validate ajo group creation parameters
+ * Validate group creation parameters
  */
 export function validateAjoCreation(params: {
   name: string;

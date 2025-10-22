@@ -1,14 +1,14 @@
-# 🚀 Jumpa Ajo Bot - Backend Development TODO
+# 🚀 Jumpa  Bot - Backend Development TODO
 
 ## 📋 Overview
 
-This document outlines the complete backend development roadmap for the Jumpa Ajo Telegram bot - a collaborative trading platform where groups can pool funds and make collective trading decisions.
+This document outlines the complete backend development roadmap for the Jumpa Telegram bot - a collaborative trading platform where groups can pool funds and make collective trading decisions.
 
 ## 🎯 Project Vision
 
 Create a Telegram-first collaborative trading bot where users can:
 
-- Form "Ajo" groups (traditional savings groups)
+- Form  groups (savings groups)
 - Pool SOL for collective trading
 - Vote on trading decisions
 - Share profits based on contributions
@@ -165,11 +165,11 @@ Create a Telegram-first collaborative trading bot where users can:
 
 ---
 
-### **Phase 3: Ajo Group Management** 🏗️
+### **Phase 3: Group Management** 🏗️
 
 #### 🏗️ Group Creation (Web Dashboard Integration)
 
-- [ ] **Create Ajo endpoint** - `POST /api/ajo/create`
+- [ ] **Create endpoint** - `POST /api/create`
 
   ```json
   {
@@ -201,7 +201,7 @@ Create a Telegram-first collaborative trading bot where users can:
 
 #### 👥 Member Management
 
-- [ ] **Join Ajo service**
+- [ ] **Join service**
 
   - Process `/join` command
   - Validate user is registered
@@ -229,7 +229,7 @@ Create a Telegram-first collaborative trading bot where users can:
 
   - Trade proposals: token, amount, reasoning
   - Governance changes: add/remove traders
-  - End Ajo: distribute profits
+  - End: distribute profits
 
 - [ ] **Poll validation**
 
@@ -276,7 +276,7 @@ Create a Telegram-first collaborative trading bot where users can:
 - [ ] **`/info` handler**
 
   ```
-  📊 Ajo Group: CryptoCrew
+  📊 Group: CryptoCrew
   💰 Capital: $1,000 SOL
   👥 Members: 7/10
   🗳️ Consensus: 67%
@@ -286,7 +286,7 @@ Create a Telegram-first collaborative trading bot where users can:
 - [ ] **`/members` handler**
 
   ```
-  👥 Ajo Members:
+  👥 Members:
   @alice (Trader) - $200 (20%)
   @bob (Member) - $150 (15%)
   @charlie (Trader) - $300 (30%)
@@ -335,7 +335,7 @@ Create a Telegram-first collaborative trading bot where users can:
   - Create governance poll
 
 - [ ] **`/poll_end` handler**
-  - Propose ending Ajo
+  - Propose ending
   - Calculate profit distribution
   - Create end poll
 
@@ -391,12 +391,12 @@ Create a Telegram-first collaborative trading bot where users can:
 
   - `GET /api/users/profile`
   - `PUT /api/users/profile`
-  - `GET /api/users/ajo-groups`
+  - `GET /api/users/groups`
   - `GET /api/users/contributions`
 
-- [ ] **Ajo endpoints**
+- [ ] ** endpoints**
 
-  - `POST /api/ajo/create`
+  - `POST /api/create`
   - `GET /api/ajo/:id`
   - `PUT /api/ajo/:id`
   - `POST /api/ajo/:id/join`

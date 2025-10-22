@@ -9,7 +9,7 @@ import getUser from "../services/getUserInfo";
 
 export class CreateGroupCommand extends BaseCommand {
   name = "create_group";
-  description = "Create a new Ajo group with custom parameters";
+  description = "Create a new group with custom parameters";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -96,8 +96,8 @@ export class CreateGroupCommand extends BaseCommand {
       );
 
       try {
-        // Create the ajo group
-        const ajoGroup = await createAjo({
+        // Create the  group
+        const group = await createAjo({
           name: nameValidation.sanitized,
           creator_id: userId,
           telegram_chat_id: chatId,
@@ -114,26 +114,26 @@ export class CreateGroupCommand extends BaseCommand {
         }
 
         const successMessage = `
-✅ **Ajo Group Created Successfully!**
+✅ **Group Created Successfully!**
 
-🏠 **Name:** ${ajoGroup.name}
-👥 **Max Members:** ${ajoGroup.max_members}
-💰 **Entry Capital:** ${ajoGroup.initial_capital} SOL
-🗳️ **Consensus:** ${ajoGroup.consensus_threshold}%
+🏠 **Name:** ${group.name}
+👥 **Max Members:** ${group.max_members}
+💰 **Entry Capital:** ${group.initial_capital} SOL
+🗳️ **Consensus:** ${group.consensus_threshold}%
 📊 **Status:** Active
 
-**Group ID:** \`${ajoGroup._id}\`
+**Group ID:** \`${group._id}\`
 
 **Next Steps:**
 1. Share the Group ID with people you want to invite
-2. They can join using: \`/ajo join ${ajoGroup._id}\`
+2. They can join using: \`/join ${group._id}\`
 3. Start creating polls with: \`/poll trade <token> <amount>\`
 
 **You are now a trader and can create polls!**
 
 **Quick Actions:**
-• Use \`/ajo info\` to view group details
-• Use \`/ajo members\` to see members
+• Use \`/info\` to view group details
+• Use \`/members\` to see members
 • Use \`/add_members\` to manage members
       `;
 
@@ -149,13 +149,13 @@ export class CreateGroupCommand extends BaseCommand {
         console.error("Create group error:", createError);
         const errorMessage =
           createError instanceof Error ? createError.message : "Unknown error";
-        await ctx.reply(`❌ Failed to create Ajo group: ${errorMessage}`);
+        await ctx.reply(`❌ Failed to create group: ${errorMessage}`);
       }
     } catch (error) {
       console.error("Create group error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      await ctx.reply(`❌ Failed to create Ajo group: ${errorMessage}`);
+      await ctx.reply(`❌ Failed to create group: ${errorMessage}`);
     }
   }
 }

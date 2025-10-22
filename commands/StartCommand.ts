@@ -25,7 +25,7 @@ export class StartCommand extends BaseCommand {
 
       if (user) {
         const firstName = ctx.from?.first_name || username;
-        const welcomeMessage = `Welcome to Jumpa Ajo Bot, ${firstName}!
+        const welcomeMessage = `Welcome to Jumpa Bot, ${firstName}!
 
  *Your Wallet:*
 \`${user.wallet_address}\`

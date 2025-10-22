@@ -238,7 +238,7 @@ async function verifyTransactionSuccess(signature: string): Promise<boolean> {
 }
 
 /**
- * Initialize a new Ajo group on-chain
+ * Initialize a new group on-chain
  */
 export interface InitializeGroupParams {
   telegramId: number;
@@ -333,7 +333,7 @@ export async function initializeGroup(params: InitializeGroupParams) {
 }
 
 /**
- * Join an existing Ajo group
+ * Join an existing group
  */
 export interface JoinGroupParams {
   telegramId: number;
@@ -425,7 +425,7 @@ export async function joinGroup(params: JoinGroupParams) {
 }
 
 /**
- * Exit an Ajo group
+ * Exit an group
  */
 export interface ExitGroupParams {
   telegramId: number;

@@ -136,7 +136,7 @@ export class RecoverGroupCommand extends BaseCommand {
 
 **Next Steps:**
 1. Share the Group ID with people you want to invite
-2. They can join using: \`/ajo join ${ajoGroup._id}\`
+2. They can join using: \`/join ${ajoGroup._id}\`
 3. Start creating polls with: \`/poll trade <token> <amount>\`
 
 **You are now a trader and can create polls!**

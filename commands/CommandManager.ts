@@ -140,13 +140,13 @@ export class CommandManager {
       }
     });
 
-    // Register callback handlers for ajo command
-    this.bot.action("ajo_info", AjoCallbackHandlers.handleAjoInfo);
-    this.bot.action("ajo_members", AjoCallbackHandlers.handleAjoMembers);
-    this.bot.action("ajo_polls", AjoCallbackHandlers.handleAjoPolls);
-    this.bot.action("ajo_balance", AjoCallbackHandlers.handleAjoBalance);
+    // Register callback handlers for group command
+    this.bot.action("group_info", AjoCallbackHandlers.handleAjoInfo);
+    this.bot.action("group_members", AjoCallbackHandlers.handleAjoMembers);
+    this.bot.action("group_polls", AjoCallbackHandlers.handleAjoPolls);
+    this.bot.action("group_balance", AjoCallbackHandlers.handleAjoBalance);
 
-    // Register new ajo callback handlers
+    // Register new group callback handlers
     this.bot.action(
       "create_group_form",
       AjoCallbackHandlers.handleCreateGroupForm

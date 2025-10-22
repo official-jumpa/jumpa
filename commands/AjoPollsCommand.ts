@@ -4,7 +4,7 @@ import { getAjoByChatId } from "../services/ajoService";
 
 export class AjoPollsCommand extends BaseCommand {
   name = "ajo_polls";
-  description = "Show active Ajo group polls";
+  description = "Show active group polls";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -17,7 +17,7 @@ export class AjoPollsCommand extends BaseCommand {
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
+          "❌ No group found in this chat.\n\n" +
             "Use `/create_group` to create a new group.",
           { parse_mode: "Markdown" }
         );
@@ -30,7 +30,7 @@ export class AjoPollsCommand extends BaseCommand {
 
       if (activePolls.length === 0) {
         await ctx.reply(
-          "📊 No active polls in this Ajo group.\n\n" +
+          "📊 No active polls in this group.\n\n" +
             "Traders can create polls using `/poll_trade` or `/poll_end`.",
           { parse_mode: "Markdown" }
         );
@@ -66,7 +66,7 @@ ${index + 1}. **${poll.poll_type.toUpperCase()} Poll**
 
       await ctx.reply(pollsMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo polls error:", error);
+      console.error("polls error:", error);
       await ctx.reply("❌ Failed to get group polls.");
     }
   }

@@ -29,10 +29,10 @@ import {
 import getUser from "../../services/getUserInfo";
 
 export class AjoCallbackHandlers {
-  // Handle create ajo callback
+  // Handle create callback
   static async handleCreateAjo(ctx: Context): Promise<void> {
     try {
-      await ctx.answerCbQuery("🏠 Create Ajo Group");
+      await ctx.answerCbQuery("🏠 Create Group");
 
       const userId = ctx.from?.id;
       const chatId = ctx.chat?.id;
@@ -52,10 +52,10 @@ export class AjoCallbackHandlers {
       }
 
       const createAjoMessage = `
-🏠 **Create Ajo Group**
+🏠 **Create Group**
 
-**What is an Ajo Group?**
-An Ajo is a traditional savings group where members:
+**What is an Group?**
+An is a traditional savings group where members:
 • Pool funds together for collective trading
 • Vote on trading decisions democratically  
 • Share profits based on contributions
@@ -82,15 +82,15 @@ An Ajo is a traditional savings group where members:
         ...keyboard,
       });
     } catch (error) {
-      console.error("Create ajo error:", error);
-      await ctx.answerCbQuery("❌ Failed to open create ajo.");
+      console.error("Create error:", error);
+      await ctx.answerCbQuery("❌ Failed to open create.");
     }
   }
 
-  // Handle join ajo callback
+  // Handle join callback
   static async handleJoinAjo(ctx: Context): Promise<void> {
     try {
-      await ctx.answerCbQuery("👥 Join Ajo Group");
+      await ctx.answerCbQuery("👥 Join Group");
 
       const userId = ctx.from?.id;
       const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
@@ -108,15 +108,15 @@ An Ajo is a traditional savings group where members:
         return;
       }
 
-      // Get user's ajo groups
+      // Get user's groups
       const userGroups = await getUserAjoGroups(userId);
 
       let joinAjoMessage = `
-👥 **Join Ajo Group**
+👥 **Join Group**
 
-**How to Join an Ajo:**
-1. Get a group ID from an Ajo group admin
-2. Use the command: \`/ajo join <group_id>\`
+**How to Join a group:**
+1. Get a group ID from an group admin
+2. Use the command: \`/join <group_id>\`
 3. Send your contribution to the group
 4. Start voting on trading decisions!
 
@@ -124,7 +124,7 @@ An Ajo is a traditional savings group where members:
 `;
 
       if (userGroups.length === 0) {
-        joinAjoMessage += "• You're not a member of any Ajo groups yet";
+        joinAjoMessage += "• You're not a member of any groups yet";
       } else {
         userGroups.forEach((group, index) => {
           joinAjoMessage += `• **${group.name}** (${group.members.length}/${group.max_members} members)\n`;
@@ -146,15 +146,15 @@ An Ajo is a traditional savings group where members:
         ...keyboard,
       });
     } catch (error) {
-      console.error("Join ajo error:", error);
-      await ctx.answerCbQuery("❌ Failed to open join ajo.");
+      console.error("Join error:", error);
+      await ctx.answerCbQuery("❌ Failed to open join group.");
     }
   }
 
-  // Handle ajo info callback
+  // Handle info callback
   static async handleAjoInfo(ctx: Context): Promise<void> {
     try {
-      await ctx.answerCbQuery("📊 Ajo Group Info");
+      await ctx.answerCbQuery("📊 Group Info");
 
       const chatId = ctx.chat?.id;
       if (!chatId) {
@@ -162,12 +162,12 @@ An Ajo is a traditional savings group where members:
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
-            "Use /create_ajo to create a new group or /join to join an existing one."
+          "❌ No group found in this chat.\n\n" +
+            "Use /create_group to create a new group or /join to join an existing one."
         );
         return;
       }
@@ -179,7 +179,7 @@ An Ajo is a traditional savings group where members:
       );
 
       const infoMessage = `
-📊 **Ajo Group: ${ajoGroup.name}**
+📊 **Group: ${ajoGroup.name}**
 
 💰 **Capital:** ${ajoGroup.current_balance} SOL
 👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
@@ -216,15 +216,15 @@ An Ajo is a traditional savings group where members:
         ...keyboard,
       });
     } catch (error) {
-      console.error("Ajo info error:", error);
-      await ctx.answerCbQuery("❌ Failed to get ajo info.");
+      console.error("info error:", error);
+      await ctx.answerCbQuery("❌ Failed to get info.");
     }
   }
 
-  // Handle ajo members callback
+  // Handle members callback
   static async handleAjoMembers(ctx: Context): Promise<void> {
     try {
-      await ctx.answerCbQuery("👥 Ajo Members");
+      await ctx.answerCbQuery("👥 Members");
 
       const chatId = ctx.chat?.id;
       if (!chatId) {
@@ -232,17 +232,17 @@ An Ajo is a traditional savings group where members:
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Get financial summary for member details
       const financialSummary = getGroupFinancialSummary(ajoGroup);
 
-      let membersMessage = `👥 **Ajo Members (${ajoGroup.members.length}/${ajoGroup.max_members})**\n\n`;
+      let membersMessage = `👥 **Members (${ajoGroup.members.length}/${ajoGroup.max_members})**\n\n`;
 
       // Sort members by contribution (highest first)
       const sortedMembers = [...ajoGroup.members].sort(
@@ -267,15 +267,15 @@ An Ajo is a traditional savings group where members:
         parse_mode: "Markdown",
       });
     } catch (error) {
-      console.error("Ajo members error:", error);
-      await ctx.answerCbQuery("❌ Failed to get ajo members.");
+      console.error("members error:", error);
+      await ctx.answerCbQuery("❌ Failed to get members.");
     }
   }
 
-  // Handle ajo polls callback
+  // Handle polls callback
   static async handleAjoPolls(ctx: Context): Promise<void> {
     try {
-      await ctx.answerCbQuery("🗳️ Ajo Polls");
+      await ctx.answerCbQuery("🗳️ Polls");
 
       const chatId = ctx.chat?.id;
       if (!chatId) {
@@ -283,10 +283,10 @@ An Ajo is a traditional savings group where members:
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -303,7 +303,7 @@ An Ajo is a traditional savings group where members:
         pollsMessage += "**Traders can create polls using:**\n";
         pollsMessage +=
           "• `/poll_trade <token> <amount>` - Create trade poll\n";
-        pollsMessage += "• `/poll_end` - Create end ajo poll";
+        pollsMessage += "• `/poll_end` - Create end poll";
       } else {
         polls.forEach((poll: any, index: number) => {
           const timeLeft = Math.max(
@@ -317,7 +317,7 @@ An Ajo is a traditional savings group where members:
 
           pollsMessage += `${index + 1}. **${poll.title}**\n`;
           pollsMessage += `   Type: ${
-            poll.type === "trade" ? "🔄 Trade" : "🏁 End Ajo"
+            poll.type === "trade" ? "🔄 Trade" : "🏁 End Group Trade"
           }\n`;
           pollsMessage += `   Votes: ${votes} | Time left: ${timeLeft}h\n`;
           pollsMessage += `   ID: \`${poll.id}\`\n\n`;
@@ -330,15 +330,15 @@ An Ajo is a traditional savings group where members:
         parse_mode: "Markdown",
       });
     } catch (error) {
-      console.error("Ajo polls error:", error);
-      await ctx.answerCbQuery("❌ Failed to get ajo polls.");
+      console.error("polls error:", error);
+      await ctx.answerCbQuery("❌ Failed to get polls.");
     }
   }
 
-  // Handle ajo balance callback
+  // Handle balance callback
   static async handleAjoBalance(ctx: Context): Promise<void> {
     try {
-      await ctx.answerCbQuery("💰 Ajo Balance");
+      await ctx.answerCbQuery("💰 Balance");
 
       const userId = ctx.from?.id;
       const chatId = ctx.chat?.id;
@@ -347,17 +347,17 @@ An Ajo is a traditional savings group where members:
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is a member
       const isMember = await isUserMember(ajoGroup._id.toString(), userId);
       if (!isMember) {
-        await ctx.reply("❌ You are not a member of this Ajo group.");
+        await ctx.reply("❌ You are not a member of this group.");
         return;
       }
 
@@ -369,7 +369,7 @@ An Ajo is a traditional savings group where members:
       }
 
       const balanceMessage = `
-💰 **Your Ajo Balance**
+💰 **Your Balance**
 
 👤 **Your Contribution:** $${memberSummary.contribution}
 📊 **Your Share:** ${memberSummary.share_percentage}%
@@ -387,8 +387,8 @@ An Ajo is a traditional savings group where members:
         parse_mode: "Markdown",
       });
     } catch (error) {
-      console.error("Ajo balance error:", error);
-      await ctx.answerCbQuery("❌ Failed to get ajo balance.");
+      console.error("balance error:", error);
+      await ctx.answerCbQuery("❌ Failed to get balance.");
     }
   }
 
@@ -415,7 +415,7 @@ An Ajo is a traditional savings group where members:
       }
 
       const formMessage = `
-🏠 **Create Ajo Group - Step 1**
+🏠 **Create Group - Step 1**
 
 **Please provide the following details:**
 
@@ -463,11 +463,11 @@ An Ajo is a traditional savings group where members:
         return;
       }
 
-      // Check if this chat has an ajo group
+      // Check if this chat has an group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
+          "❌ No group found in this chat.\n\n" +
             "Create a group first using the 'Create New Group' button.",
           { parse_mode: "Markdown" }
         );
@@ -492,7 +492,7 @@ An Ajo is a traditional savings group where members:
 
 **Method 1: Share Group ID**
 • Share this Group ID: \`${ajoGroup._id}\`
-• They can join using: \`/ajo join ${ajoGroup._id}\`
+• They can join using: \`/join ${ajoGroup._id}\`
 
 **Method 2: Direct Add (Coming Soon)**
 • Add members by their Telegram username
@@ -538,13 +538,13 @@ ${ajoGroup.members
       await ctx.answerCbQuery("⚙️ Custom Create");
 
       const customMessage = `
-⚙️ **Custom Ajo Group Creation**
+⚙️ **Custom Group Creation**
 
 **To create a custom group, use the command:**
-\`/ajo create <name> <max_members> [consensus_threshold]\`
+\`/create <name> <max_members> [consensus_threshold]\`
 
 **Example:**
-\`/ajo create CryptoCrew 10 67\`
+\`/create CryptoCrew 10 67\`
 
 **Parameters:**
 • **name**: Group name (max 100 characters)
@@ -563,13 +563,13 @@ ${ajoGroup.members
 
   static async handleAjoHelp(ctx: Context): Promise<void> {
     try {
-      await ctx.answerCbQuery("❓ Ajo Help");
+      await ctx.answerCbQuery("❓ Help");
 
       const helpMessage = `
-❓ **Ajo Group Help**
+❓ **Group Help**
 
-**What is an Ajo Group?**
-An Ajo is a traditional savings group where members pool funds for collective trading.
+**What is an Group?**
+An is a traditional savings group where members pool funds for collective trading.
 
 **Key Features:**
 • **Democratic Voting**: Members vote on trading decisions
@@ -583,21 +583,21 @@ An Ajo is a traditional savings group where members pool funds for collective tr
 • **Member**: Can vote on polls and contribute funds
 
 **Getting Started:**
-1. Create or join an Ajo group
+1. Create or join an group
 2. Contribute funds to the group
 3. Vote on trading decisions
 4. Share in the profits!
 
 **Commands:**
-• \`/ajo create\` - Create new group
-• \`/ajo join <id>\` - Join existing group
-• \`/ajo info\` - View group details
+• \`/create\` - Create new group
+• \`/join <id>\` - Join existing group
+• \`/info\` - View group details
 • \`/poll trade <token> <amount>\` - Create trade poll
       `;
 
       await ctx.reply(helpMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo help error:", error);
+      console.error("help error:", error);
       await ctx.answerCbQuery("❌ Failed to show help.");
     }
   }
@@ -614,7 +614,7 @@ Public group browsing will be available in a future update.
 
 **For now, you can:**
 • Ask friends for their group ID
-• Use \`/ajo join <group_id>\` to join
+• Use \`/join <group_id>\` to join
 • Create your own group with the buttons above
       `;
 
@@ -633,14 +633,14 @@ Public group browsing will be available in a future update.
 🔗 **Join with Group ID**
 
 **To join a group, use the command:**
-\`/ajo join <group_id>\`
+\`/join <group_id>\`
 
 **Example:**
-\`/ajo join 507f1f77bcf86cd799439011\`
+\`/join 507f1f77bcf86cd799439011\`
 
 **How to get a Group ID:**
 • Ask the group creator or admin
-• They can share it from \`/ajo info\`
+• They can share it from \`/info\`
 • Group ID looks like: \`507f1f77bcf86cd799439011\`
       `;
 
@@ -661,16 +661,16 @@ Public group browsing will be available in a future update.
         return;
       }
 
-      // Get user's ajo groups
+      // Get user's groups
       const userGroups = await getUserAjoGroups(userId);
 
-      let groupsMessage = `📋 **Your Ajo Groups (${userGroups.length})**\n\n`;
+      let groupsMessage = `📋 **Your Groups (${userGroups.length})**\n\n`;
 
       if (userGroups.length === 0) {
-        groupsMessage += "You're not a member of any Ajo groups yet.\n\n";
+        groupsMessage += "You're not a member of any groups yet.\n\n";
         groupsMessage += "**To join a group:**\n";
         groupsMessage += "• Get a group ID from an admin\n";
-        groupsMessage += "• Use: `/ajo join <group_id>`\n\n";
+        groupsMessage += "• Use: `/join <group_id>`\n\n";
         groupsMessage += "**To create a group:**\n";
         groupsMessage += "• Use the create buttons above";
       } else {
@@ -699,15 +699,15 @@ Public group browsing will be available in a future update.
       await ctx.answerCbQuery("❓ Join Help");
 
       const helpMessage = `
-❓ **How to Join an Ajo Group**
+❓ **How to Join an Group**
 
 **Step 1: Get a Group ID**
 • Ask a group creator or admin for their group ID
 • Group IDs look like: \`507f1f77bcf86cd799439011\`
 
 **Step 2: Join the Group**
-• Use: \`/ajo join <group_id>\`
-• Example: \`/ajo join 507f1f77bcf86cd799439011\`
+• Use: \`/join <group_id>\`
+• Example: \`/join 507f1f77bcf86cd799439011\`
 
 **Step 3: Contribute Funds**
 • Send your contribution to the group
@@ -740,10 +740,10 @@ Public group browsing will be available in a future update.
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -805,10 +805,10 @@ Public group browsing will be available in a future update.
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -819,10 +819,10 @@ Public group browsing will be available in a future update.
 **Group ID:** \`${ajoGroup._id}\`
 
 **Share this with people you want to invite:**
-\`/ajo join ${ajoGroup._id}\`
+\`/join ${ajoGroup._id}\`
 
 **Or share this message:**
-"Join my Ajo group '${ajoGroup.name}' using: /ajo join ${ajoGroup._id}"
+"Join my group '${ajoGroup.name}' using: /join ${ajoGroup._id}"
 
 **Current Status:**
 • Members: ${ajoGroup.members.length}/${ajoGroup.max_members}
@@ -859,23 +859,23 @@ The bot needs these permissions:
 • ✅ Delete messages (for cleanup)
 • ✅ Pin messages (for important polls)
 
-**Step 3: Create Ajo Group**
+**Step 3: Create Group**
 Once the bot is added to your Telegram group:
 1. Use \`/start\` in the group to initialize
-2. Use \`/create_group <name> <max_members>\` to create your ajo
+2. Use \`/create_group <name> <max_members>\` to create your group
 3. Share the group ID with members
 4. Start trading!
 
 **Bot Commands for Groups:**
-• \`/create_group\` - Create ajo group
-• \`/ajo info\` - View group info
-• \`/ajo members\` - See members
+• \`/create_group\` - Create group
+• \`/info\` - View group info
+• \`/members\` - See members
 • \`/poll trade <token> <amount>\` - Create trade poll
 • \`/vote <poll_id> <yes/no>\` - Vote on polls
 
 **Important Notes:**
-• The bot must be added to the group before creating an ajo
-• Only group admins can create ajo groups
+• The bot must be added to the group before creating  group
+• Only group admins can create groups
 • All group members can join and participate
 • The bot will manage polls and voting automatically
 
@@ -918,16 +918,16 @@ Once the bot is added to your Telegram group:
 📋 **Jumpa Bot Commands**
 
 **Group Management:**
-• \`/create_group <name> <max_members> [consensus]\` - Create ajo group
-• \`/ajo info\` - View group information
-• \`/ajo members\` - List group members
-• \`/ajo polls\` - Show active polls
-• \`/ajo balance\` - Show your balance
+• \`/create_group <name> <max_members> [consensus]\` - Create group
+• \`/info\` - View group information
+• \`/members\` - List group members
+• \`/polls\` - Show active polls
+• \`/balance\` - Show your balance
 • \`/add_member <group_id>\` - Join a group
 
 **Polling & Voting:**
 • \`/poll trade <token> <amount>\` - Create trade poll (traders only)
-• \`/poll end\` - Create end ajo poll (traders only)
+• \`/poll end\` - Create end poll (traders only)
 • \`/vote <poll_id> <yes/no>\` - Vote on polls
 • \`/poll results <poll_id>\` - View poll results
 • \`/poll execute <poll_id>\` - Execute poll (traders only)

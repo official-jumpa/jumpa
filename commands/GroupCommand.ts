@@ -5,7 +5,7 @@ import getUser from "../services/getUserInfo";
 
 export class GroupCommand extends BaseCommand {
   name = "group";
-  description = "Manage Telegram group integration for ajo trading";
+  description = "Manage Telegram group integration for group trading";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -27,10 +27,10 @@ export class GroupCommand extends BaseCommand {
       if (ctx.chat?.type === "private") {
         await ctx.reply(
           "❌ This command is only available in Telegram groups.\n\n" +
-            "**To use ajo trading in groups:**\n" +
+            "**To use group trading in groups:**\n" +
             "1. Add this bot to your Telegram group\n" +
             "2. Use `/start` in the group to initialize\n" +
-            "3. Use `/create_group <name> <max_members>` to create an ajo\n" +
+            "3. Use `/create_group <name> <max_members>` to create a trading group\n" +
             "4. Start trading with your group members!",
           { parse_mode: "Markdown" }
         );
@@ -83,19 +83,19 @@ export class GroupCommand extends BaseCommand {
       const chatId = ctx.chat?.id;
       if (!chatId) return;
 
-      // Check if this chat has an ajo group
+      // Check if this chat has an  group
       const ajoGroup = await getAjoByChatId(chatId);
 
       if (!ajoGroup) {
         const statusMessage = `
 📊 **Group Status**
 
-**Ajo Group:** ❌ Not created
+**Group:** ❌ Not created
 **Group Type:** ${ctx.chat?.type === "supergroup" ? "Supergroup" : "Group"}
 **Bot Status:** ✅ Active
 
 **Next Steps:**
-1. Use \`/create_group <name> <max_members>\` to create an ajo
+1. Use \`/create_group <name> <max_members>\` to create a trading group
 2. Share the group ID with members
 3. Start trading!
 
@@ -111,7 +111,7 @@ export class GroupCommand extends BaseCommand {
       const statusMessage = `
 📊 **Group Status**
 
-**Ajo Group:** ✅ ${ajoGroup.name}
+**Group:** ✅ ${ajoGroup.name}
 **Group ID:** \`${ajoGroup._id}\`
 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
 **Status:** ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
@@ -121,9 +121,9 @@ export class GroupCommand extends BaseCommand {
 **Bot Status:** ✅ Active
 
 **Quick Actions:**
-• \`/ajo info\` - View group details
-• \`/ajo members\` - See members
-• \`/ajo polls\` - Active polls
+• \`/info\` - View group details
+• \`/members\` - See members
+• \`/polls\` - Active polls
 • \`/poll trade <token> <amount>\` - Create trade poll
       `;
 
@@ -146,8 +146,8 @@ Make sure the bot has these permissions:
 • ✅ Delete messages
 • ✅ Pin messages
 
-**Step 2: Create Ajo Group**
-Use this command to create your ajo:
+**Step 2: Create Group**
+Use this command to create your group:
 \`/create_group <name> <max_members> [consensus_threshold]\`
 
 **Examples:**
@@ -158,7 +158,7 @@ Use this command to create your ajo:
 **Step 3: Invite Members**
 1. Share the Group ID with members
 2. They can join using: \`/add_member <group_id>\`
-3. Or use: \`/ajo join <group_id>\`
+3. Or use: \`/join <group_id>\`
 
 **Step 4: Start Trading**
 • Use \`/poll trade <token> <amount>\` to create polls
@@ -187,17 +187,17 @@ Use this command to create your ajo:
 • \`/group setup\` - Setup instructions
 • \`/group help\` - This help message
 
-**Ajo Group Commands:**
-• \`/create_group <name> <max_members> [consensus]\` - Create ajo
-• \`/ajo info\` - View group information
-• \`/ajo members\` - List members
-• \`/ajo polls\` - Show active polls
-• \`/ajo balance\` - Your balance
+**Group Commands:**
+• \`/create_group <name> <max_members> [consensus]\` - Create group
+• \`/info\` - View group information
+• \`members\` - List members
+• \`/polls\` - Show active polls
+• \`/balance\` - Your balance
 • \`/add_member <group_id>\` - Join group
 
 **Polling & Voting:**
 • \`/poll trade <token> <amount>\` - Create trade poll
-• \`/poll end\` - Create end ajo poll
+• \`/poll end\` - Create end poll
 • \`/vote <poll_id> <yes/no>\` - Vote on polls
 • \`/poll results <poll_id>\` - View results
 • \`/poll execute <poll_id>\` - Execute poll

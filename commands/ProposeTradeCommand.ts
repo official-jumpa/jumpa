@@ -49,11 +49,11 @@ export class ProposeTradeCommand extends BaseCommand {
         return;
       }
 
-      // Get the ajo group for this chat
+      // Get the group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat. Create one first with /create_group"
+          "❌ No group found in this chat. Create one first with /create_group"
         );
         return;
       }
@@ -168,7 +168,7 @@ export class ProposeTradeCommand extends BaseCommand {
 
 **Next Steps:**
 • Members will be notified to vote
-• Use \`/ajo polls\` to view all active proposals
+• Use \`/polls\` to view all active proposals
 • Voting threshold: ${ajoGroup.consensus_threshold}%
 
 ⏳ **This proposal will expire in 48 hours**
@@ -181,7 +181,7 @@ export class ProposeTradeCommand extends BaseCommand {
           `🔔 **New Trade Proposal!**\n\n` +
             `@${username} has proposed: ${name}\n` +
             `Amount: ${amount} ${buy ? "(BUY)" : "(SELL)"}\n\n` +
-            `View details with: \`/ajo polls\``,
+            `View details with: \`/polls\``,
           { parse_mode: "Markdown" }
         );
       } catch (proposeError) {

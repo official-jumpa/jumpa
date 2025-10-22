@@ -5,7 +5,7 @@ import { getMemberFinancialSummary } from "../services/balanceService";
 
 export class AjoMembersCommand extends BaseCommand {
   name = "ajo_members";
-  description = "List all Ajo group members";
+  description = "List all group members";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -18,7 +18,7 @@ export class AjoMembersCommand extends BaseCommand {
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
+          "❌ N group found in this chat.\n\n" +
             "Use `/create_group` to create a new group.",
           { parse_mode: "Markdown" }
         );
@@ -26,7 +26,7 @@ export class AjoMembersCommand extends BaseCommand {
       }
 
       let membersMessage = `
-👥 **Ajo Group Members: ${ajoGroup.name}**
+👥 ** Group Members: ${ajoGroup.name}**
 
 **Total Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
 
@@ -54,7 +54,7 @@ ${index + 1}. ${roleEmoji} **Member ${index + 1}**
 
       await ctx.reply(membersMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo members error:", error);
+      console.error("members error:", error);
       await ctx.reply("❌ Failed to get group members.");
     }
   }

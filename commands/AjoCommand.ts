@@ -31,8 +31,8 @@ import {
 import getUser from "../services/getUserInfo";
 
 export class AjoCommand extends BaseCommand {
-  name = "ajo";
-  description = "Ajo group management commands";
+  name = "group";
+  description = " group management commands";
 
   async execute(ctx: Context): Promise<void> {
     const args =
@@ -76,27 +76,27 @@ export class AjoCommand extends BaseCommand {
 
   private async showHelp(ctx: Context): Promise<void> {
     const helpMessage = `
-🏠 **Ajo Commands**
+🏠 **Commands**
 
 **Group Management:**
-• \`/ajo create <name> <max_members> [consensus_threshold]\` - Create new Ajo group
-• \`/ajo join <group_id>\` - Join existing Ajo group
-• \`/ajo info\` - Show current group info
-• \`/ajo my_groups\` - Show your Ajo groups
+• \`/create <name> <max_members> [consensus_threshold]\` - Create new group
+• \`/join <group_id>\` - Join existing group
+• \`/info\` - Show current group info
+• \`/my_groups\` - Show your groups
 
 **Group Information:**
-• \`/ajo members\` - List group members
-• \`/ajo polls\` - Show active polls
-• \`/ajo balance\` - Show your balance and share
+• \`/members\` - List group members
+• \`/polls\` - Show active polls
+• \`/balance\` - Show your balance and share
 
 **Poll Commands:**
 • \`/poll_trade <token> <amount>\` - Create trade poll (traders only)
-• \`/poll_end\` - Create end ajo poll (traders only)
+• \`/poll_end\` - Create end poll (traders only)
 • \`/vote <poll_id> <yes/no>\` - Vote on poll
 
 **Examples:**
-\`/ajo create CryptoCrew 10 67\`
-\`/ajo join 507f1f77bcf86cd799439011\`
+\`/create CryptoCrew 10 67\`
+\`/join 507f1f77bcf86cd799439011\`
 \`/poll_trade BONK 1000\`
 \`/vote 507f1f77bcf86cd799439012 yes\`
     `;
@@ -117,8 +117,8 @@ export class AjoCommand extends BaseCommand {
 
       if (args.length < 3) {
         await ctx.reply(
-          "❌ Usage: `/ajo create <name> <max_members> <entry_capital> [consensus_threshold]`\n\n" +
-            "**Example:** `/ajo create CryptoCrew 10 100 67`",
+          "❌ Usage: `/create <name> <max_members> <entry_capital> [consensus_threshold]`\n\n" +
+            "**Example:** `/create CryptoCrew 10 100 67`",
           { parse_mode: "Markdown" }
         );
         return;
@@ -157,7 +157,7 @@ export class AjoCommand extends BaseCommand {
         return;
       }
 
-      // Create the ajo group
+      // Create the group
       const ajoGroup = await createAjo({
         name: nameValidation.sanitized,
         creator_id: userId,
@@ -168,7 +168,7 @@ export class AjoCommand extends BaseCommand {
       });
 
       const successMessage = `
-✅ **Ajo Group Created Successfully!**
+✅ **Group Created Successfully!**
 
 🏠 **Name:** ${ajoGroup.name}
 👥 **Max Members:** ${ajoGroup.max_members}
@@ -180,7 +180,7 @@ export class AjoCommand extends BaseCommand {
 
 **Next Steps:**
 1. Share the Group ID with people you want to invite
-2. They can join using: \`/ajo join ${ajoGroup._id}\`
+2. They can join using: \`/join ${ajoGroup._id}\`
 3. Start creating polls with: \`/poll_trade <token> <amount>\`
 
 **You are now a trader and can create polls!**
@@ -188,8 +188,8 @@ export class AjoCommand extends BaseCommand {
 
       await ctx.reply(successMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Create ajo error:", error);
-      await ctx.reply("❌ Failed to create Ajo group. Please try again.");
+      console.error("Create group error:", error);
+      await ctx.reply("❌ Failed to create group. Please try again.");
     }
   }
 
@@ -205,8 +205,8 @@ export class AjoCommand extends BaseCommand {
 
       if (args.length < 1) {
         await ctx.reply(
-          "❌ Usage: `/ajo join <group_id>`\n\n" +
-            "**Example:** `/ajo join 507f1f77bcf86cd799439011`",
+          "❌ Usage: `/join <group_id>`\n\n" +
+            "**Example:** `/join 507f1f77bcf86cd799439011`",
           { parse_mode: "Markdown" }
         );
         return;
@@ -248,7 +248,7 @@ export class AjoCommand extends BaseCommand {
       );
 
       try {
-        // Join the ajo group
+        // Join the group
         const ajoGroup = await joinAjo({
           group_id: groupId,
           user_id: userId,
@@ -263,7 +263,7 @@ export class AjoCommand extends BaseCommand {
         }
 
       const successMessage = `
-✅ **Successfully Joined Ajo Group!**
+✅ **Successfully Joined Group!**
 
 🏠 **Group:** ${ajoGroup.name}
 👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
@@ -275,9 +275,9 @@ export class AjoCommand extends BaseCommand {
 3. Share in the profits!
 
 **Useful Commands:**
-• \`/ajo info\` - View group details
-• \`/ajo polls\` - See active polls
-• \`/ajo balance\` - Check your share
+• \`/info\` - View group details
+• \`/polls\` - See active polls
+• \`/balance\` - Check your share
       `;
 
         await ctx.reply(successMessage, { parse_mode: "Markdown" });
@@ -289,7 +289,7 @@ export class AjoCommand extends BaseCommand {
           console.log("Could not delete processing message:", deleteError);
         }
 
-        console.error("Join ajo error:", joinError);
+        console.error("Join error:", joinError);
         let errorMessage = joinError instanceof Error ? joinError.message : "Unknown error";
         
         // Provide helpful message for RPC errors
@@ -297,13 +297,13 @@ export class AjoCommand extends BaseCommand {
           errorMessage = "Network connection issue. The RPC endpoint is temporarily unavailable. Please try again in a few moments.";
         }
         
-        await ctx.reply(`❌ Failed to join Ajo group: ${errorMessage}`);
+        await ctx.reply(`❌ Failed to join group: ${errorMessage}`);
       }
     } catch (error) {
-      console.error("Join ajo error:", error);
+      console.error("Join error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      await ctx.reply(`❌ Failed to join Ajo group: ${errorMessage}`);
+      await ctx.reply(`❌ Failed to join group: ${errorMessage}`);
     }
   }
 
@@ -315,12 +315,12 @@ export class AjoCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
-            "Use `/ajo create` to create a new group or `/ajo join` to join an existing one.",
+          "❌ No group found in this chat.\n\n" +
+            "Use `/create` to create a new group or `/join` to join an existing one.",
           { parse_mode: "Markdown" }
         );
         return;
@@ -333,7 +333,7 @@ export class AjoCommand extends BaseCommand {
       );
 
       const infoMessage = `
-📊 **Ajo Group: ${ajoGroup.name}**
+📊 *Group: ${ajoGroup.name}**
 
 💰 **Capital:** ${ajoGroup.current_balance} SOL
 👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
@@ -354,8 +354,8 @@ export class AjoCommand extends BaseCommand {
 
       await ctx.reply(infoMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo info error:", error);
-      await ctx.reply("❌ Failed to get ajo info.");
+      console.error("info error:", error);
+      await ctx.reply("❌ Failed to get info.");
     }
   }
 
@@ -367,17 +367,17 @@ export class AjoCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Get financial summary for member details
       const financialSummary = getGroupFinancialSummary(ajoGroup);
 
-      let membersMessage = `👥 **Ajo Members (${ajoGroup.members.length}/${ajoGroup.max_members})**\n\n`;
+      let membersMessage = `👥 **Members (${ajoGroup.members.length}/${ajoGroup.max_members})**\n\n`;
 
       // Sort members by contribution (highest first)
       const sortedMembers = [...ajoGroup.members].sort(
@@ -400,8 +400,8 @@ export class AjoCommand extends BaseCommand {
 
       await ctx.reply(membersMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo members error:", error);
-      await ctx.reply("❌ Failed to get ajo members.");
+      console.error("members error:", error);
+      await ctx.reply("❌ Failed to get members.");
     }
   }
 
@@ -413,10 +413,10 @@ export class AjoCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get  group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No  group found in this chat.");
         return;
       }
 
@@ -433,7 +433,7 @@ export class AjoCommand extends BaseCommand {
         pollsMessage += "**Traders can create polls using:**\n";
         pollsMessage +=
           "• `/poll_trade <token> <amount>` - Create trade poll\n";
-        pollsMessage += "• `/poll_end` - Create end ajo poll";
+        pollsMessage += "• `/poll_end` - Create end poll";
       } else {
         polls.forEach((poll: any, index: any) => {
           const timeLeft = Math.max(
@@ -447,7 +447,7 @@ export class AjoCommand extends BaseCommand {
 
           pollsMessage += `${index + 1}. **${poll.title}**\n`;
           pollsMessage += `   Type: ${
-            poll.type === "trade" ? "🔄 Trade" : "🏁 End Ajo"
+            poll.type === "trade" ? "🔄 Trade" : "🏁 End Trade"
           }\n`;
           pollsMessage += `   Votes: ${votes} | Time left: ${timeLeft}h\n`;
           pollsMessage += `   ID: \`${poll.id}\`\n\n`;
@@ -458,8 +458,8 @@ export class AjoCommand extends BaseCommand {
 
       await ctx.reply(pollsMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo polls error:", error);
-      await ctx.reply("❌ Failed to get ajo polls.");
+      console.error(" polls error:", error);
+      await ctx.reply("❌ Failed to get  polls.");
     }
   }
 
@@ -472,17 +472,17 @@ export class AjoCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get  group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No  group found in this chat.");
         return;
       }
 
       // Check if user is a member
       const isMember = await isUserMember(ajoGroup._id.toString(), userId);
       if (!isMember) {
-        await ctx.reply("❌ You are not a member of this Ajo group.");
+        await ctx.reply("❌ You are not a member of this  group.");
         return;
       }
 
@@ -494,7 +494,7 @@ export class AjoCommand extends BaseCommand {
       }
 
       const balanceMessage = `
-💰 **Your Ajo Balance**
+💰 **Your  Balance**
 
 👤 **Your Contribution:** $${memberSummary.contribution}
 📊 **Your Share:** ${memberSummary.share_percentage}%
@@ -510,8 +510,8 @@ export class AjoCommand extends BaseCommand {
 
       await ctx.reply(balanceMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo balance error:", error);
-      await ctx.reply("❌ Failed to get ajo balance.");
+      console.error(" balance error:", error);
+      await ctx.reply("❌ Failed to get balance.");
     }
   }
 
@@ -523,18 +523,18 @@ export class AjoCommand extends BaseCommand {
         return;
       }
 
-      // Get user's ajo groups
+      // Get user's  groups
       const userGroups = await getUserAjoGroups(userId);
 
-      let groupsMessage = `🏠 **Your Ajo Groups (${userGroups.length})**\n\n`;
+      let groupsMessage = `🏠 **Your Groups (${userGroups.length})**\n\n`;
 
       if (userGroups.length === 0) {
-        groupsMessage += "You're not a member of any Ajo groups yet.\n\n";
+        groupsMessage += "You're not a member of any  groups yet.\n\n";
         groupsMessage += "**To join a group:**\n";
         groupsMessage += "• Get a group ID from an admin\n";
-        groupsMessage += "• Use: `/ajo join <group_id>`\n\n";
+        groupsMessage += "• Use: `/join <group_id>`\n\n";
         groupsMessage += "**To create a group:**\n";
-        groupsMessage += "• Use: `/ajo create <name> <max_members>`";
+        groupsMessage += "• Use: `/create <name> <max_members>`";
       } else {
         userGroups.forEach((group, index) => {
           const isTrader =

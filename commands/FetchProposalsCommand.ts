@@ -26,11 +26,11 @@ export class FetchProposalsCommand extends BaseCommand {
         return;
       }
 
-      // Get the ajo group for this chat
+      // Get the group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat. Create one first with /create_group"
+          "❌ No  group found in this chat. Create one first with /create_group"
         );
         return;
       }
@@ -61,7 +61,7 @@ export class FetchProposalsCommand extends BaseCommand {
         message += `   • Address: \`${proposal.address.substring(0, 8)}...\`\n\n`;
       });
 
-      message += `\nUse \`/ajo polls\` to view and vote on proposals`;
+      message += `\nUse \`/polls\` to view and vote on proposals`;
 
       await ctx.reply(message, { parse_mode: "Markdown" });
     } catch (error) {

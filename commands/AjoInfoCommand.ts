@@ -5,8 +5,8 @@ import { getGroupFinancialSummary } from "../services/balanceService";
 import { Markup } from "telegraf";
 
 export class AjoInfoCommand extends BaseCommand {
-  name = "ajo_info";
-  description = "Show current Ajo group information";
+  name = "group_info";
+  description = "Show current group information";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -16,11 +16,11 @@ export class AjoInfoCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
+      // Get  group for this chat
+      const group = await getAjoByChatId(chatId);
+      if (!group) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
+          "❌ No  group found in this chat.\n\n" +
             "Use `/create_group` to create a new group.",
           { parse_mode: "Markdown" }
         );
@@ -28,18 +28,18 @@ export class AjoInfoCommand extends BaseCommand {
       }
 
       // Get financial summary
-      const financialSummary = getGroupFinancialSummary(ajoGroup);
-      const activePolls = ajoGroup.polls.filter(
+      const financialSummary = getGroupFinancialSummary(group);
+      const activePolls = group.polls.filter(
         (poll: any) => poll.status === "open"
       );
 
       const infoMessage = `
-📊 **Ajo Group: ${ajoGroup.name}**
+📊 **Group: ${group.name}**
 
-💰 **Capital:** ${ajoGroup.current_balance} SOL
-👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
-🗳️ **Consensus:** ${ajoGroup.consensus_threshold}%
-📈 **Status:** ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
+💰 **Capital:** ${group.current_balance} SOL
+👥 **Members:** ${group.members.length}/${group.max_members}
+🗳️ **Consensus:** ${group.consensus_threshold}%
+📈 **Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
 
 📊 **Financial Summary:**
 • Total Contributions: $${financialSummary.total_contributions}
@@ -47,22 +47,22 @@ export class AjoInfoCommand extends BaseCommand {
 • Largest Contribution: $${financialSummary.largest_contribution}
 
 🗳️ **Active Polls:** ${activePolls.length}
-📈 **Total Trades:** ${ajoGroup.trades.length}
+📈 **Total Trades:** ${group.trades.length}
 
-**Group ID:** \`${ajoGroup._id}\`
-**Created:** ${new Date(ajoGroup.created_at).toLocaleDateString()}
+**Group ID:** \`${group._id}\`
+**Created:** ${new Date(group.created_at).toLocaleDateString()}
       `;
 
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback("👥 View Members", "ajo_members"),
-          Markup.button.callback("🗳️ View Polls", "ajo_polls"),
+          Markup.button.callback("👥 View Members", "group_members"),
+          Markup.button.callback("🗳️ View Polls", "group_polls"),
         ],
         [
-          Markup.button.callback("💰 My Balance", "ajo_balance"),
+          Markup.button.callback("💰 My Balance", "my_balance"),
           Markup.button.callback("📊 Group Stats", "group_stats"),
         ],
-        [Markup.button.callback("🔄 Refresh", "ajo_info")],
+        [Markup.button.callback("🔄 Refresh", "group_info")],
       ]);
 
       await ctx.reply(infoMessage, {
@@ -70,8 +70,8 @@ export class AjoInfoCommand extends BaseCommand {
         ...keyboard,
       });
     } catch (error) {
-      console.error("Ajo info error:", error);
-      await ctx.reply("❌ Failed to get ajo info.");
+      console.error(" info error:", error);
+      await ctx.reply("❌ Failed to get info.");
     }
   }
 }

@@ -6,7 +6,7 @@ import getUser from "../services/getUserInfo";
 
 export class AddMemberCommand extends BaseCommand {
   name = "add_member";
-  description = "Add a member to an Ajo group";
+  description = "Add a member to a group";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -70,7 +70,7 @@ export class AddMemberCommand extends BaseCommand {
       );
 
       try {
-        // Join the ajo group
+        // Join the group
         const ajoGroup = await joinAjo({
           group_id: groupId,
           user_id: userId,
@@ -85,7 +85,7 @@ export class AddMemberCommand extends BaseCommand {
         }
 
       const successMessage = `
-✅ **Successfully Joined Ajo Group!**
+✅ **Successfully Joined Group!**
 
 🏠 **Group:** ${ajoGroup.name}
 👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
@@ -97,10 +97,10 @@ export class AddMemberCommand extends BaseCommand {
 3. Share in the profits!
 
 **Useful Commands:**
-• \`/ajo info\` - View group details
-• \`/ajo polls\` - See active polls
-• \`/ajo balance\` - Check your share
-• \`/ajo members\` - See all members
+• \`/info\` - View group details
+• \`/polls\` - See active polls
+• \`/balance\` - Check your share
+• \`/members\` - See all members
       `;
 
         await ctx.reply(successMessage, { parse_mode: "Markdown" });
@@ -120,13 +120,13 @@ export class AddMemberCommand extends BaseCommand {
           errorMessage = "Network connection issue. The RPC endpoint is temporarily unavailable. Please try again in a few moments.";
         }
         
-        await ctx.reply(`❌ Failed to join Ajo group: ${errorMessage}`);
+        await ctx.reply(`❌ Failed to join group: ${errorMessage}`);
       }
     } catch (error) {
       console.error("Add member error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      await ctx.reply(`❌ Failed to join Ajo group: ${errorMessage}`);
+      await ctx.reply(`❌ Failed to join group: ${errorMessage}`);
     }
   }
 }

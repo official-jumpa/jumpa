@@ -20,13 +20,13 @@ export interface VoteParams {
 }
 
 /**
- * Create a new poll in an Ajo group
+ * Create a new poll in an group
  */
 export async function createPoll(params: CreatePollParams) {
   try {
     const ajoGroup = await AjoGroup.findById(params.group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     // Check if group is active
@@ -95,7 +95,7 @@ export async function voteOnPoll(params: VoteParams) {
   try {
     const ajoGroup = await AjoGroup.findById(params.group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     // Find the poll
@@ -164,7 +164,7 @@ export async function getPoll(group_id: string, poll_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const poll = ajoGroup.polls.find((poll) => poll.id === poll_id);
@@ -189,7 +189,7 @@ export async function getGroupPolls(
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     let polls = ajoGroup.polls;
@@ -243,7 +243,7 @@ export async function executePoll(group_id: string, poll_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const pollIndex = ajoGroup.polls.findIndex((poll) => poll.id === poll_id);
@@ -277,7 +277,7 @@ export async function executePoll(group_id: string, poll_id: string) {
       });
     }
 
-    // If it's an end_ajo poll, end the group
+    // If it's an end_poll, end the group
     if (poll.type === "end_ajo") {
       ajoGroup.status = "ended";
     }
@@ -299,7 +299,7 @@ export async function cancelPoll(group_id: string, poll_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const pollIndex = ajoGroup.polls.findIndex((poll) => poll.id === poll_id);
@@ -387,7 +387,7 @@ export async function processExpiredPolls(group_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const now = new Date();

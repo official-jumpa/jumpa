@@ -37,7 +37,7 @@ export interface VoteParams {
 }
 
 /**
- * Create a new Ajo group (both on-chain and in database)
+ * Create a new group (both on-chain and in database)
  */
 export async function createAjo(params: CreateAjoParams) {
   try {
@@ -61,12 +61,12 @@ export async function createAjo(params: CreateAjoParams) {
       throw new Error("Consensus threshold must be between 50% and 100%");
     }
 
-    // Check if chat already has an ajo group
+    // Check if chat already has an group
     const existingGroup = await AjoGroup.findOne({
       telegram_chat_id: params.telegram_chat_id,
     });
     if (existingGroup) {
-      throw new Error("This chat already has an Ajo group");
+      throw new Error("This chat already has an group");
     }
 
     // Initialize group on-chain first
@@ -112,7 +112,7 @@ export async function createAjo(params: CreateAjoParams) {
       throw new Error(`Failed to create group on-chain: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // Create the ajo group in database
+    // Create the group in database
     const ajoGroup = new AjoGroup({
       name: params.name,
       creator_id: params.creator_id,
@@ -139,18 +139,18 @@ export async function createAjo(params: CreateAjoParams) {
 
     await ajoGroup.save();
 
-    console.log(`Ajo group created: ${params.name} (ID: ${ajoGroup._id})`);
+    console.log(`group created: ${params.name} (ID: ${ajoGroup._id})`);
     console.log(`On-chain address: ${onChainResult.groupPDA}`);
     
     return ajoGroup;
   } catch (error) {
-    console.error("Error creating ajo group:", error);
+    console.error("Error creating group:", error);
     throw error;
   }
 }
 
 /**
- * Join an existing Ajo group (both on-chain and in database)
+ * Join an existing group (both on-chain and in database)
  */
 export async function joinAjo(params: JoinAjoParams) {
   try {
@@ -160,15 +160,15 @@ export async function joinAjo(params: JoinAjoParams) {
       throw new Error("User not found. Please register first.");
     }
 
-    // Find the ajo group
+    // Find the group
     const ajoGroup = await AjoGroup.findById(params.group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     // Check if group is active
     if (ajoGroup.status !== "active") {
-      throw new Error("This Ajo group is not accepting new members");
+      throw new Error("This group is not accepting new members");
     }
 
     // Check if user is already a member
@@ -176,12 +176,12 @@ export async function joinAjo(params: JoinAjoParams) {
       (member) => member.user_id === params.user_id
     );
     if (existingMember) {
-      throw new Error("You are already a member of this Ajo group");
+      throw new Error("You are already a member of this group");
     }
 
     // Check if group has space
     if (ajoGroup.members.length >= ajoGroup.max_members) {
-      throw new Error("This Ajo group is full");
+      throw new Error("This group is full");
     }
 
     // Get the group owner
@@ -229,46 +229,46 @@ export async function joinAjo(params: JoinAjoParams) {
 
     await ajoGroup.save();
 
-    console.log(`User ${params.user_id} joined ajo group ${params.group_id}`);
+    console.log(`User ${params.user_id} joined group ${params.group_id}`);
     return ajoGroup;
   } catch (error) {
-    console.error("Error joining ajo group:", error);
+    console.error("Error joining group:", error);
     throw error;
   }
 }
 
 /**
- * Get Ajo group information
+ * Get group information
  */
 export async function getAjoInfo(group_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     return ajoGroup;
   } catch (error) {
-    console.error("Error getting ajo group info:", error);
+    console.error("Error getting group info:", error);
     throw error;
   }
 }
 
 /**
- * Get Ajo group by telegram chat ID
+ * Get group by telegram chat ID
  */
 export async function getAjoByChatId(telegram_chat_id: number) {
   try {
     const ajoGroup = await AjoGroup.findOne({ telegram_chat_id });
     return ajoGroup;
   } catch (error) {
-    console.error("Error getting ajo group by chat ID:", error);
+    console.error("Error getting group by chat ID:", error);
     throw error;
   }
 }
 
 /**
- * Update Ajo group status
+ * Update group status
  */
 export async function updateAjoStatus(
   group_id: string,
@@ -282,19 +282,19 @@ export async function updateAjoStatus(
     );
 
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
-    console.log(`Ajo group ${group_id} status updated to ${status}`);
+    console.log(`group ${group_id} status updated to ${status}`);
     return ajoGroup;
   } catch (error) {
-    console.error("Error updating ajo group status:", error);
+    console.error("Error updating group status:", error);
     throw error;
   }
 }
 
 /**
- * Get user's Ajo groups
+ * Get user's groups
  */
 export async function getUserAjoGroups(user_id: number) {
   try {
@@ -304,13 +304,13 @@ export async function getUserAjoGroups(user_id: number) {
 
     return ajoGroups;
   } catch (error) {
-    console.error("Error getting user ajo groups:", error);
+    console.error("Error getting user groups:", error);
     throw error;
   }
 }
 
 /**
- * Check if user is member of ajo group
+ * Check if user is member of group
  */
 export async function isUserMember(group_id: string, user_id: number) {
   try {
@@ -327,7 +327,7 @@ export async function isUserMember(group_id: string, user_id: number) {
 }
 
 /**
- * Check if user is trader in ajo group
+ * Check if user is trader in group
  */
 export async function isUserTrader(group_id: string, user_id: number) {
   try {
@@ -357,7 +357,7 @@ export async function updateMemberContribution(
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const memberIndex = ajoGroup.members.findIndex(
@@ -394,7 +394,7 @@ export async function promoteToTrader(group_id: string, user_id: number) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const memberIndex = ajoGroup.members.findIndex(
@@ -422,7 +422,7 @@ export async function addTraderOnChain(group_id: string, trader_telegram_id: num
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const trader = await User.findOne({ telegram_id: trader_telegram_id });
@@ -475,7 +475,7 @@ export async function removeTraderOnChain(group_id: string, trader_telegram_id: 
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const trader = await User.findOne({ telegram_id: trader_telegram_id });
@@ -518,7 +518,7 @@ export async function createTradeProposal(params: CreateTradeProposalParams) {
   try {
     const ajoGroup = await AjoGroup.findById(params.group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     const proposer = await User.findOne({ telegram_id: params.proposer_telegram_id });
@@ -595,7 +595,7 @@ export async function syncGroupFromChain(group_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     if (!ajoGroup.onchain_group_address) {
@@ -653,7 +653,7 @@ export async function fetchGroupProposals(group_id: string) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     if (!ajoGroup.onchain_group_address) {
@@ -671,13 +671,13 @@ export async function fetchGroupProposals(group_id: string) {
 }
 
 /**
- * Remove member from ajo group (exit on-chain and remove from database)
+ * Remove member from group (exit on-chain and remove from database)
  */
 export async function removeMember(group_id: string, user_id: number) {
   try {
     const ajoGroup = await AjoGroup.findById(group_id);
     if (!ajoGroup) {
-      throw new Error("Ajo group not found");
+      throw new Error("group not found");
     }
 
     // Don't allow removing the creator

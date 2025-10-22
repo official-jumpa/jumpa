@@ -53,10 +53,10 @@ export class DemoteTraderCommand extends BaseCommand {
 
       const targetUserId = targetUser.telegram_id;
 
-      // Get ajo group
+      // Get  group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 

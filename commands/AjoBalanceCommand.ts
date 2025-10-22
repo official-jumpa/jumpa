@@ -5,7 +5,7 @@ import { getMemberFinancialSummary } from "../services/balanceService";
 
 export class AjoBalanceCommand extends BaseCommand {
   name = "ajo_balance";
-  description = "Show your balance and share in Ajo group";
+  description = "Show your balance and share in group";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -20,7 +20,7 @@ export class AjoBalanceCommand extends BaseCommand {
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
+          "❌ No group found in this chat.\n\n" +
             "Use `/create_group` to create a new group.",
           { parse_mode: "Markdown" }
         );
@@ -32,7 +32,7 @@ export class AjoBalanceCommand extends BaseCommand {
         userId
       );
       if (!isMember) {
-        await ctx.reply("❌ You are not a member of this Ajo group.");
+        await ctx.reply("❌ You are not a member of this group.");
         return;
       }
 
@@ -63,7 +63,7 @@ export class AjoBalanceCommand extends BaseCommand {
 
       await ctx.reply(balanceMessage, { parse_mode: "Markdown" });
     } catch (error) {
-      console.error("Ajo balance error:", error);
+      console.error("balance error:", error);
       await ctx.reply("❌ Failed to get balance information.");
     }
   }

@@ -45,7 +45,7 @@ export class StartCallbackHandlers {
 
 👑 **Role:** ${user.role}
 
-🏠 **Ajo Groups:** 0 (Coming Soon!)
+🏠 **Groups:** 0 (Coming Soon!)
       `;
 
       const keyboard = Markup.inlineKeyboard([
@@ -66,12 +66,12 @@ export class StartCallbackHandlers {
     }
   }
 
-  // Handle create ajo callback
+  // Handle create callback
   static async handleCreateAjo(ctx: Context): Promise<void> {
     await AjoCallbackHandlers.handleCreateAjo(ctx);
   }
 
-  // Handle join ajo callback
+  // Handle join callback
   static async handleJoinAjo(ctx: Context): Promise<void> {
     await AjoCallbackHandlers.handleJoinAjo(ctx);
   }
@@ -93,8 +93,8 @@ export class StartCallbackHandlers {
 /info - Get bot information
 
 <b>Coming Soon:</b>
-/create_ajo - Create an Ajo group
-/join group_id - Join an Ajo group
+/create_ajo - Create an group
+/join group_id - Join a group
 /vote poll_id yes/no - Vote on polls
 /history - View trading history
 
@@ -114,10 +114,10 @@ Contact @your_support_username for help!`
       await ctx.answerCbQuery("ℹ️ About Jumpa");
 
       const aboutMessage = `
-ℹ️ **About Jumpa Ajo Bot**
+ℹ️ **About Jumpa Bot**
 
 **What is Jumpa?**
-Jumpa is a Telegram bot that enables collaborative trading through Ajo groups - traditional savings groups reimagined for the digital age.
+Jumpa is a Telegram bot that enables collaborative trading through groups - traditional savings groups reimagined for the digital age.
 
 **Key Features:**
 🔑 **Auto-generated Solana wallets** for each user
@@ -127,7 +127,7 @@ Jumpa is a Telegram bot that enables collaborative trading through Ajo groups - 
 🔒 **Secure smart contract integration**
 
 **How It Works:**
-1. Create or join an Ajo group
+1. Create or join an group
 2. Contribute SOL to the group pool
 3. Vote on trading proposals
 4. Share profits based on your contribution
@@ -170,12 +170,12 @@ Jumpa is a Telegram bot that enables collaborative trading through Ajo groups - 
       }
 
       const welcomeMessage = `
- Welcome to Jumpa Ajo Bot, ${username}!
+ Welcome to Jumpa Bot, ${username}!
 
  Your Wallet: \`${user.wallet_address}\`
 
  Balance: ${user.user_balance} SOL
- 
+
  Ready to start collaborative trading!
       `;
 

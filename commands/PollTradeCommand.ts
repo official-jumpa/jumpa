@@ -41,11 +41,11 @@ export class PollTradeCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group
+      // Get group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
+          "❌ No group found in this chat.\n\n" +
             "Use `/create_group` to create a new group first.",
           { parse_mode: "Markdown" }
         );

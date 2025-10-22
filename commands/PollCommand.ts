@@ -61,7 +61,7 @@ export class PollCommand extends BaseCommand {
 
 **Creating Polls (Traders Only):**
 • \`/poll trade <token> <amount>\` - Create trade poll
-• \`/poll end\` - Create end ajo poll
+• \`/poll end\` - Create end poll
 
 **Voting:**
 • \`/poll vote <poll_id> <yes/no>\` - Vote on poll
@@ -109,10 +109,10 @@ export class PollCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -206,10 +206,10 @@ export class PollCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -225,14 +225,14 @@ export class PollCommand extends BaseCommand {
         group_id: ajoGroup._id.toString(),
         creator_id: userId,
         type: "end_ajo",
-        title: "End Ajo Group and Distribute Profits",
+        title: "End Group and Distribute Profits",
         expires_hours: 48, // Give more time for end polls
       });
 
       const pollMessage = `
-🗳️ **New End Ajo Poll Created!**
+🗳️ **New End Poll Created!**
 
-🏁 **Action:** End Ajo Group and Distribute Profits
+🏁 **Action:** End Group and Distribute Profits
 💰 **Current Balance:** ${ajoGroup.current_balance} SOL
 ⏰ **Expires:** ${new Date(poll.expires_at).toLocaleString()}
 
@@ -309,10 +309,10 @@ export class PollCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -370,10 +370,10 @@ export class PollCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -451,10 +451,10 @@ ${
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -478,7 +478,7 @@ ${
 ${
   poll.type === "trade"
     ? `🔄 **Trade recorded in group history**`
-    : `🏁 **Ajo group has been ended**`
+    : `🏁 **group has been ended**`
 }
       `;
 
@@ -519,10 +519,10 @@ ${
         return;
       }
 
-      // Get ajo group for this chat
+      // Get group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 

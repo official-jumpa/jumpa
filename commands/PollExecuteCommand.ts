@@ -41,10 +41,10 @@ export class PollExecuteCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group
+      // Get group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -77,7 +77,7 @@ ${result.poll.type === "trade" ? `**Trade Details:**
 • Amount: ${result.poll.amount} SOL
 • Transaction: In Progress...
 ` : ""}
-${result.poll.type === "end_ajo" ? `**Ajo Group Ended**
+${result.poll.type === "end_ajo" ? `**Group Ended**
 • Final Balance: ${ajoGroup.current_balance} SOL
 • Profits will be distributed to members
 ` : ""}

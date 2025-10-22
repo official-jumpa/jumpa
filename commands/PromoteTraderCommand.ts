@@ -53,10 +53,10 @@ export class PromoteTraderCommand extends BaseCommand {
 
       const targetUserId = targetUser.telegram_id;
 
-      // Get ajo group
+      // Get group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -77,7 +77,7 @@ export class PromoteTraderCommand extends BaseCommand {
       if (!targetMember) {
         await ctx.reply(
           `❌ User ${targetUserId} is not a member of this group.\n\n` +
-            "They need to join the group first using `/ajo join`.",
+            "They need to join the group first using `/join`.",
           { parse_mode: "Markdown" }
         );
         return;

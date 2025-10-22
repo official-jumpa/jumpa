@@ -31,10 +31,10 @@ export class PollResultsCommand extends BaseCommand {
 
       const pollId = args[0];
 
-      // Get ajo group
+      // Get group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 

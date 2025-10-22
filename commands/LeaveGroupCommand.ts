@@ -6,7 +6,7 @@ import getUser from "../services/getUserInfo";
 
 export class LeaveGroupCommand extends BaseCommand {
   name = "leave_group";
-  description = "Leave an Ajo group";
+  description = "Leave a group";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -28,10 +28,10 @@ export class LeaveGroupCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group
+      // Get  group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
-        await ctx.reply("❌ No Ajo group found in this chat.");
+        await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
@@ -95,7 +95,7 @@ export class LeaveGroupCommand extends BaseCommand {
 
 Your member profile has been closed and any remaining balance will be returned to you.
 
-*You can rejoin anytime with:* /ajo join`;
+*You can rejoin anytime with:* /join`;
 
         await ctx.reply(successMessage, { parse_mode: "Markdown" });
       } catch (exitError) {

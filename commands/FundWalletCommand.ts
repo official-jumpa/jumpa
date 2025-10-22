@@ -85,7 +85,7 @@ If you're on mainnet:
 
 You can now:
 • Create groups with \`/create_group\`
-• Join groups with \`/ajo join\`
+• Join groups with \`/join\`
 • Propose trades with \`/propose_trade\`
 `}
 

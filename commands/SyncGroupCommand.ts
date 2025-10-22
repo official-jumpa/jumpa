@@ -26,11 +26,11 @@ export class SyncGroupCommand extends BaseCommand {
         return;
       }
 
-      // Get the ajo group for this chat
+      // Get the group for this chat
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat. Create one first with /create_group"
+          "❌ No group found in this chat. Create one first with /create_group"
         );
         return;
       }

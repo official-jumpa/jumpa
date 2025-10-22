@@ -7,7 +7,7 @@ import getUser from "../services/getUserInfo";
 
 export class PollEndCommand extends BaseCommand {
   name = "poll_end";
-  description = "Create an end Ajo poll (traders only)";
+  description = "Create an end group poll (traders only)";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -27,11 +27,11 @@ export class PollEndCommand extends BaseCommand {
         return;
       }
 
-      // Get ajo group
+      // Get group
       const ajoGroup = await getAjoByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
-          "❌ No Ajo group found in this chat.\n\n" +
+          "❌ No group found in this chat.\n\n" +
             "Use `/create_group` to create a new group first.",
           { parse_mode: "Markdown" }
         );
@@ -57,18 +57,18 @@ export class PollEndCommand extends BaseCommand {
         group_id: ajoGroup._id.toString(),
         creator_id: userId,
         type: "end_ajo",
-        title: "End Ajo Group",
+        title: "End Group",
       });
 
       const pollMessage = `
-🗳️ **New End Ajo Poll Created!**
+🗳️ **New End Poll Created!**
 
-**Poll Type:** End Ajo Group
+**Poll Type:** End Group
 **Poll ID:** \`${poll.poll.id}\`
 **Consensus Required:** ${ajoGroup.consensus_threshold}%
 **Expires:** ${new Date(poll.poll.expires_at).toLocaleString()}
 
-⚠️ **Warning:** If this poll passes, the Ajo group will be ended and profits will be distributed.
+⚠️ **Warning:** If this poll passes, the group will be ended and profits will be distributed.
 
 💡 Members can vote using:
 \`/vote ${poll.poll.id} yes\` or \`/vote ${poll.poll.id} no\`

@@ -73,8 +73,8 @@ export class BankHandler {
       }
 
     } catch (error) {
-      console.error("Create ajo error:", error);
-      await ctx.answerCbQuery("❌ Failed to open create ajo.");
+      console.error("Create error:", error);
+      await ctx.answerCbQuery("❌ Failed to create.");
     }
 
   }
@@ -137,8 +137,8 @@ Reply with the bank id to select it. For eg: reply with 0️⃣1️⃣ to select
         }
       }
     } catch (error) {
-      console.error("Create ajo error:", error);
-      await ctx.answerCbQuery("❌ Failed to open create ajo.");
+      console.error("Create error:", error);
+      await ctx.answerCbQuery("❌ Failed to open create.");
     }
   }
 
