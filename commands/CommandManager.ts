@@ -31,6 +31,7 @@ import { WalletCallbackHandlers } from "./callbackHandlers/WalletCallbackHandler
 import { StartCallbackHandlers } from "./callbackHandlers/StartCallbackHandlers";
 import { AjoCallbackHandlers } from "./callbackHandlers/AjoCallbackHandlers";
 import { BankHandler } from "./BankHandler";
+import { getWithdrawalState } from "../state/withdrawalState";
 
 export class CommandManager {
   private commands: Map<string, BaseCommand> = new Map();
@@ -135,12 +136,19 @@ export class CommandManager {
       if (!userId) return;
 
       const state = getBankUpdateState(userId);
-      if (!state) return;
+      const withdrawalState = getWithdrawalState(userId);
+      if (!state && !withdrawalState) return;
+      if (withdrawalState) {
+        await WalletCallbackHandlers.handleWithdrawPinVerification(ctx);
+        return;
+      }
 
-      if (state.step === 'awaiting_bank_name') {
-        await BankHandler.handleBankNameSelection(ctx);
-      } else {
-        await BankHandler.handleBankUpdate(ctx);
+      if (state) {
+        if (state.step === 'awaiting_bank_name') {
+          await BankHandler.handleBankNameSelection(ctx);
+        } else {
+          await BankHandler.handleBankUpdate(ctx);
+        }
       }
     });
 

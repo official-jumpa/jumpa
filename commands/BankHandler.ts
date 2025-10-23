@@ -404,8 +404,15 @@ Reply with the bank id to select it. For eg: reply with 0️⃣1️⃣ to select
 
   static async handleSetWithdrawalPin(ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
+    const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
     if (!userId) {
       await ctx.reply("❌ Unable to identify user.");
+      return;
+    }
+    const usr = getUser(userId, username);
+    const usrPin = (await usr).bank_details.withdrawalPin;
+    if (usrPin && usrPin !== 0) {
+      await ctx.reply(" You have already set a withdrawal pin. If you wish to change it, please contact support.");
       return;
     }
 

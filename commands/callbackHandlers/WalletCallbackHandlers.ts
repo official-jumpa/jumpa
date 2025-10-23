@@ -4,6 +4,7 @@ import { config } from "../../config/config";
 import Withdrawal from "../../models/withdrawal";
 import { WithdrawSolToNgn } from "../WithdrawSolToNgn";
 import { safeDeleteMessage } from "../../utils/messageUtils";
+import { clearWithdrawalState, getWithdrawalState, setWithdrawalState } from "../../state/withdrawalState";
 
 export class WalletCallbackHandlers {
     static async handleDeposit(ctx: Context): Promise<void> {
@@ -70,6 +71,10 @@ export class WalletCallbackHandlers {
 
         if (!user.bank_details.bank_name || !user.bank_details.account_name || !user.bank_details.account_number) {
             await ctx.reply("Please set up your bank details first.");
+            return;
+        }
+        if (!user.bank_details.withdrawalPin) {
+            await ctx.reply("Please set up your withdrawal pinfirst.");
             return;
         }
 
@@ -157,12 +162,7 @@ export class WalletCallbackHandlers {
         const cbData = (ctx.callbackQuery as any).data;
         const amount = cbData.split(":")[1];
 
-        //create a payment widget with the user details and account number
-        const widget = config.paymentWidgetUrl;
-        if (!widget) {
-            await ctx.reply("Payment widget URL not specified");
-            return;
-        }
+
         const telegramId = ctx.from?.id;
         const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
 
@@ -170,6 +170,7 @@ export class WalletCallbackHandlers {
             await ctx.answerCbQuery("❌ Unable to identify your account.");
             return;
         }
+        setWithdrawalState(telegramId, 'awaiting_pin', { amount });
 
         const user = await getUser(telegramId, username);
         if (!user) {
@@ -178,11 +179,67 @@ export class WalletCallbackHandlers {
         } else if (!user.bank_details.account_number || !user.bank_details.bank_code) {
             await ctx.reply("❌ Please setup a payment method first.");
             return;
+        } else if (!user.bank_details.withdrawalPin) {
+            await ctx.reply("❌ Please setup a withdrawal pin first.");
+            return;
         } else if (!config.yaraApiKey) {
             await ctx.reply("❌ Developement error");
             return;
         }
 
+        //ask the user to enter their withdrawal pin
+        await ctx.reply(`Please enter your 4-digit withdrawal pin to withdraw ${amount} SOL:`);
+        return;
+
+
+
+    }
+    static async handleWithdrawPinVerification(ctx: Context): Promise<void> {
+        const userId = ctx.from?.id;
+        const message = (ctx.message as any)?.text;
+
+        if (!userId || !message) {
+            return;
+        }
+
+        const state = getWithdrawalState(userId);
+        if (!state || state.step !== 'awaiting_pin') {
+            return;
+        }
+
+        const enteredPin = message.trim();
+
+        // Validate pin format
+        if (!/^\d{4}$/.test(enteredPin)) {
+            await ctx.reply("❌ Invalid pin format. Please enter a 4-digit numeric pin.");
+            return;
+        }
+
+        const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+        const user = await getUser(userId, username);
+
+        if (!user) {
+            await ctx.reply("❌ User does not exist.");
+            clearWithdrawalState(userId);
+            return;
+        }
+
+        // Verify pin matches
+        if (user.bank_details.withdrawalPin !== parseInt(enteredPin, 10)) {
+            await ctx.reply("❌ Incorrect withdrawal pin. Please try again:");
+            return; // Keep state active for retry
+        }
+
+        // Pin is correct, proceed with withdrawal
+        const { amount } = state.data;
+        clearWithdrawalState(userId);
+
+        //create a payment widget with the user details and account number
+        const widget = config.paymentWidgetUrl;
+        if (!widget) {
+            await ctx.reply("Payment widget URL not specified");
+            return;
+        }
         const paymentOptions = {
             "sender": {},
             "recipient": {
@@ -271,6 +328,7 @@ export class WalletCallbackHandlers {
             return;
         }
     }
+
 
     static async handleRefreshBalance(ctx: Context): Promise<void> { }
     static async handleCopyAddress(ctx: Context): Promise<void> { }
