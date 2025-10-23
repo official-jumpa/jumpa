@@ -43,11 +43,11 @@ _Tap the wallet address above to copy it_`;
             Markup.button.callback(" My Profile", "view_profile"),
           ],
           [
-            Markup.button.callback(" Create  Group", "create_ajo"),
-            Markup.button.callback(" Join  Group", "join_ajo"),
+            Markup.button.callback(" Create Group", "create_group"),
+            Markup.button.callback(" Join  Group", "join_group"),
           ],
           [
-            Markup.button.callback(" Group Info", "ajo_info"),
+            Markup.button.callback(" Group Info", "group_info"),
           ],
           [
             Markup.button.callback("Deposit", "deposit_sol"),

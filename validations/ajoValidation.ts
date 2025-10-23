@@ -31,8 +31,9 @@ export function validateAjoCreation(params: {
   }
 
   // Validate initial capital
-  if (params.initial_capital <= 0) {
-    errors.push("Initial capital must be greater than 0");
+  if (params.initial_capital <= 0.05) {
+    console.log("Initial capital validation failed:", params.initial_capital);
+    errors.push("Initial capital must be greater than 0.05 SOL");
   }
 
   // Validate max members

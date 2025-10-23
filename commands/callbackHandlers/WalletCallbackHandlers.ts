@@ -33,12 +33,17 @@ export class WalletCallbackHandlers {
     }
 
     static async handleWithdraw(ctx: Context): Promise<void> {
-        const keyboard = Markup.inlineKeyboard([
-            Markup.button.callback("🏧To Bank Account", "withdraw_to_bank"),
-            Markup.button.callback("on-chain", "withdraw_onchain"),
-        ]);
+        const keyboard = Markup.inlineKeyboard(
+            [[
+                Markup.button.callback("🏧To Bank Account", "withdraw_to_bank"),
+                Markup.button.callback("on-chain", "withdraw_onchain"),
+            ], [
+                Markup.button.callback("Set Withdrawal Pin", "set_withdrawal_pin"),
+                Markup.button.callback("❌ Cancel", "back_to_menu"),
+            ],]
+        );
 
-        await ctx.reply("How would you like to withdraw?", keyboard);
+        await ctx.reply("Where would you like to withdraw to? Make sure you have setup your withdrawal pin to avoid unauthorized withdrawals from your account", keyboard);
     }
 
     static async handleWithdrawOnchain(ctx: Context): Promise<void> {

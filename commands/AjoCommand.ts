@@ -79,7 +79,7 @@ export class AjoCommand extends BaseCommand {
 🏠 **Commands**
 
 **Group Management:**
-• \`/create <name> <max_members> [consensus_threshold]\` - Create new group
+• \`/create <name> <max_members> <amount> [consensus_threshold]\` - Create new group
 • \`/join <group_id>\` - Join existing group
 • \`/info\` - Show current group info
 • \`/my_groups\` - Show your groups

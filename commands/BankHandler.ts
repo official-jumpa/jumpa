@@ -297,6 +297,44 @@ Reply with the bank id to select it. For eg: reply with 0️⃣1️⃣ to select
         setBankUpdateState(userId, 'awaiting_final_confirmation', { accountNumber: message });
         await ctx.reply(confirmMessage, { parse_mode: "Markdown", ...confirmKeyboard });
         break;
+
+      case 'awaiting_withdrawal_pin':
+        const pin = message.trim();
+
+        // Validate format first
+        if (!/^\d{4}$/.test(pin)) {
+          await ctx.reply("❌ Invalid pin format. Please enter a 4-digit numeric pin.");
+          return;
+        }
+
+        const pinNum = parseInt(pin, 10);
+
+        // Validate common sequences
+        if (pinNum === 0 || pin === 0o0 || pinNum === 1234 || pinNum === 1111 || pinNum === 2222 ||
+          pinNum === 3333 || pinNum === 4444 || pinNum === 5555 || pinNum === 6666 ||
+          pinNum === 7777 || pinNum === 8888 || pinNum === 9999) {
+          await ctx.reply("❌ Pin cannot be a common sequence like 0000, 1234, 1111, etc. Please enter a more secure 4-digit pin.");
+          setBankUpdateState(userId, 'awaiting_withdrawal_pin');
+          return;
+        }
+
+        // Only show confirmation if validation passes
+        const withdrawalPinConfirmMessage = `
+          You have entered the pin: **${pin}**
+        
+          Please confirm to set this as your withdrawal pin.
+          `;
+
+        const withdrawalPinConfirmKeyboard = Markup.inlineKeyboard([
+          [
+            Markup.button.callback("✅ Accept", `set_withdrawal_pin:confirm:${pin}`),
+            Markup.button.callback("❌ Decline", `set_withdrawal_pin:cancel`),
+          ],
+        ]);
+
+        setBankUpdateState(userId, 'awaiting_withdrawal_pin_confirmation', { withdrawalPin: pinNum });
+        await ctx.reply(withdrawalPinConfirmMessage, { parse_mode: "Markdown", ...withdrawalPinConfirmKeyboard });
+        break;
     }
   }
 
@@ -361,6 +399,64 @@ Reply with the bank id to select it. For eg: reply with 0️⃣1️⃣ to select
         await ctx.reply(`You selected: <b>${bank.Name}</b> (Code: <code>${bank.Code}</code>)\n\nDo you want to save this as your bank?`, { parse_mode: "HTML", ...confirmKeyboard });
         return;
       }
+    }
+  }
+
+  static async handleSetWithdrawalPin(ctx: Context): Promise<void> {
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply("❌ Unable to identify user.");
+      return;
+    }
+
+    setBankUpdateState(userId, 'awaiting_withdrawal_pin');
+    await ctx.reply("Please enter a 4-digit withdrawal pin you would like to set for your account.");
+  }
+
+  static async handleSetWithdrawalPinConfirmation(ctx: Context): Promise<void> {
+    const cbData = (ctx.callbackQuery && (ctx.callbackQuery as any).data) || null;
+    if (!cbData || typeof cbData !== "string") return;
+
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply("❌ Unable to identify user.");
+      return;
+    }
+
+    const state = getBankUpdateState(userId);
+    if (!state || state.step !== 'awaiting_withdrawal_pin_confirmation') {
+      return;
+    }
+
+    if (cbData.startsWith("set_withdrawal_pin:confirm:")) {
+      await ctx.answerCbQuery("Saving...");
+      const parts = cbData.split(":");
+      const pin = Number(parts[2]);
+
+      const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+      const usr = await getUser(userId, username);
+      if (usr) {
+        usr.bank_details.withdrawalPin = pin; // set the withdrawal pin, protect this later
+        await usr.save();
+        const keyboard = Markup.inlineKeyboard([
+          [
+            Markup.button.callback("🔙 Back to Main Menu", "back_to_menu"),
+            Markup.button.callback("📊 View Profile", "view_profile"),
+          ],
+        ]);
+        await ctx.reply("✅ Withdrawal pin set successfully!", keyboard);
+      } else {
+        await ctx.reply("❌ User not found.");
+      }
+      clearBankUpdateState(userId);
+      return;
+    }
+
+    if (cbData === "set_withdrawal_pin:cancel") {
+      await ctx.answerCbQuery("Cancelled");
+      await ctx.reply("Operation cancelled.");
+      clearBankUpdateState(userId);
+      return;
     }
   }
 }

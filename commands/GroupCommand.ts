@@ -30,7 +30,7 @@ export class GroupCommand extends BaseCommand {
             "**To use group trading in groups:**\n" +
             "1. Add this bot to your Telegram group\n" +
             "2. Use `/start` in the group to initialize\n" +
-            "3. Use `/create_group <name> <max_members>` to create a trading group\n" +
+            "3. Use `/create_group <name> <max_members> <amount> [consensus_threshold]` to create a trading group\n" +
             "4. Start trading with your group members!",
           { parse_mode: "Markdown" }
         );
@@ -148,10 +148,10 @@ Make sure the bot has these permissions:
 
 **Step 2: Create Group**
 Use this command to create your group:
-\`/create_group <name> <max_members> [consensus_threshold]\`
+\`/create_group <name> <max_members> <amount> [consensus_threshold]\`
 
 **Examples:**
-• \`/create_group CryptoCrew 10 67\`
+• \`/create_group CryptoCrew 10 0.1 67\`
 • \`/create_group MoonTraders 25\`
 • \`/create_group DeFi Squad 50 75\`
 
@@ -188,7 +188,7 @@ Use this command to create your group:
 • \`/group help\` - This help message
 
 **Group Commands:**
-• \`/create_group <name> <max_members> [consensus]\` - Create group
+• \`/create_group <name> <max_members> <amount> [consensus]\` - Create group
 • \`/info\` - View group information
 • \`members\` - List members
 • \`/polls\` - Show active polls
@@ -208,7 +208,7 @@ Use this command to create your group:
 • \`/profile\` - User profile
 
 **Examples:**
-• \`/create_group CryptoCrew 10 67\`
+• \`/create_group CryptoCrew 10 0.1 67\`
 • \`/poll trade BONK 1000\`
 • \`/vote 507f1f77bcf86cd799439012 yes\`
 

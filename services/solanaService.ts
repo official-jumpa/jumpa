@@ -262,7 +262,8 @@ export async function initializeGroup(params: InitializeGroupParams) {
     }
 
     // Check wallet balance before attempting transaction
-    const balanceCheck = await checkWalletBalance(signer, 5000000); // 0.005 SOL minimum
+    const balanceCheck = await checkWalletBalance(signer, 50000000); // 0.05 SOL minimum
+    console.log(`Wallet balance: ${balanceCheck.balance} lamports. Minimum required: ${balanceCheck.minBalance} lamports.`);
     if (!balanceCheck.hasBalance) {
       const balanceInSol = (balanceCheck.balance / 1000000000).toFixed(4);
       const minBalanceInSol = (balanceCheck.minBalance / 1000000000).toFixed(4);

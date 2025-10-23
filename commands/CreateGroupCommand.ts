@@ -47,7 +47,7 @@ export class CreateGroupCommand extends BaseCommand {
       // Parse arguments
       const name = args[0];
       const maxMembers = parseInt(args[1]);
-      const entryCapital = parseInt(args[2]);
+      const entryCapital = Number(args[2]);
       const consensusThreshold = args[3] ? parseInt(args[3]) : 67;
 
       // Validate and sanitize input

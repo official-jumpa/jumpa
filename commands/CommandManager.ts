@@ -93,8 +93,8 @@ export class CommandManager {
     // Register callback handlers for start command
     // this.bot.action("view_wallet", StartCallbackHandlers.handleViewWallet);
     this.bot.action("view_profile", StartCallbackHandlers.handleViewProfile);
-    this.bot.action("create_ajo", StartCallbackHandlers.handleCreateAjo);
-    this.bot.action("join_ajo", StartCallbackHandlers.handleJoinAjo);
+    this.bot.action("create_group", StartCallbackHandlers.handleCreateAjo);
+    this.bot.action("join_group", StartCallbackHandlers.handleJoinAjo);
     this.bot.action("show_help", StartCallbackHandlers.handleShowHelp);
     this.bot.action("show_about", StartCallbackHandlers.handleShowAbout);
     this.bot.action("back_to_menu", StartCallbackHandlers.handleBackToMenu);
@@ -125,6 +125,10 @@ export class CommandManager {
 
     this.bot.action("final_confirmation:confirm", BankHandler.handleFinalConfirmation);
     this.bot.action("final_confirmation:cancel", BankHandler.handleFinalConfirmation);
+    //withdrawal pin handler
+    this.bot.action("set_withdrawal_pin", BankHandler.handleSetWithdrawalPin);
+    this.bot.action(/set_withdrawal_pin:confirm:/, BankHandler.handleSetWithdrawalPinConfirmation);
+    this.bot.action("set_withdrawal_pin:cancel", BankHandler.handleSetWithdrawalPinConfirmation);
 
     this.bot.on('text', async (ctx) => {
       const userId = ctx.from?.id;
@@ -169,7 +173,7 @@ export class CommandManager {
       AjoCallbackHandlers.handleBotPermissionsHelp
     );
     this.bot.action("custom_create", AjoCallbackHandlers.handleCustomCreate);
-    this.bot.action("ajo_help", AjoCallbackHandlers.handleAjoHelp);
+    this.bot.action("group_help", AjoCallbackHandlers.handleAjoHelp);
     this.bot.action("browse_groups", AjoCallbackHandlers.handleBrowseGroups);
     this.bot.action("join_with_id", AjoCallbackHandlers.handleJoinWithId);
     this.bot.action("my_groups", AjoCallbackHandlers.handleMyGroups);

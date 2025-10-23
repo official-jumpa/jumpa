@@ -48,6 +48,10 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: "",
       },
+      withdrawalPin: {
+        type: Number,
+        default: 0,
+      },
     },
     is_active: {
       type: Boolean,

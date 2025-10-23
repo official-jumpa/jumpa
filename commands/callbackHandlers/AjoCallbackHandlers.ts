@@ -52,16 +52,16 @@ export class AjoCallbackHandlers {
       }
 
       const createAjoMessage = `
-🏠 **Create Group**
+**Create Group**
 
-**What is an Group?**
-An is a traditional savings group where members:
+**Why Group Trading?**
+
+With group trading, you and your members can:
 • Pool funds together for collective trading
 • Vote on trading decisions democratically  
 • Share profits based on contributions
 • Build wealth as a community
 
-**Setup Options:**
       `;
 
       // Create inline keyboard with create options
@@ -201,14 +201,14 @@ An is a traditional savings group where members:
       // Create inline keyboard for group actions
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback("👥 View Members", "ajo_members"),
-          Markup.button.callback("🗳️ View Polls", "ajo_polls"),
+          Markup.button.callback("👥 View Members", "group_members"),
+          Markup.button.callback("🗳️ View Polls", "group_polls"),
         ],
         [
-          Markup.button.callback("💰 My Balance", "ajo_balance"),
+          Markup.button.callback("💰 My Balance", "group_balance"),
           Markup.button.callback("📊 Group Stats", "group_stats"),
         ],
-        [Markup.button.callback("🔄 Refresh", "ajo_info")],
+        [Markup.button.callback("🔄 Refresh", "group_info")],
       ]);
 
       await ctx.reply(infoMessage, {
@@ -422,25 +422,30 @@ An is a traditional savings group where members:
 **1. Group Name** (required)
 • Choose a unique name for your group
 • Max 100 characters
-• Example: "CryptoCrew", "MoonTraders", "DeFi Squad"
+• Example: "GroupOne", "MoonTraders", "DeFi Squad"
 
 **2. Maximum Members** (required)
 • How many people can join your group?
 • Range: 2-100 members
 • Example: 10, 25, 50
 
-**3. Consensus Threshold** (optional)
+**3. Minimum Contribution** (required)
+• Minimum amount(in SOL) that each member must contribute before joining.
+  This will be deducted upon joinin the group.
+• Example: 0.1, 0.5, 1.0
+
+**4. Consensus Threshold** (optional)
 • What percentage of votes needed to approve decisions?
 • Range: 50-100% (default: 67%)
 • Example: 60, 75, 80
 
 **Use this format:**
-\`/create_group <name> <max_members> [consensus_threshold]\`
+\`/create_group <name> <max_members> <amount> [consensus_threshold]\`
 
 **Examples:**
-\`/create_group CryptoCrew 10 67\`
-\`/create_group MoonTraders 25\`
-\`/create_group DeFi Squad 50 75\`
+\`/create_group GroupOne 10 0.1 67\`
+\`/create_group MoonTraders 25 0.5\`
+\`/create_group DeFi Squad 50 2 75\`
       `;
 
       await ctx.reply(formMessage, { parse_mode: "Markdown" });
@@ -503,9 +508,9 @@ An is a traditional savings group where members:
 • Use: \`/generate_invite\`
 
 **Current Members:**
+
 ${ajoGroup.members
   .map(
-    (member: any, index: any) =>
     (member: any, index: number) =>
       `${index + 1}. ${member.role === "trader" ? "🛠️" : "👤"} Member (ID: ${
         member.user_id
@@ -518,7 +523,7 @@ ${ajoGroup.members
       const keyboard = Markup.inlineKeyboard([
         [
           Markup.button.callback("📋 Copy Group ID", "copy_group_id"),
-          Markup.button.callback("📊 View Members", "ajo_members"),
+          Markup.button.callback("📊 View Members", "group_members"),
         ],
         [Markup.button.callback("🔄 Refresh", "add_members_form")],
       ]);
@@ -541,14 +546,15 @@ ${ajoGroup.members
 ⚙️ **Custom Group Creation**
 
 **To create a custom group, use the command:**
-\`/create <name> <max_members> [consensus_threshold]\`
+\`/create_group <name> <max_members> <amount> [consensus_threshold]\`
 
 **Example:**
-\`/create CryptoCrew 10 67\`
+\`/create_group CryptoCrew 10 0.5 67\`
 
 **Parameters:**
 • **name**: Group name (max 100 characters)
 • **max_members**: Maximum members (2-100)
+• **amount**: Minimum contribution in SOL (at least 0.05)
 • **consensus_threshold**: Voting threshold % (50-100, default: 67)
 
 **Note:** You'll be the group creator and automatically become a trader!
@@ -569,7 +575,7 @@ ${ajoGroup.members
 ❓ **Group Help**
 
 **What is an Group?**
-An is a traditional savings group where members pool funds for collective trading.
+A group is where members pool funds for collective trading.
 
 **Key Features:**
 • **Democratic Voting**: Members vote on trading decisions
@@ -918,7 +924,7 @@ Once the bot is added to your Telegram group:
 📋 **Jumpa Bot Commands**
 
 **Group Management:**
-• \`/create_group <name> <max_members> [consensus]\` - Create group
+• \`/create_group <name> <max_members> <amount> [consensus]\` - Create group
 • \`/info\` - View group information
 • \`/members\` - List group members
 • \`/polls\` - Show active polls
@@ -939,7 +945,7 @@ Once the bot is added to your Telegram group:
 • \`/help\` - Show help message
 
 **Examples:**
-• \`/create_group CryptoCrew 10 67\`
+• \`/create_group CryptoCrew 10 0.1 67\`
 • \`/poll trade BONK 1000\`
 • \`/vote 507f1f77bcf86cd799439012 yes\`
 • \`/add_member 507f1f77bcf86cd799439011\`

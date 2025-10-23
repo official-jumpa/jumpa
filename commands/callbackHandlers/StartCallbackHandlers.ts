@@ -186,11 +186,11 @@ Jumpa is a Telegram bot that enables collaborative trading through groups - trad
           Markup.button.callback("📊 My Profile", "view_profile"),
         ],
         [
-          Markup.button.callback("🏠 Create Group", "create_ajo"),
-          Markup.button.callback("👥 Join Group", "join_ajo"),
+          Markup.button.callback("🏠 Create Group", "create_group"),
+          Markup.button.callback("👥 Join Group", "join_group"),
         ],
         [
-          Markup.button.callback("📊 Group Info", "ajo_info"),
+          Markup.button.callback("📊 Group Info", "group_info"),
         ],
         [
           Markup.button.callback("Deposit", "deposit_sol"),
