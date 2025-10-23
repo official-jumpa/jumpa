@@ -43,6 +43,7 @@ export class CommandManager {
     this.bot = bot;
     this.registerCommands();
     this.setupCommandHandlers();
+    this.updateBotCommands();
   }
 
   private registerCommands(): void {
@@ -207,6 +208,20 @@ export class CommandManager {
     this.bot.action("my_groups", AjoCallbackHandlers.handleMyGroups);
     this.bot.action("join_help", AjoCallbackHandlers.handleJoinHelp);
     this.bot.action("group_stats", AjoCallbackHandlers.handleGroupStats)
+  }
+
+  public async updateBotCommands(): Promise<void> {
+    const commandList = this.getAllCommands().map((command) => ({
+      command: command.name,
+      description: command.description,
+    }));
+
+    try {
+      await this.bot.telegram.setMyCommands(commandList);
+      console.log("Bot commands updated successfully.");
+    } catch (error) {
+      console.error("Failed to update bot commands:", error);
+    }
   }
 
   public getCommand(name: string): BaseCommand | undefined {

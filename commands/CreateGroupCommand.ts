@@ -17,7 +17,8 @@ export class CreateGroupCommand extends BaseCommand {
         ctx.message && "text" in ctx.message
           ? ctx.message.text.split(" ").slice(1)
           : [];
-
+      console.log("CreateGroupCommand args:", args);
+      console.log("CreateGroupCommand args length:", args.length);
       const userId = ctx.from?.id;
       const chatId = ctx.chat?.id;
       const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
@@ -26,19 +27,27 @@ export class CreateGroupCommand extends BaseCommand {
         await ctx.reply("❌ Unable to identify user or chat.");
         return;
       }
+      if (!args || args.length === 0) {
+        await ctx.reply(`❌ No arguments provided. Please provide group details. 
+
+<b>Usage:</b> /create_group [name] [max_members] [entry_capital] [consensus_threshold].
+        
+<b>Example:</b> /create_group CryptoCrew 20 0.1 70`, { parse_mode: "HTML" });
+        return;
+      }
 
       if (args.length < 3) {
         await ctx.reply(
           "❌ Usage: `/create_group <name> <max_members> <entry_capital> [consensus_threshold]`\n\n" +
-            "**Examples:**\n" +
-            "• `/create_group CryptoCrew 10 100 67`\n" +
-            "• `/create_group MoonTraders 25 500`\n" +
-            "• `/create_group DeFi Squad 50 1000 75`\n\n" +
-            "**Parameters:**\n" +
-            "• **name**: Group name (max 100 characters)\n" +
-            "• **max_members**: Maximum members (2-100)\n" +
-            "• **entry_capital**: Entry capital in SOL (must be > 0)\n" +
-            "• **consensus_threshold**: Voting threshold % (50-100, default: 67)",
+          "**Examples:**\n" +
+          "• `/create_group CryptoCrew 10 100 67`\n" +
+          "• `/create_group MoonTraders 25 500`\n" +
+          "• `/create_group DeFi Squad 50 1000 75`\n\n" +
+          "**Parameters:**\n" +
+          "• **name**: Group name (max 100 characters)\n" +
+          "• **max_members**: Maximum members (2-100)\n" +
+          "• **entry_capital**: Entry capital in SOL (must be > 0)\n" +
+          "• **consensus_threshold**: Voting threshold % (50-100, default: 67)",
           { parse_mode: "Markdown" }
         );
         return;
@@ -73,7 +82,7 @@ export class CreateGroupCommand extends BaseCommand {
       let user;
       try {
         user = await getUser(userId, username);
-        
+
         // If this is a new user, send welcome message
         if (user && !user.last_seen) {
           await ctx.reply(

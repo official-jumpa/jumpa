@@ -92,7 +92,7 @@ export class StartCallbackHandlers {
 /ping - Check if bot is alive
 /info - Get bot information
 
-<b>Coming Soon:</b>
+
 /create_group - Create a group
 /join_group group_id - Join a group
 /vote poll_id yes/no - Vote on polls
