@@ -17,7 +17,7 @@ export async function getOrder(ctx: Context, tokenAddress: string, amount: numbe
   }
 
   const inputAmount = amount * 1e9; // Convert to lamports
-  const slippage = 50; //0.5% slippage. Hardcoded for now.
+  const slippage = 200; //2% slippage. Hardcoded for now.
   const takerAddress = user.wallet_address;
 
   if (!takerAddress) {

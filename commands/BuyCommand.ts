@@ -21,7 +21,7 @@ export async function handleBuy(ctx: Context) {
     const decimals = parseInt(parts[3]);
     const symbol = parts[4];
  
-    const slippageBps = 50; // Hardcoded the slippage for now
+    const slippageBps = 200; // 2% Hardcoded the slippage for now
 
     await ctx.answerCbQuery("Fetching order details...");
 

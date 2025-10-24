@@ -25,7 +25,7 @@ export async function handleSell(ctx: Context) {
     const decimals = parseInt(parts[3]);
     const symbol = parts[4];
     let userTokenBalance; //initialize user token balance
-    const slippageBps = 50; // Hardcoded the slippage for now
+    const slippageBps = 200; // Hardcoded the slippage for now
 
     //GET TOKEN BALANCE HERE BEFORE PROCEEDING
     const connection = new Connection(config.solMainnet);
