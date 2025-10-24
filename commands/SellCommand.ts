@@ -83,7 +83,7 @@ export async function handleSell(ctx: Context) {
     // The outAmount is in the smallest unit of the token.
     // We need to know the token's decimals to display the correct amount.
     // For now, we display the raw amount with formatting.
-    const formattedOutAmount = (order.outAmount / 1e9).toFixed(4);
+    const formattedOutAmount = (order.outAmount / 1e9).toFixed(6);
 
     const feeInSol = order.fee / 1e9;
 

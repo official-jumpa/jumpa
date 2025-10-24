@@ -33,7 +33,7 @@ export class SellCallbackHandlers {
     const result = await executeSellOrder(ctx, orderState.transactionBase64, orderState.requestId);
 
     if (result.success) {
-      const responseMsg = `✅ Sell Order executed!\n\n<a href="${result.explorerUrl}">View on Solscan</a>\n\nYou received ${(result.amountReceived / Math.pow(10, solanaDecimals)).toFixed(4)} SOL`;
+      const responseMsg = `✅ Sell Order executed!\n\n<a href="${result.explorerUrl}">View on Solscan</a>\n\nYou received ${(result.amountReceived / Math.pow(10, solanaDecimals)).toFixed(6)} SOL`;
 
       await ctx.editMessageText(responseMsg, {
         parse_mode: "HTML",
