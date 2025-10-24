@@ -65,7 +65,7 @@ export async function handleBuy(ctx: Context) {
 <b>Amount:</b> ${amount} SOL
 <b>Slippage:</b> ${slippageBps / 100}%
 -------------------
-<b>You will receive:</b> ${formattedOutAmount} tokens
+<b>You will receive:</b> ${formattedOutAmount} ${symbol}
 
 <b>Price Impact:</b> ${order.priceImpact.toFixed(2)}%
 <b>Fee:</b> ${feeInSol.toFixed(9)} SOL
