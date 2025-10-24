@@ -36,6 +36,8 @@ import { getWithdrawalState } from "../state/withdrawalState";
 import { handleDetectToken } from "../trading/DetectTokenAddress";
 import { handleBuy } from "./BuyCommand";
 import { BuyCallbackHandlers } from "./callbackHandlers/BuyCallbackHandlers";
+import { handleSell } from "./SellCommand";
+import { SellCallbackHandlers } from "./callbackHandlers/SellCallbackHandlers";
 
 export class CommandManager {
   private commands: Map<string, BaseCommand> = new Map();
@@ -118,9 +120,14 @@ export class CommandManager {
       await ctx.reply("Withdrawal cancelled.");
     });
 
+    //register buy and sell commands
     this.bot.action(/^buy:.+/, handleBuy);
     this.bot.action(/^approve_buy:.+/, BuyCallbackHandlers.handleApprove);
     this.bot.action("decline_buy", BuyCallbackHandlers.handleDecline);
+
+    this.bot.action(/^sell:.+/, handleSell);
+    this.bot.action(/^approve_sell:.+/, SellCallbackHandlers.handleApprove);
+    this.bot.action("decline_sell", SellCallbackHandlers.handleDecline);
 
 
     //register callback handlers for bank account

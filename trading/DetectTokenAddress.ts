@@ -100,9 +100,17 @@ Freeze Authority Disabled: ${audit?.freezeAuthorityDisabled ? "✅" : "❌"}
         Markup.button.callback("Buy 0.5 SOL", `buy:${contractAddress}:0.5:${decimals}:${symbol}`),
         Markup.button.callback("Buy 1 SOL", `buy:${contractAddress}:1:${decimals}:${symbol}`),
         Markup.button.callback("Buy 2 SOL", `buy:${contractAddress}:2:${decimals}:${symbol}`),
+      ], //buy ends <---- sell starts ---->
+      [
+        Markup.button.callback("Sell 10%", `sell:${contractAddress}:10:${decimals}:${symbol}`),
+        Markup.button.callback("Sell 20%", `sell:${contractAddress}:20:${decimals}:${symbol}`),
+        Markup.button.callback("Sell 25%", `sell:${contractAddress}:25:${decimals}:${symbol}`),
+      ],[
+        Markup.button.callback("Sell 50%", `sell:${contractAddress}:50:${decimals}:${symbol}`),
+        Markup.button.callback("Sell 75%", `sell:${contractAddress}:75:${decimals}:${symbol}`),
+        Markup.button.callback("Sell 100%", `sell:${contractAddress}:100:${decimals}:${symbol}`),
       ],
       [
-        Markup.button.callback("💰 Sell", `sell:${contractAddress}`),
         Markup.button.url("📊 Chart", `https://dexscreener.com/solana/${contractAddress}`),
       ]
     ]);
