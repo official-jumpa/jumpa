@@ -2,6 +2,7 @@ import { Context, Markup } from "telegraf";
 import { getOrder } from "../trading/getOrder";
 import User from "../models/user";
 import { setOrderState } from "../state/orderState";
+import { getTradeState, clearTradeState } from "../state/tradeState";
 
 export async function handleBuy(ctx: Context) {
   try {
@@ -16,10 +17,14 @@ export async function handleBuy(ctx: Context) {
 
     const callbackData = (ctx.callbackQuery as any).data;
     const parts = callbackData.split(":");
-    const tokenAddress = parts[1];
+    const tradeId = parts[1];
     const amount = parseFloat(parts[2]);
-    const decimals = parseInt(parts[3]);
-    const symbol = parts[4];
+
+    const tradeInfo = getTradeState(tradeId);
+    if (!tradeInfo) {
+      return ctx.reply("This trade request has expired. Please find the token again to start a new trade.");
+    }
+    const { contractAddress: tokenAddress, symbol, decimals } = tradeInfo;
  
     const slippageBps = 200; // 2% Hardcoded the slippage for now
 
@@ -44,6 +49,9 @@ export async function handleBuy(ctx: Context) {
       return ctx.reply(`Error fetching order: ${order.error}`);
     }
 
+    // Clear the trade state now that we have the order
+    clearTradeState(tradeId);
+
     // Store the order details for later execution
     setOrderState(ctx.from.id, {
       transactionBase64: order.transactionBase64,
@@ -52,8 +60,7 @@ export async function handleBuy(ctx: Context) {
 
     // The outAmount is in the smallest unit of the token.
     // We need to know the token's decimals to display the correct amount.
-    // For now, we display the raw amount with formatting.
-    const formattedOutAmount = (order.outAmount / 1e9).toFixed(4);
+    const formattedOutAmount = (order.outAmount / Math.pow(10, decimals)).toFixed(4);
 
     const feeInSol = order.fee / 1e9;
 

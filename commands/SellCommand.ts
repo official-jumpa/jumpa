@@ -4,6 +4,7 @@ import { setOrderState } from "../state/orderState";
 import { Connection, PublicKey } from '@solana/web3.js';
 import { config } from "../config/config";
 import { getSellOrder } from "../trading/getSellOrder";
+import { getTradeState, clearTradeState } from "../state/tradeState";
 
 //make sure to get the user's token balance or else it will trigger insufficient funds error
 export async function handleSell(ctx: Context) {
@@ -20,10 +21,15 @@ export async function handleSell(ctx: Context) {
 
     const callbackData = (ctx.callbackQuery as any).data;
     const parts = callbackData.split(":");
-    const tokenAddress = parts[1];
+    const tradeId = parts[1];
     const percentageToSell = parseFloat(parts[2]);
-    const decimals = parseInt(parts[3]);
-    const symbol = parts[4];
+
+    const tradeInfo = getTradeState(tradeId);
+    if (!tradeInfo) {
+      return ctx.reply("This trade request has expired. Please find the token again to start a new trade.");
+    }
+    const { contractAddress: tokenAddress, symbol, decimals } = tradeInfo;
+
     let userTokenBalance; //initialize user token balance
     const slippageBps = 200; // Hardcoded the slippage for now
 
@@ -73,6 +79,8 @@ export async function handleSell(ctx: Context) {
       }
       return ctx.reply(`Error fetching order: ${order.error}`);
     }
+
+    clearTradeState(tradeId);
 
     // Store the order details for later execution
     setOrderState(ctx.from.id, {

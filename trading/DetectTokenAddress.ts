@@ -1,6 +1,8 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { Context, Markup } from "telegraf";
 import { config } from "../config/config";
+import { setTradeState } from "../state/tradeState";
+import { randomBytes } from "crypto";
 
 export async function handleDetectToken(ctx: Context, contractAddress: string) {
   console.log("Detecting token for address:", contractAddress);
@@ -31,6 +33,7 @@ export async function handleDetectToken(ctx: Context, contractAddress: string) {
     }
 
     const data = await response.json();
+    console.log("response data:", data);
     if (!Array.isArray(data) || data.length === 0) {
       await ctx.reply("⚠️ No token data found on Jupiter for this address.");
       return;
@@ -38,6 +41,7 @@ export async function handleDetectToken(ctx: Context, contractAddress: string) {
 
     // Extract token info from Jupiter response
     const token = data[0];
+    console.log("Token data:", token);
     const {
       name,
       symbol,
@@ -72,7 +76,7 @@ ${icon ? `<a href="${icon}">🖼️</a>` : ""}
 
 💵 <b>Price:</b> ${usdPrice?.toFixed(6) ?? "N/A"}
 📈 <b>24h Change:</b> ${priceChangeString}%
-💧 <b>Liquidity:</b> $${liquidity ? liquidity.toLocaleString() : "N/A"}
+💧 <b>Liquidity:</b> ${liquidity ? liquidity.toLocaleString() : "N/A"}
 🏦 <b>Market Cap:</b> ${mcap ? mcap.toLocaleString() : "N/A"}
 💰 <b>FDV:</b> ${fdv ? fdv.toLocaleString() : "N/A"}
 🧮 <b>Circulating Supply:</b> ${circSupply?.toLocaleString() ?? "N/A"}
@@ -85,30 +89,37 @@ Freeze Authority Disabled: ${audit?.freezeAuthorityDisabled ? "✅" : "❌"}
 
     `;
 
-    //send the CA, decimals, symbol along with buy buttons
+    const tradeId = randomBytes(8).toString("hex");
+    setTradeState(tradeId, {
+      contractAddress,
+      symbol,
+      decimals,
+    });
+
+    //send the CA, decimals, symbol along with buy buttons using the tradeId
     const keyboard = Markup.inlineKeyboard([
       [
-        Markup.button.callback("Buy 0.001 SOL", `buy:${contractAddress}:0.001:${decimals}:${symbol}`),
-        Markup.button.callback("Buy 0.002 SOL", `buy:${contractAddress}:0.002:${decimals}:${symbol}`),
-        Markup.button.callback("Buy 0.005 SOL", `buy:${contractAddress}:0.005:${decimals}:${symbol}`),
+        Markup.button.callback("Buy 0.001 SOL", `buy:${tradeId}:0.001`),
+        Markup.button.callback("Buy 0.002 SOL", `buy:${tradeId}:0.002`),
+        Markup.button.callback("Buy 0.005 SOL", `buy:${tradeId}:0.005`),
       ],[
-        Markup.button.callback("Buy 0.01 SOL", `buy:${contractAddress}:0.01:${decimals}:${symbol}`),
-        Markup.button.callback("Buy 0.05 SOL", `buy:${contractAddress}:0.05:${decimals}:${symbol}`),
-        Markup.button.callback("Buy 0.1 SOL", `buy:${contractAddress}:0.1:${decimals}:${symbol}`),
+        Markup.button.callback("Buy 0.01 SOL", `buy:${tradeId}:0.01`),
+        Markup.button.callback("Buy 0.05 SOL", `buy:${tradeId}:0.05`),
+        Markup.button.callback("Buy 0.1 SOL", `buy:${tradeId}:0.1`),
       ],
       [
-        Markup.button.callback("Buy 0.5 SOL", `buy:${contractAddress}:0.5:${decimals}:${symbol}`),
-        Markup.button.callback("Buy 1 SOL", `buy:${contractAddress}:1:${decimals}:${symbol}`),
-        Markup.button.callback("Buy 2 SOL", `buy:${contractAddress}:2:${decimals}:${symbol}`),
+        Markup.button.callback("Buy 0.5 SOL", `buy:${tradeId}:0.5`),
+        Markup.button.callback("Buy 1 SOL", `buy:${tradeId}:1`),
+        Markup.button.callback("Buy 2 SOL", `buy:${tradeId}:2`),
       ], //buy ends <---- sell starts ---->
       [
-        Markup.button.callback("Sell 10%", `sell:${contractAddress}:10:${decimals}:${symbol}`),
-        Markup.button.callback("Sell 20%", `sell:${contractAddress}:20:${decimals}:${symbol}`),
-        Markup.button.callback("Sell 25%", `sell:${contractAddress}:25:${decimals}:${symbol}`),
+        Markup.button.callback("Sell 10%", `sell:${tradeId}:10`),
+        Markup.button.callback("Sell 20%", `sell:${tradeId}:20`),
+        Markup.button.callback("Sell 25%", `sell:${tradeId}:25`),
       ],[
-        Markup.button.callback("Sell 50%", `sell:${contractAddress}:50:${decimals}:${symbol}`),
-        Markup.button.callback("Sell 75%", `sell:${contractAddress}:75:${decimals}:${symbol}`),
-        Markup.button.callback("Sell 100%", `sell:${contractAddress}:100:${decimals}:${symbol}`),
+        Markup.button.callback("Sell 50%", `sell:${tradeId}:50`),
+        Markup.button.callback("Sell 75%", `sell:${tradeId}:75`),
+        Markup.button.callback("Sell 100%", `sell:${tradeId}:100`),
       ],
       [
         Markup.button.url("📊 Chart", `https://dexscreener.com/solana/${contractAddress}`),
