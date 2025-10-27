@@ -18,16 +18,7 @@ bot.use((ctx, next) => {
 // Initialize command manager
 const commandManager = new CommandManager(bot);
 
-// Handle text messages (non-commands)
-bot.on("text", (ctx: Context) => {
-  const message = ctx.message as any;
-  if (message && message.text && !message.text.startsWith('/')) {
-    console.log(`Received message: ${message.text} from user: ${ctx.from?.id}`);
 
-    // Echo the message back (you can customize this behavior)
-    ctx.reply(`You said: ${message.text}`);
-  }
-});
 
 // Error handling
 bot.catch((err: any, ctx: Context) => {

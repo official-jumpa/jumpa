@@ -38,6 +38,9 @@ import { handleBuy } from "./BuyCommand";
 import { BuyCallbackHandlers } from "./callbackHandlers/BuyCallbackHandlers";
 import { handleSell } from "./SellCommand";
 import { SellCallbackHandlers } from "./callbackHandlers/SellCallbackHandlers";
+import { handleBuyCustomAmountRequest } from "./callbackHandlers/CustomAmountCallbackHandler";
+import { getUserActionState, clearUserActionState } from "../state/userActionState";
+import { createBuyOrder } from "../trading/createBuyOrder";
 
 export class CommandManager {
   private commands: Map<string, BaseCommand> = new Map();
@@ -124,6 +127,7 @@ export class CommandManager {
     this.bot.action(/^buy:.+/, handleBuy);
     this.bot.action(/^approve_buy:.+/, BuyCallbackHandlers.handleApprove);
     this.bot.action("decline_buy", BuyCallbackHandlers.handleDecline);
+    this.bot.action(/^buy_custom:.+/, handleBuyCustomAmountRequest);
 
     this.bot.action(/^sell:.+/, handleSell);
     this.bot.action(/^approve_sell:.+/, SellCallbackHandlers.handleApprove);
@@ -153,6 +157,20 @@ export class CommandManager {
       console.log('Received text message:', text);
       const userId = ctx.from?.id;
       if (!userId) return;
+
+      const userAction = getUserActionState(userId);
+      if (userAction?.action === 'awaiting_custom_buy_amount') {
+          const amount = parseFloat(text);
+          if (isNaN(amount) || amount <= 0) {
+              await ctx.reply("Invalid amount. Please enter a positive number.");
+              return;
+          }
+          // Clear the state
+          clearUserActionState(userId);
+          // Create the buy order
+          await createBuyOrder(ctx, userAction.tradeId, amount);
+          return; // Stop further processing
+      }
 
       const state = getBankUpdateState(userId);
       const withdrawalState = getWithdrawalState(userId);

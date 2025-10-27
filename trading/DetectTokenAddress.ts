@@ -99,10 +99,6 @@ Freeze Authority Disabled: ${audit?.freezeAuthorityDisabled ? "✅" : "❌"}
     //send the CA, decimals, symbol along with buy buttons using the tradeId
     const keyboard = Markup.inlineKeyboard([
       [
-        Markup.button.callback("Buy 0.001 SOL", `buy:${tradeId}:0.001`),
-        Markup.button.callback("Buy 0.002 SOL", `buy:${tradeId}:0.002`),
-        Markup.button.callback("Buy 0.005 SOL", `buy:${tradeId}:0.005`),
-      ],[
         Markup.button.callback("Buy 0.01 SOL", `buy:${tradeId}:0.01`),
         Markup.button.callback("Buy 0.05 SOL", `buy:${tradeId}:0.05`),
         Markup.button.callback("Buy 0.1 SOL", `buy:${tradeId}:0.1`),
@@ -110,13 +106,13 @@ Freeze Authority Disabled: ${audit?.freezeAuthorityDisabled ? "✅" : "❌"}
       [
         Markup.button.callback("Buy 0.5 SOL", `buy:${tradeId}:0.5`),
         Markup.button.callback("Buy 1 SOL", `buy:${tradeId}:1`),
-        Markup.button.callback("Buy 2 SOL", `buy:${tradeId}:2`),
-      ], //buy ends <---- sell starts ---->
+        Markup.button.callback("Buy X SOL", `buy_custom:${tradeId}`),
+      ],
       [
         Markup.button.callback("Sell 10%", `sell:${tradeId}:10`),
         Markup.button.callback("Sell 20%", `sell:${tradeId}:20`),
         Markup.button.callback("Sell 25%", `sell:${tradeId}:25`),
-      ],[
+      ], [
         Markup.button.callback("Sell 50%", `sell:${tradeId}:50`),
         Markup.button.callback("Sell 75%", `sell:${tradeId}:75`),
         Markup.button.callback("Sell 100%", `sell:${tradeId}:100`),
