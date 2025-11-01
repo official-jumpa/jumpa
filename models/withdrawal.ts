@@ -30,9 +30,6 @@ const withdrawalSchema = new mongoose.Schema(
   }
 );
 
-//Indexes
-withdrawalSchema.index({ transaction_id: 1 });
-
 const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);
 
 export default Withdrawal;

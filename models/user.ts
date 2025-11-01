@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      index: true,
     },
     wallet_address: {
       type: String,
@@ -79,11 +80,6 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-//Indexes
-userSchema.index({ telegram_id: 1 });
-userSchema.index({ wallet_address: 1 });
-userSchema.index({ username: 1 });
 
 const User = mongoose.model("User", userSchema);
 

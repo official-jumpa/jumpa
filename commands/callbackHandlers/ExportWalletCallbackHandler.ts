@@ -36,8 +36,6 @@ export const handlePinForExport = async (ctx) => {
   if (userAction?.action === "awaiting_export_pin") {
     try {
       const user = await getUser(ctx.from.id, ctx.from.username);
-      console.log("User object:", user);
-      console.log("User private_key before decryption:", user?.private_key);
       if (user && user.bank_details.withdrawalPin === pin) {
         const privateKey = decryptPrivateKey(user.private_key);
         const message = await ctx.reply(`Your private key is: 
