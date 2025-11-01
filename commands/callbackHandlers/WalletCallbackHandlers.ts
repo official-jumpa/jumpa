@@ -2,7 +2,7 @@ import { Context, Markup } from "telegraf";
 import getUser from "../../services/getUserInfo";
 import { config } from "../../config/config";
 import Withdrawal from "../../models/withdrawal";
-import { WithdrawSolToNgn } from "../WithdrawSolToNgn";
+import { WithdrawSolToNgn, WithdrawUSDCToNgn, WithdrawUSDTToNgn } from "../WithdrawToNgn";
 import { safeDeleteMessage } from "../../utils/messageUtils";
 import { clearWithdrawalState, getWithdrawalState, setWithdrawalState } from "../../state/withdrawalState";
 
@@ -25,7 +25,7 @@ export class WalletCallbackHandlers {
             return;
         }
 
-        const message = `Fund your wallet by sending SOL to your wallet address:\n\n\`${user.wallet_address}\``;
+        const message = `Fund your wallet by sending SOL to your wallet address:\n\n\`${user.solanaWallets[0].address}\``;
         const keyboard = Markup.inlineKeyboard([
             [Markup.button.callback("📋 Copy Address", "copy_address")],
         ]);
@@ -78,42 +78,89 @@ export class WalletCallbackHandlers {
             return;
         }
 
-        const rateUrl = config.paymentRateUrl
+        const message = `Select the currency you want to withdraw to NGN:`;
+        const keyboard = Markup.inlineKeyboard([
+            [
+                Markup.button.callback("SOL → NGN", "withdraw_currency:SOL"),
+                Markup.button.callback("USDC → NGN", "withdraw_currency:USDC"),
+                Markup.button.callback("USDT → NGN", "withdraw_currency:USDT"),
+            ],
+            [
+                Markup.button.callback("❌ Cancel", "withdraw_cancel"),
+            ],
+        ]);
+
+        await ctx.reply(message, keyboard);
+    }
+
+    static async handleWithdrawCurrencySelection(ctx: Context): Promise<void> {
+        const cbData = (ctx.callbackQuery as any).data;
+        const currency = cbData.split(":")[1]; // SOL, USDC, or USDT
+
+        const telegramId = ctx.from?.id;
+        const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+
+        if (!telegramId) {
+            await ctx.answerCbQuery("❌ Unable to identify your account.");
+            return;
+        }
+
+        const user = await getUser(telegramId, username);
+
+        if (!user) {
+            await ctx.reply(
+                "❌ User not found. Please use /start to register first."
+            );
+            return;
+        }
+
+        const rateUrl = config.paymentRateUrl;
 
         if (!rateUrl) {
             await ctx.reply("Exchange URL not specified");
             return;
         }
+
         const exchangeRate = await fetch(rateUrl);
         const rate = await exchangeRate.json();
+        console.log("rate: ", rate)
 
-        const message = `Your selected bank account:\n\nBank: ${user.bank_details.bank_name}\nAccount Name: ${user.bank_details.account_name}\nAccount Number: ${user.bank_details.account_number}
+        // Calculate rates based on currency
+        let rateMessage = "";
+        if (currency === "SOL") {
+            rateMessage = `1 USD = ₦${(rate.data.sell.NGN).toFixed(2)}\n\n0.1 ${currency} = ₦${(0.1 * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2)}\n0.2 ${currency} = ₦${(0.2 * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2)}\n0.3 ${currency} = ₦${(0.3 * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2)}`;
+        } else if (currency === "USDC" || currency === "USDT") {
+            // USDC and USDT are typically 1:1 with USD
+            const usdToNgn = rate.data.sell.NGN;
+            rateMessage = `1 USD = ₦${usdToNgn.toFixed(2)}\n\n0.1 ${currency} = ₦${(0.1 * usdToNgn).toFixed(2)}\n0.2 ${currency} = ₦${(0.2 * usdToNgn).toFixed(2)}\n0.3 ${currency} = ₦${(0.3 * usdToNgn).toFixed(2)}`;
+        }
 
-        What rates do we use?
+        const message = `Your selected bank account:\n\nBank: ${user.bank_details.bank_name}\nAccount Name: ${user.bank_details.account_name}\nAccount Number: ${user.bank_details.account_number}\n\n📊 Current Exchange Rates:\n\n${rateMessage}\n\nRate expires in 30 seconds. Message auto deletes in 30 seconds`;
 
-        1 USD = ₦${(rate.data.sell.NGN).toFixed(2)}
-        
-        0.1 SOL = ₦${(0.1 * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2)}
-        
-        0.2 SOL = ₦${(0.2 * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2)}
-        
-        0.3 SOL = ₦${(0.3 * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2)}
-
-        Rate expires in 30 seconds. Message auto deletes in 30 seconds
-        `;
+        // Create amount buttons based on currency
+        const amountButtons = [];
+        if (currency === "SOL") {
+            amountButtons.push([
+                Markup.button.callback("✏️ Custom Amount", `withdraw_custom_amount:${currency}`),
+            ], [
+                Markup.button.callback("0.1 SOL", `withdraw_amount:${currency}:0.1`),
+                Markup.button.callback("0.5 SOL", `withdraw_amount:${currency}:0.5`),
+                Markup.button.callback("1 SOL", `withdraw_amount:${currency}:1`),
+            ]);
+        } else {
+            // For USDC and USDT, use different amounts (higher values since they're stablecoins)
+            amountButtons.push([
+                Markup.button.callback("✏️ Custom Amount", `withdraw_custom_amount:${currency}`),
+            ], [
+                Markup.button.callback("1 " + currency, `withdraw_amount:${currency}:1`),
+                Markup.button.callback("5 " + currency, `withdraw_amount:${currency}:5`),
+                Markup.button.callback("10 " + currency, `withdraw_amount:${currency}:10`),
+                Markup.button.callback("20 " + currency, `withdraw_amount:${currency}:20`),
+            ]);
+        }
 
         const keyboard = Markup.inlineKeyboard([
-            [
-                Markup.button.callback("0.01 SOL", "withdraw_amount:0.01"),
-                Markup.button.callback("0.02 SOL", "withdraw_amount:0.02"),
-                Markup.button.callback("0.03 SOL", "withdraw_amount:0.03"),
-                Markup.button.callback("0.05 SOL", "withdraw_amount:0.05"),
-            ], [
-                Markup.button.callback("0.1 SOL", "withdraw_amount:0.1"),
-                Markup.button.callback("0.2 SOL", "withdraw_amount:0.2"),
-                Markup.button.callback("0.3 SOL", "withdraw_amount:0.3"),
-                Markup.button.callback("1 SOL", "withdraw_amount:1"),
-            ],
+            ...amountButtons,
             [
                 Markup.button.callback("❌ Decline", "withdraw_cancel"),
             ],
@@ -125,10 +172,90 @@ export class WalletCallbackHandlers {
         await safeDeleteMessage(ctx, reply.message_id);
     }
 
+    static async handleWithdrawCustomAmount(ctx: Context): Promise<void> {
+        const cbData = (ctx.callbackQuery as any).data;
+        // Format: withdraw_custom_amount:CURRENCY
+        const currency = cbData.split(":")[1]; // SOL, USDC, or USDT
+
+        const telegramId = ctx.from?.id;
+
+        if (!telegramId) {
+            await ctx.answerCbQuery("❌ Unable to identify your account.");
+            return;
+        }
+
+        // Set state to await custom amount input
+        setWithdrawalState(telegramId, 'awaiting_custom_amount', { currency: currency as 'SOL' | 'USDC' | 'USDT' });
+
+        await ctx.answerCbQuery();
+        await ctx.reply(`Please enter the amount of ${currency} you want to withdraw (e.g., 0.5, 10, 100):`);
+    }
+
+    static async handleCustomAmountInput(ctx: Context): Promise<void> {
+        const userId = ctx.from?.id;
+        const message = (ctx.message as any)?.text;
+
+        if (!userId || !message) {
+            return;
+        }
+
+        const state = getWithdrawalState(userId);
+        if (!state || state.step !== 'awaiting_custom_amount' || !state.data.currency) {
+            return;
+        }
+
+        const enteredAmount = message.trim();
+        const amount = parseFloat(enteredAmount);
+
+        // Validate amount
+        if (isNaN(amount) || amount <= 0) {
+            await ctx.reply("❌ Invalid amount. Please enter a positive number (e.g., 0.5, 10, 100):");
+            return;
+        }
+
+        const currency = state.data.currency;
+        const rateUrl = config.paymentRateUrl;
+
+        if (!rateUrl) {
+            await ctx.reply("Exchange URL not specified");
+            clearWithdrawalState(userId);
+            return;
+        }
+
+        const exchangeRate = await fetch(rateUrl);
+        const rate = await exchangeRate.json();
+
+        // Calculate NGN amount based on currency
+        let amtToReceive = "";
+        if (currency === "SOL") {
+            amtToReceive = (amount * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2);
+        } else if (currency === "USDC" || currency === "USDT") {
+            // USDC and USDT are typically 1:1 with USD
+            amtToReceive = (amount * rate.data.sell.NGN).toFixed(2);
+        }
+
+        // Clear the awaiting_custom_amount state
+        clearWithdrawalState(userId);
+
+        const confirmationMessage = `Are you sure you want to withdraw ${amount} ${currency} to your bank account?
+You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
+        const keyboard = Markup.inlineKeyboard([
+            [
+                Markup.button.callback("✅ Accept", `withdraw_confirm:${currency}:${amount}`),
+                Markup.button.callback("❌ Decline", "withdraw_cancel"),
+            ],
+        ]);
+
+        await ctx.reply(confirmationMessage, keyboard);
+    }
+
     static async handleWithdrawAmount(ctx: Context): Promise<void> {
         const cbData = (ctx.callbackQuery as any).data;
-        const amount = cbData.split(":")[1];
-        const rateUrl = config.paymentRateUrl
+        // Format: withdraw_amount:CURRENCY:AMOUNT
+        const parts = cbData.split(":");
+        const currency = parts[1]; // SOL, USDC, or USDT
+        const amount = parts[2];
+        const rateUrl = config.paymentRateUrl;
 
         if (!rateUrl) {
             await ctx.reply("Exchange URL not specified");
@@ -136,18 +263,21 @@ export class WalletCallbackHandlers {
         }
         const exchangeRate = await fetch(rateUrl);
         const rate = await exchangeRate.json();
-        //convert selected SOL to ₦
 
-        // 0.1 SOL = ₦${ (0.1 * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2) }
+        // Calculate NGN amount based on currency
+        let amtToReceive = "";
+        if (currency === "SOL") {
+            amtToReceive = (parseFloat(amount) * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2);
+        } else if (currency === "USDC" || currency === "USDT") {
+            // USDC and USDT are typically 1:1 with USD
+            amtToReceive = (parseFloat(amount) * rate.data.sell.NGN).toFixed(2);
+        }
 
-        const amtToReceive = (amount * (1 / rate.data.sell.SOL) * rate.data.sell.NGN).toFixed(2)
-
-
-        const message = `Are you sure you want to withdraw ${amount} SOL to your bank account?
-        You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
+        const message = `Are you sure you want to withdraw ${amount} ${currency} to your bank account?
+You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
         const keyboard = Markup.inlineKeyboard([
             [
-                Markup.button.callback("✅ Accept", `withdraw_confirm:${amount}`),
+                Markup.button.callback("✅ Accept", `withdraw_confirm:${currency}:${amount}`),
                 Markup.button.callback("❌ Decline", "withdraw_cancel"),
             ],
         ]);
@@ -160,8 +290,10 @@ export class WalletCallbackHandlers {
 
     static async handleWithdrawConfirmation(ctx: Context): Promise<void> {
         const cbData = (ctx.callbackQuery as any).data;
-        const amount = cbData.split(":")[1];
-
+        // Format: withdraw_confirm:CURRENCY:AMOUNT
+        const parts = cbData.split(":");
+        const currency = parts[1]; // SOL, USDC, or USDT
+        const amount = parts[2];
 
         const telegramId = ctx.from?.id;
         const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
@@ -170,7 +302,10 @@ export class WalletCallbackHandlers {
             await ctx.answerCbQuery("❌ Unable to identify your account.");
             return;
         }
-        setWithdrawalState(telegramId, 'awaiting_pin', { amount });
+        // <---------------SUSPEND FOR NOW ----------->
+        await ctx.reply("🥺 withdrawal services are currently unavailable");
+        return;
+        setWithdrawalState(telegramId, 'awaiting_pin', { amount, currency: currency as 'SOL' | 'USDC' | 'USDT' });
 
         const user = await getUser(telegramId, username);
         if (!user) {
@@ -188,11 +323,8 @@ export class WalletCallbackHandlers {
         }
 
         //ask the user to enter their withdrawal pin
-        await ctx.reply(`Please enter your 4-digit withdrawal pin to withdraw ${amount} SOL:`);
+        await ctx.reply(`Please enter your 4-digit withdrawal pin to withdraw ${amount} ${currency}:`);
         return;
-
-
-
     }
     static async handleWithdrawPinVerification(ctx: Context): Promise<void> {
         const userId = ctx.from?.id;
@@ -231,8 +363,13 @@ export class WalletCallbackHandlers {
         }
 
         // Pin is correct, proceed with withdrawal
-        const { amount } = state.data;
+        const { amount, currency } = state.data;
         clearWithdrawalState(userId);
+
+        if (!currency) {
+            await ctx.reply("❌ Currency not specified. Please try again.");
+            return;
+        }
 
         //create a payment widget with the user details and account number
         const widget = config.paymentWidgetUrl;
@@ -257,7 +394,7 @@ export class WalletCallbackHandlers {
             },
             "amount": Number(amount),
             "paymentRemarks": "thanks",
-            "fromCurrency": "SOL",
+            "fromCurrency": currency,
             "payoutCurrency": "NGN",
             "publicKey": "pk_test_GIST",
             "developerFee": "0.5", //platform charges for each withdrawal in string
@@ -286,33 +423,47 @@ export class WalletCallbackHandlers {
             console.log("payment widget generated: ", paymentWidget)
 
             if (paymentWidget.error) {
-                await ctx.reply(`❌ Withdrawal of ${amount} SOL failed.`);
+                await ctx.reply(`❌ Withdrawal of ${amount} ${currency} failed.`);
                 return;
 
             } else {
-                //this is for solana only
                 const solAddress = paymentWidget.data.solAddress;
+                const tokenAddress = paymentWidget.data.ethAddress; //you can send usdt and usdc to this address (Solana address)
                 const depositAmount = paymentWidget.data.depositAmount;
                 const fiatPayoutAmount = paymentWidget.data.fiatPayoutAmount;
+
+                // Determine which address to use based on currency
+                const recipientAddress = currency === 'SOL' ? solAddress : tokenAddress;
 
                 const saveTxtoDb = await Withdrawal.create({
                     telegram_id: ctx.from?.id,
                     transaction_id: paymentWidget.data.id,
                     fiatPayoutAmount: fiatPayoutAmount,
                     depositAmount: depositAmount,
-                    yaraSolAddress: solAddress
+                    yaraSolAddress: recipientAddress
                 })
                 console.log("withdrawal saved to db: ", saveTxtoDb)
 
-                const initTx = await WithdrawSolToNgn(ctx, solAddress, depositAmount);
+                // Use the appropriate withdrawal function based on currency
+                let initTx;
+                if (currency === 'SOL') {
+                    initTx = await WithdrawSolToNgn(ctx, recipientAddress, depositAmount);
+                } else if (currency === 'USDC') {
+                    initTx = await WithdrawUSDCToNgn(ctx, recipientAddress, depositAmount);
+                } else if (currency === 'USDT') {
+                    initTx = await WithdrawUSDTToNgn(ctx, recipientAddress, depositAmount);
+                } else {
+                    await ctx.reply(`❌ Unsupported currency: ${currency}`);
+                    return;
+                }
+
                 console.log("init tx", initTx);
 
                 if (initTx.success) {
-
-                    await ctx.reply(`✅ Withdrawal of ${depositAmount} SOL was successful. ₦${fiatPayoutAmount} will be added to your account shortly.`);
+                    await ctx.reply(`✅ Withdrawal of ${depositAmount} ${currency} was successful. ₦${fiatPayoutAmount} will be added to your account shortly.`);
                     return;
                 } else {
-                    await ctx.reply(`❌ Withdrawal of ${depositAmount} SOL failed. ${initTx.error}`);
+                    await ctx.reply(`❌ Withdrawal of ${depositAmount} ${currency} failed. ${initTx.error}`);
                     return;
                 }
 

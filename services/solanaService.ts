@@ -58,7 +58,7 @@ export async function getProviderForUser(telegramId: number): Promise<AnchorProv
   }
 
   // Decrypt private key and create keypair
-  const decryptedKey = decryptPrivateKey(user.private_key);
+  const decryptedKey = decryptPrivateKey(user.solanaWallets[0].encryptedPrivateKey);
   const keypair = Keypair.fromSecretKey(
     Buffer.from(decryptedKey, 'hex')
   );

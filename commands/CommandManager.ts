@@ -32,7 +32,7 @@ import { WalletCallbackHandlers } from "./callbackHandlers/WalletCallbackHandler
 import { StartCallbackHandlers } from "./callbackHandlers/StartCallbackHandlers";
 import { AjoCallbackHandlers } from "./callbackHandlers/AjoCallbackHandlers";
 import { BankHandler } from "./BankHandler";
-import { getWithdrawalState } from "../state/withdrawalState";
+import { getWithdrawalState, clearWithdrawalState } from "../state/withdrawalState";
 import { handleDetectToken } from "../trading/DetectTokenAddress";
 import { handleBuy } from "./BuyCommand";
 import { BuyCallbackHandlers } from "./callbackHandlers/BuyCallbackHandlers";
@@ -105,13 +105,18 @@ export class CommandManager {
     });
 
     // Register callback handlers for start command
-    this.bot.action("view_wallet", StartCallbackHandlers.handleViewProfile); //implement wallet view later
+    this.bot.action("view_wallet", StartCallbackHandlers.handleViewWallet);
     this.bot.action("view_profile", StartCallbackHandlers.handleViewProfile);
     this.bot.action("create_group", StartCallbackHandlers.handleCreateAjo);
     this.bot.action("join_group", StartCallbackHandlers.handleJoinAjo);
     this.bot.action("show_help", StartCallbackHandlers.handleShowHelp);
     this.bot.action("show_about", StartCallbackHandlers.handleShowAbout);
     this.bot.action("back_to_menu", StartCallbackHandlers.handleBackToMenu);
+    this.bot.action("generate_wallet", StartCallbackHandlers.handleGenerateWallet);
+    this.bot.action("import_wallet", StartCallbackHandlers.handleImportWallet);
+    this.bot.action("add_wallet", StartCallbackHandlers.handleAddWallet);
+    this.bot.action("add_wallet_solana", StartCallbackHandlers.handleAddSolanaWallet);
+    this.bot.action("add_wallet_evm", StartCallbackHandlers.handleAddEVMWallet);
 
     // Register callback handlers for exporting private key
     this.bot.action("export_private_key", handleExportPrivateKey);
@@ -123,9 +128,15 @@ export class CommandManager {
     this.bot.action("withdraw_sol", WalletCallbackHandlers.handleWithdraw);
     this.bot.action("withdraw_to_bank", WalletCallbackHandlers.handleWithdrawToBank);
     this.bot.action("withdraw_onchain", WalletCallbackHandlers.handleWithdrawOnchain);
+    this.bot.action(/withdraw_currency:/, WalletCallbackHandlers.handleWithdrawCurrencySelection);
+    this.bot.action(/withdraw_custom_amount:/, WalletCallbackHandlers.handleWithdrawCustomAmount);
     this.bot.action(/withdraw_amount:/, WalletCallbackHandlers.handleWithdrawAmount);
     this.bot.action(/withdraw_confirm:/, WalletCallbackHandlers.handleWithdrawConfirmation);
     this.bot.action("withdraw_cancel", async (ctx) => {
+      const userId = ctx.from?.id;
+      if (userId) {
+        clearWithdrawalState(userId);
+      }
       await ctx.answerCbQuery("Cancelled");
       await ctx.reply("Withdrawal cancelled.");
     });
@@ -168,16 +179,16 @@ export class CommandManager {
 
       const userAction = getUserActionState(userId);
       if (userAction?.action === 'awaiting_custom_buy_amount') {
-          const amount = parseFloat(text);
-          if (isNaN(amount) || amount <= 0) {
-              await ctx.reply("Invalid amount. Please enter a positive number.");
-              return;
-          }
-          // Clear the state
-          clearUserActionState(userId);
-          // Create the buy order
-          await createBuyOrder(ctx, userAction.tradeId, amount);
-          return; // Stop further processing
+        const amount = parseFloat(text);
+        if (isNaN(amount) || amount <= 0) {
+          await ctx.reply("Invalid amount. Please enter a positive number.");
+          return;
+        }
+        // Clear the state
+        clearUserActionState(userId);
+        // Create the buy order
+        await createBuyOrder(ctx, userAction.tradeId, amount);
+        return; // Stop further processing
       }
 
       // Handle pin for private key export
@@ -186,12 +197,41 @@ export class CommandManager {
         return;
       }
 
+      // Handle private key import
+      if (userAction?.action === "awaiting_import_private_key") {
+        // Check if user wants to cancel
+        if (text.toLowerCase().trim() === "/cancel") {
+          clearUserActionState(userId);
+          await ctx.reply("❌ Wallet import cancelled.");
+          return;
+        }
+        await StartCallbackHandlers.handlePrivateKeyImport(ctx, text);
+        return;
+      }
+
+      // Handle add Solana private key input
+      if (userAction?.action === "awaiting_add_solana_private_key") {
+        // Check if user wants to cancel
+        if (text.toLowerCase().trim() === "/cancel") {
+          clearUserActionState(userId);
+          await ctx.reply("❌ Add wallet cancelled.");
+          return;
+        }
+        await StartCallbackHandlers.handleAddSolanaPrivateKeyInput(ctx, text);
+        return;
+      }
+
       const state = getBankUpdateState(userId);
       const withdrawalState = getWithdrawalState(userId);
       // if (!state && !withdrawalState) return;
       if (withdrawalState) {
-        await WalletCallbackHandlers.handleWithdrawPinVerification(ctx);
-        return;
+        if (withdrawalState.step === 'awaiting_custom_amount') {
+          await WalletCallbackHandlers.handleCustomAmountInput(ctx);
+          return;
+        } else if (withdrawalState.step === 'awaiting_pin') {
+          await WalletCallbackHandlers.handleWithdrawPinVerification(ctx);
+          return;
+        }
       }
 
       if (state) {

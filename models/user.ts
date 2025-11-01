@@ -14,23 +14,63 @@ const userSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    wallet_address: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
-    user_balance: {
-      type: Number,
-      default: 0,
-    },
-    last_updated_balance: {
-      type: Date,
-      default: Date.now,
-    },
-    private_key: {
-      type: String,
-      required: true,
+    solanaWallets: [
+      {
+        address: {
+          type: String,
+          required: true,
+          index: true,
+        },
+        encryptedPrivateKey: {
+          type: String,
+          required: true,
+        },
+        balance: {
+          type: Number,
+          default: 0,
+        },
+        last_updated_balance: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    evmWallets: [
+      {
+        address: {
+          type: String,
+          required: true,
+          index: true,
+        },
+        encryptedPrivateKey: {
+          type: String,
+          required: true,
+        },
+        balance: {
+          type: Number,
+          default: 0,
+        },
+        last_updated_balance: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    referrals: {
+      referredBy: {
+        type: Number, // telegram_id of the user who referred
+        default: null,
+        index: true,
+      },
+      totalReferrals: {
+        type: Number,
+        default: 0,
+      },
+      myReferrals: [
+        {
+          type: Number, // array of telegram_ids of referred users
+        },
+      ],
     },
     bank_details: {
       account_number: {

@@ -31,7 +31,7 @@ export async function createBuyOrder(ctx: Context, tradeId: string, amount: numb
             tokenAddress,
             amount,
             slippageBps,
-            user.wallet_address
+            user.solanaWallets[0].address
         );
 
         if (!order.success) {

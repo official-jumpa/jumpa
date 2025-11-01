@@ -1,9 +1,10 @@
 // Add to state/bankState.ts or create state/withdrawalState.ts
 
 interface WithdrawalState {
-  step: 'awaiting_pin';
+  step: 'awaiting_pin' | 'awaiting_custom_amount';
   data: {
     amount?: string;
+    currency?: 'SOL' | 'USDC' | 'USDT';
   };
 }
 

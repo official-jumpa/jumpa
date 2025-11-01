@@ -18,7 +18,7 @@ export async function getOrder(ctx: Context, tokenAddress: string, amount: numbe
 
   const inputAmount = amount * 1e9; // Convert to lamports
   const slippage = 200; //2% slippage. Hardcoded for now.
-  const takerAddress = user.wallet_address;
+  const takerAddress = user.solanaWallets[0].address;
 
   if (!takerAddress) {
     return {

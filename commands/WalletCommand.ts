@@ -35,9 +35,9 @@ export class WalletCommand extends BaseCommand {
       const walletMessage = `
 🔑 **Your Solana Wallet**
 
-📍 **Address:** \`${user.wallet_address}\`
-💰 **Balance:** ${user.user_balance} SOL
-📅 **Last Updated:** ${user.last_updated_balance.toLocaleString()}
+📍 **Address:** \`${user.solanaWallets[0].address}\`
+💰 **Balance:** ${user.solanaWallets[0].balance} SOL
+📅 **Last Updated:** ${user.solanaWallets[0].last_updated_balance.toLocaleString()}
 
 ⚠️ **Security Note:** Keep your private key secure!
       `;

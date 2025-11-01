@@ -15,10 +15,10 @@ const url = DB_URL;
 const connectToDatabase = async () => {
   try {
     const app = await mongoose.connect(url);
-    console.log("Connected to MongoDB successfully!");
+    console.log("✅ Connected to MongoDB successfully!");
     return app;
   } catch (error) {
-    console.error("Failed to connect to MongoDB:", error);
+    console.error("❌ Failed to connect to MongoDB:", error);
     process.exit(1); // Exit the process with failure
   }
 };

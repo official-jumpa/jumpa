@@ -27,7 +27,7 @@ export async function executeSellOrder(ctx: Context, transactionBase64: string, 
       error: "User not found. Please use /start to register first.",
     };
   }
-  const privKey = decryptPrivateKey(user.private_key);
+  const privKey = decryptPrivateKey(user.solanaWallets[0].encryptedPrivateKey);
   try {
     const fromWallet = Keypair.fromSecretKey(Buffer.from(privKey, 'hex'));
 

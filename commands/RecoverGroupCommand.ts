@@ -1,7 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "./BaseCommand";
 import { checkGroupExists, deriveGroupPDA, fetchGroupAccount } from "../services/solanaService";
-import { createAjo } from "../services/ajoService";
 import getUser from "../services/getUserInfo";
 import { decryptPrivateKey } from "../utils/encryption";
 import { Keypair } from "@solana/web3.js";
@@ -52,13 +51,13 @@ export class RecoverGroupCommand extends BaseCommand {
 
       // Get user's wallet
       const user = await getUser(userId, username);
-      if (!user.private_key) {
+      if (!user.solanaWallets[0].encryptedPrivateKey) {
         await ctx.reply("❌ No wallet found. Please register again.");
         return;
       }
 
       // Decrypt private key and create keypair
-      const privateKeyHex = decryptPrivateKey(user.private_key);
+      const privateKeyHex = decryptPrivateKey(user.solanaWallets[0].encryptedPrivateKey);
       const keypair = Keypair.fromSecretKey(Buffer.from(privateKeyHex, 'hex'));
       const signer = keypair.publicKey;
 

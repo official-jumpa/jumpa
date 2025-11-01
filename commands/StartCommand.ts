@@ -24,14 +24,44 @@ export class StartCommand extends BaseCommand {
       const user = await getUser(telegramId, username);
 
       if (user) {
+        // Check if user has a solana wallet
+        const hasSolanaWallet =
+          user.solanaWallets &&
+          user.solanaWallets.length > 0 &&
+          user.solanaWallets[0].address;
+
+        if (!hasSolanaWallet) {
+          // Show wallet setup options
+          const firstName = ctx.from?.first_name || username;
+          const setupMessage = `Welcome to Jumpa Bot, ${firstName}!
+
+🔐 **Wallet Setup Required**
+
+You need to set up a Solana wallet to continue.
+
+Choose an option:`;
+
+          const keyboard = Markup.inlineKeyboard([
+            [Markup.button.callback("🔑 Generate New Solana Wallet", "generate_wallet"),],
+            [Markup.button.callback("📥 Import Existing Solana Wallet", "import_wallet"),],
+          ]);
+
+          await ctx.reply(setupMessage, {
+            parse_mode: "Markdown",
+            ...keyboard,
+          });
+          return;
+        }
+
+        // User has wallet, show normal menu
         const firstName = ctx.from?.first_name || username;
         const welcomeMessage = `Welcome to Jumpa Bot, ${firstName}!
 
  *Your Wallet:*
-\`${user.wallet_address}\`
+\`${user.solanaWallets[0].address}\`
 _Tap the wallet address above to copy it_
 
-*Balance:* ${user.user_balance} SOL
+*Balance:* ${user.solanaWallets[0].balance} SOL
 
  Ready to start collaborative trading!
 

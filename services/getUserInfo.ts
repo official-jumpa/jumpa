@@ -9,33 +9,23 @@ async function getUser(telegram_id: Number, username: string) {
   let user = await User.findOne({ telegram_id });
 
   if (user) {
-    // Create wallet if missing
-    if (!user.wallet_address) {
-      const newWallet = await createNewSolanaWallet(telegram_id);
-      user.wallet_address = newWallet.address;
-      user.private_key = newWallet.private_key_encrypted;
-      await user.save();
+    // Don't auto-create wallet - let user choose to generate or import
+    // Only update balance if user has a solana wallet
+    if (user.solanaWallets && user.solanaWallets.length > 0 && user.solanaWallets[0].address) {
+      await updateUserBalance(telegram_id, false);
     }
-    // Update balance if cache is stale
-    await updateUserBalance(telegram_id, false);
-
     return user;
   }
 
-  // Create new user
-  const newWallet = await createNewSolanaWallet(telegram_id);
-
+  // Create new user without wallet
   const newUser = new User({
     telegram_id: telegram_id,
     username: username,
-    wallet_address: newWallet.address,
-    private_key: newWallet.private_key_encrypted,
-    user_balance: 0, // Default to 0, fetch balance when needed
-    last_updated_balance: new Date(0), // Set to epoch to force first update
+    solanaWallets: [],
   });
 
   await newUser.save();
-  console.log(`New user created: ${newUser.wallet_address}`);
+  console.log(`New user created: ${telegram_id}`);
   return newUser;
 }
 
@@ -43,35 +33,66 @@ async function getUser(telegram_id: Number, username: string) {
 export async function updateUserBalance(telegram_id: Number, forceUpdate = false) {
   console.log("updateUserBalance triggered");
   const user = await User.findOne({ telegram_id });
-  if (!user || !user.wallet_address) {
+  if (!user || !user.solanaWallets || user.solanaWallets.length === 0 || !user.solanaWallets[0].address) {
     throw new Error("User not found or no wallet address");
   }
 
   // Check if balance is still fresh (within cache duration)
   const now = new Date().getTime();
-  const lastUpdated = user.last_updated_balance?.getTime() || 0;
+  const lastUpdated = user.solanaWallets[0].last_updated_balance?.getTime() || 0;
   const cacheAge = now - lastUpdated;
 
   if (!forceUpdate && cacheAge < BALANCE_CACHE_DURATION) {
-    console.log(`Using cached balance for ${user.wallet_address} (age: ${Math.round(cacheAge / 1000)}s)`);
-    return user.user_balance;
+    console.log(`Using cached balance for ${user.solanaWallets[0].address} (age: ${Math.round(cacheAge / 1000)}s)`);
+    return user.solanaWallets[0].balance;
   }
 
   // Fetch fresh balance
   try {
-    const currentBalance = await getBalance(user.wallet_address);
-    user.user_balance = currentBalance;
-    user.last_updated_balance = new Date();
+    const currentBalance = await getBalance(user.solanaWallets[0].address);
+    user.solanaWallets[0].balance = currentBalance;
+    user.solanaWallets[0].last_updated_balance = new Date();
     await user.save();
-    console.log(`Balance updated: ${currentBalance} SOL for ${user.wallet_address}`);
+    console.log(`Balance updated: ${currentBalance} SOL for ${user.solanaWallets[0].address}`);
     return currentBalance;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.warn(`Failed to update balance: ${errorMessage}`);
     // Return cached balance even if stale
-    return user.user_balance;
+    return user.solanaWallets[0].balance;
   }
 }
+// Helper function to add a solana wallet to user
+export async function addSolanaWalletToUser(
+  telegram_id: Number,
+  address: string,
+  encryptedPrivateKey: string
+) {
+  const user = await User.findOne({ telegram_id });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Check if wallet already exists
+  const existingWallet = user.solanaWallets.find(
+    (wallet) => wallet.address === address
+  );
+  if (existingWallet) {
+    throw new Error("Wallet already exists");
+  }
+
+  // Add new wallet
+  user.solanaWallets.push({
+    address,
+    encryptedPrivateKey,
+    balance: 0,
+    last_updated_balance: new Date(0),
+  });
+
+  await user.save();
+  return user;
+}
+
 //THE getUserInfo and the getBalcnce files can be combined together later for optimization
 
 export default getUser;

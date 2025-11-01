@@ -47,8 +47,7 @@ async function startBot() {
 
     console.log("Starting Jumpa Bot...");
     await bot.launch();
-    console.log("✅ Bot is running successfully!");
-    console.log("Press Ctrl+C to stop the bot");
+    console.log("✅ Bot is running... Press Ctrl+C to stop the bot");
   } catch (error) {
     console.error("Failed to start bot:", error);
     process.exit(1);

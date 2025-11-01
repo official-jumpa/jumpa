@@ -44,14 +44,14 @@ export class CheckGroupCommand extends BaseCommand {
 
       // Get user's wallet (we need the signer to derive the PDA)
       const user = await getUser(userId, username);
-      if (!user.private_key) {
+      if (!user.solanaWallets[0].encryptedPrivateKey) {
         await ctx.reply("❌ No wallet found. Please register again.");
         return;
       }
 
       // Import the decryptPrivateKey function
       const { decryptPrivateKey } = await import("../utils/encryption");
-      const privateKeyHex = decryptPrivateKey(user.private_key);
+      const privateKeyHex = decryptPrivateKey(user.solanaWallets[0].encryptedPrivateKey);
       const { Keypair } = await import("@solana/web3.js");
       const keypair = Keypair.fromSecretKey(Buffer.from(privateKeyHex, 'hex'));
       const signer = keypair.publicKey;

@@ -15,7 +15,7 @@ export async function getSellOrder(ctx: Context, tokenAddress: string, amount: n
       error: "User not found. Please /start to create a wallet.",
     };
   }
-  const takerAddress = user.wallet_address;
+  const takerAddress = user.solanaWallets[0].address;
 
   if (!takerAddress) {
     return {

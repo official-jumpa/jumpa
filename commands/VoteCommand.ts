@@ -102,7 +102,7 @@ export class VoteCommand extends BaseCommand {
         const result = await solanaService.vote({
           telegramId: userId,
           groupName: ajoGroup.name,
-          ownerPubkey: owner.wallet_address,
+          ownerPubkey: owner.solanaWallets[0].address,
           proposalNonce: proposalNonce,
           yesVote: yesVote,
         });

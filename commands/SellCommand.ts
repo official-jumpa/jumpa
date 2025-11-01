@@ -35,7 +35,7 @@ export async function handleSell(ctx: Context) {
 
     //GET TOKEN BALANCE HERE BEFORE PROCEEDING
     const connection = new Connection(config.solMainnet);
-    const walletAddress = new PublicKey(user.wallet_address);
+    const walletAddress = new PublicKey(user.solanaWallets[0].address);
     const tokenMintAddress = new PublicKey(tokenAddress);
 
     const tokenAccounts = await connection.getParsedTokenAccountsByOwner(

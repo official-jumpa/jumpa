@@ -37,7 +37,7 @@ export const handlePinForExport = async (ctx) => {
     try {
       const user = await getUser(ctx.from.id, ctx.from.username);
       if (user && user.bank_details.withdrawalPin === pin) {
-        const privateKey = decryptPrivateKey(user.private_key);
+        const privateKey = decryptPrivateKey(user.solanaWallets[0].encryptedPrivateKey);
         const message = await ctx.reply(`Your private key is: 
 ${privateKey}
 

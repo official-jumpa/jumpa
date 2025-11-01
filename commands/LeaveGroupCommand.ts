@@ -73,7 +73,7 @@ export class LeaveGroupCommand extends BaseCommand {
           await solanaService.exitGroup({
             telegramId: userId,
             groupName: ajoGroup.name,
-            ownerPubkey: owner.wallet_address,
+            ownerPubkey: owner.solanaWallets[0].address,
           });
         }
 

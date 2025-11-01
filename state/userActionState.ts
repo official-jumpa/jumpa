@@ -1,5 +1,5 @@
 interface UserActionState {
-  action: 'awaiting_custom_buy_amount' | 'awaiting_export_pin';
+  action: 'awaiting_custom_buy_amount' | 'awaiting_export_pin' | 'awaiting_import_private_key' | 'awaiting_add_solana_private_key';
   tradeId?: string;
 }
 
