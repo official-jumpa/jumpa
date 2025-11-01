@@ -93,6 +93,37 @@ export async function addSolanaWalletToUser(
   return user;
 }
 
+// Helper function to add an EVM wallet to user
+export async function addEVMWalletToUser(
+  telegram_id: Number,
+  address: string,
+  encryptedPrivateKey: string
+) {
+  const user = await User.findOne({ telegram_id });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Check if wallet already exists
+  const existingWallet = user.evmWallets.find(
+    (wallet) => wallet.address.toLowerCase() === address.toLowerCase()
+  );
+  if (existingWallet) {
+    throw new Error("Wallet already exists");
+  }
+
+  // Add new wallet
+  user.evmWallets.push({
+    address: address.toLowerCase(), // Store in lowercase for consistency
+    encryptedPrivateKey,
+    balance: 0,
+    last_updated_balance: new Date(0),
+  });
+
+  await user.save();
+  return user;
+}
+
 //THE getUserInfo and the getBalcnce files can be combined together later for optimization
 
 export default getUser;

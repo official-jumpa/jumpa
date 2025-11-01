@@ -221,6 +221,18 @@ export class CommandManager {
         return;
       }
 
+      // Handle add EVM private key input
+      if (userAction?.action === "awaiting_add_evm_private_key") {
+        // Check if user wants to cancel
+        if (text.toLowerCase().trim() === "/cancel") {
+          clearUserActionState(userId);
+          await ctx.reply("❌ Add wallet cancelled.");
+          return;
+        }
+        await StartCallbackHandlers.handleAddEVMPrivateKeyInput(ctx, text);
+        return;
+      }
+
       const state = getBankUpdateState(userId);
       const withdrawalState = getWithdrawalState(userId);
       // if (!state && !withdrawalState) return;

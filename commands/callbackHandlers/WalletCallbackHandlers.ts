@@ -78,12 +78,16 @@ export class WalletCallbackHandlers {
             return;
         }
 
-        const message = `Select the currency you want to withdraw to NGN:`;
+        const message = `Select the currency you want to withdraw to NGN. For EVM chains, we only support the following blockchains for now: CELO, BASE, OPTIMISM, POLYGON, ARBITRUM.`;
         const keyboard = Markup.inlineKeyboard([
             [
-                Markup.button.callback("SOL → NGN", "withdraw_currency:SOL"),
-                Markup.button.callback("USDC → NGN", "withdraw_currency:USDC"),
-                Markup.button.callback("USDT → NGN", "withdraw_currency:USDT"),
+                Markup.button.callback("SOL (SOL)", "withdraw_currency:SOL"),
+                Markup.button.callback("USDC (SOL)", "withdraw_currency:USDC"),
+                Markup.button.callback("USDT (SOL)", "withdraw_currency:USDT"),
+            ],[
+                Markup.button.callback("ETH (EVM)", "withdraw_currency:ETH"),
+                Markup.button.callback("USDC (EVM)", "withdraw_currency:USDC"),
+                Markup.button.callback("USDT (EVM)", "withdraw_currency:USDT"),
             ],
             [
                 Markup.button.callback("❌ Cancel", "withdraw_cancel"),
