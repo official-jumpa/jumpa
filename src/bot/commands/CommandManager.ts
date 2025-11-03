@@ -117,6 +117,8 @@ export class CommandManager {
     this.bot.action("add_wallet", StartCallbackHandlers.handleAddWallet);
     this.bot.action("add_wallet_solana", StartCallbackHandlers.handleAddSolanaWallet);
     this.bot.action("add_wallet_evm", StartCallbackHandlers.handleAddEVMWallet);
+    this.bot.action(/set_default_solana:/, StartCallbackHandlers.handleSetDefaultSolanaWallet);
+    this.bot.action(/set_default_evm:/, StartCallbackHandlers.handleSetDefaultEVMWallet);
 
     // Register callback handlers for exporting private key
     this.bot.action("export_private_key", handleExportPrivateKey);
@@ -127,6 +129,7 @@ export class CommandManager {
     this.bot.action("deposit_sol", WalletCallbackHandlers.handleDeposit);
     this.bot.action("withdraw_sol", WalletCallbackHandlers.handleWithdraw);
     this.bot.action("withdraw_to_bank", WalletCallbackHandlers.handleWithdrawToBank);
+    this.bot.action("refresh_balance", WalletCallbackHandlers.handleRefreshBalance);
     this.bot.action(/withdraw_currency:/, WalletCallbackHandlers.handleWithdrawCurrencySelection);
     this.bot.action(/withdraw_custom_amount:/, WalletCallbackHandlers.handleWithdrawCustomAmount);
     this.bot.action(/withdraw_amount:/, WalletCallbackHandlers.handleWithdrawAmount);

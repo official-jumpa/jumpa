@@ -33,6 +33,18 @@ const userSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        usdcBalance: {
+          type: Number,
+          default: 0,
+        },
+        usdtBalance: {
+          type: Number,
+          default: 0,
+        },
+        last_updated_token_balance: {
+          type: Date,
+          default: () => new Date(0), // Set to epoch start to force initial fetch
+        },
       },
     ],
     evmWallets: [

@@ -7,13 +7,9 @@ const BALANCE_CACHE_DURATION = 3 * 60 * 1000; //3 minutes
 
 async function getUser(telegram_id: Number, username: string) {
   let user = await User.findOne({ telegram_id });
-
   if (user) {
-    // Don't auto-create wallet - let user choose to generate or import
-    // Only update balance if user has a solana wallet
-    if (user.solanaWallets && user.solanaWallets.length > 0 && user.solanaWallets[0].address) {
-      await updateUserBalance(telegram_id, false);
-    }
+    // Don't auto-update balance on every getUser call
+    // Balance fetching is now handled by getBalance() with caching
     return user;
   }
 
