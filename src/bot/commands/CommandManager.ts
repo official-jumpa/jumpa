@@ -127,18 +127,20 @@ export class CommandManager {
     this.bot.action("deposit_sol", WalletCallbackHandlers.handleDeposit);
     this.bot.action("withdraw_sol", WalletCallbackHandlers.handleWithdraw);
     this.bot.action("withdraw_to_bank", WalletCallbackHandlers.handleWithdrawToBank);
-    this.bot.action("withdraw_onchain", WalletCallbackHandlers.handleWithdrawOnchain);
     this.bot.action(/withdraw_currency:/, WalletCallbackHandlers.handleWithdrawCurrencySelection);
     this.bot.action(/withdraw_custom_amount:/, WalletCallbackHandlers.handleWithdrawCustomAmount);
     this.bot.action(/withdraw_amount:/, WalletCallbackHandlers.handleWithdrawAmount);
     this.bot.action(/withdraw_confirm:/, WalletCallbackHandlers.handleWithdrawConfirmation);
-    this.bot.action("withdraw_cancel", async (ctx) => {
-      const userId = ctx.from?.id;
-      if (userId) {
-        clearWithdrawalState(userId);
+
+    // Register delete message action (reusable for any command)
+    this.bot.action("delete_message", async (ctx) => {
+      try {
+        await ctx.deleteMessage();
+        await ctx.answerCbQuery("Cancelled");
+      } catch (error) {
+        console.error("Error deleting message:", error);
+        await ctx.answerCbQuery("Message deleted");
       }
-      await ctx.answerCbQuery("Cancelled");
-      await ctx.reply("Withdrawal cancelled.");
     });
 
     //register buy and sell commands

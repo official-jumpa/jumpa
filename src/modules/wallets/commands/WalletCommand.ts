@@ -46,7 +46,6 @@ export class WalletCommand extends BaseCommand {
       const keyboard = Markup.inlineKeyboard([
         [
           Markup.button.callback("🔄 Refresh Balance", "refresh_balance"),
-          Markup.button.callback("📋 Copy Address", "copy_address"),
         ],
         [
           Markup.button.callback("🔐 Show Private Key", "show_private_key"),

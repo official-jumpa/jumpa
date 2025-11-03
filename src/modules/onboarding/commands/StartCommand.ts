@@ -57,9 +57,9 @@ Choose an option:`;
         const firstName = ctx.from?.first_name || username;
         const welcomeMessage = `Welcome to Jumpa Bot, ${firstName}!
 
- *Your Wallet:*
+ *--- Your Solana Wallet ---*
+ 
 \`${user.solanaWallets[0].address}\`
-_Tap the wallet address above to copy it_
 
 *Balance:* ${user.solanaWallets[0].balance} SOL
 

@@ -26,29 +26,21 @@ export class WalletCallbackHandlers {
         }
 
         const message = `Fund your wallet by sending SOL to your wallet address:\n\n\`${user.solanaWallets[0].address}\``;
-        const keyboard = Markup.inlineKeyboard([
-            [Markup.button.callback("📋 Copy Address", "copy_address")],
-        ]);
 
-        await ctx.reply(message, { parse_mode: "Markdown", ...keyboard });
+        await ctx.reply(message, { parse_mode: "Markdown" });
     }
 
     static async handleWithdraw(ctx: Context): Promise<void> {
         const keyboard = Markup.inlineKeyboard(
             [[
-                Markup.button.callback("🏧To Bank Account", "withdraw_to_bank"),
-                Markup.button.callback("on-chain", "withdraw_onchain"),
-            ], [
+                Markup.button.callback("🏧To NGN Bank Account", "withdraw_to_bank"),
                 Markup.button.callback("Set Withdrawal Pin", "set_withdrawal_pin"),
-                Markup.button.callback("❌ Cancel", "back_to_menu"),
+            ], [
+                Markup.button.callback("❌ Cancel", "delete_message"),
             ],]
         );
 
         await ctx.reply("Where would you like to withdraw to? Make sure you have setup your withdrawal pin to avoid unauthorized withdrawals from your account", keyboard);
-    }
-
-    static async handleWithdrawOnchain(ctx: Context): Promise<void> {
-        await ctx.reply("Coming soon!");
     }
 
     static async handleWithdrawToBank(ctx: Context): Promise<void> {
@@ -84,13 +76,13 @@ export class WalletCallbackHandlers {
                 Markup.button.callback("SOL (SOL)", "withdraw_currency:SOL"),
                 Markup.button.callback("USDC (SOL)", "withdraw_currency:USDC"),
                 Markup.button.callback("USDT (SOL)", "withdraw_currency:USDT"),
-            ],[
+            ], [
                 Markup.button.callback("ETH (EVM)", "withdraw_currency:ETH"),
                 Markup.button.callback("USDC (EVM)", "withdraw_currency:USDC"),
                 Markup.button.callback("USDT (EVM)", "withdraw_currency:USDT"),
             ],
             [
-                Markup.button.callback("❌ Cancel", "withdraw_cancel"),
+                Markup.button.callback("❌ Cancel", "delete_message"),
             ],
         ]);
 
@@ -139,7 +131,8 @@ export class WalletCallbackHandlers {
             rateMessage = `1 USD = ₦${usdToNgn.toFixed(2)}\n\n0.1 ${currency} = ₦${(0.1 * usdToNgn).toFixed(2)}\n0.2 ${currency} = ₦${(0.2 * usdToNgn).toFixed(2)}\n0.3 ${currency} = ₦${(0.3 * usdToNgn).toFixed(2)}`;
         }
 
-        const message = `Your selected bank account:\n\nBank: ${user.bank_details.bank_name}\nAccount Name: ${user.bank_details.account_name}\nAccount Number: ${user.bank_details.account_number}\n\n📊 Current Exchange Rates:\n\n${rateMessage}\n\nRate expires in 30 seconds. Message auto deletes in 30 seconds`;
+        const minAmountText = currency === "SOL" ? "Minimum: 0.01 SOL" : `Minimum: 1 ${currency}`;
+        const message = `Your selected bank account:\n\nBank: ${user.bank_details.bank_name}\nAccount Name: ${user.bank_details.account_name}\nAccount Number: ${user.bank_details.account_number}\n\n📊 Current Exchange Rates:\n\n${rateMessage}\n\n⚠️ ${minAmountText}\n\nRate expires in 30 seconds. Message auto deletes in 30 seconds`;
 
         // Create amount buttons based on currency
         const amountButtons = [];
@@ -166,7 +159,7 @@ export class WalletCallbackHandlers {
         const keyboard = Markup.inlineKeyboard([
             ...amountButtons,
             [
-                Markup.button.callback("❌ Decline", "withdraw_cancel"),
+                Markup.button.callback("❌ Decline", "delete_message"),
             ],
         ]);
 
@@ -191,8 +184,9 @@ export class WalletCallbackHandlers {
         // Set state to await custom amount input
         setWithdrawalState(telegramId, 'awaiting_custom_amount', { currency: currency as 'SOL' | 'USDC' | 'USDT' });
 
+        const minAmount = currency === "SOL" ? "0.01 SOL" : `1 ${currency}`;
         await ctx.answerCbQuery();
-        await ctx.reply(`Please enter the amount of ${currency} you want to withdraw (e.g., 0.5, 10, 100):`);
+        await ctx.reply(`Please enter the amount of ${currency} you want to withdraw.\n\n⚠️ Minimum: ${minAmount}\n\nExample: ${currency === "SOL" ? "0.5" : "10"}`);
     }
 
     static async handleCustomAmountInput(ctx: Context): Promise<void> {
@@ -218,6 +212,15 @@ export class WalletCallbackHandlers {
         }
 
         const currency = state.data.currency;
+
+        // Validate minimum withdrawal amounts
+        if (currency === "SOL" && amount < 0.01) {
+            await ctx.reply("❌ Minimum withdrawal amount for SOL is 0.01 SOL. Please enter a valid amount:");
+            return;
+        } else if ((currency === "USDC" || currency === "USDT") && amount < 1) {
+            await ctx.reply(`❌ Minimum withdrawal amount for ${currency} is 1 ${currency}. Please enter a valid amount:`);
+            return;
+        }
         const rateUrl = config.paymentRateUrl;
 
         if (!rateUrl) {
@@ -246,7 +249,7 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
         const keyboard = Markup.inlineKeyboard([
             [
                 Markup.button.callback("✅ Accept", `withdraw_confirm:${currency}:${amount}`),
-                Markup.button.callback("❌ Decline", "withdraw_cancel"),
+                Markup.button.callback("❌ Decline", "delete_message"),
             ],
         ]);
 
@@ -259,6 +262,19 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
         const parts = cbData.split(":");
         const currency = parts[1]; // SOL, USDC, or USDT
         const amount = parts[2];
+        const amountNum = parseFloat(amount);
+
+        // Validate minimum withdrawal amounts
+        if (currency === "SOL" && amountNum < 0.01) {
+            await ctx.answerCbQuery("❌ Minimum withdrawal: 0.01 SOL");
+            await ctx.reply("❌ Minimum withdrawal amount for SOL is 0.01 SOL. Please select a valid amount.");
+            return;
+        } else if ((currency === "USDC" || currency === "USDT") && amountNum < 1) {
+            await ctx.answerCbQuery(`❌ Minimum withdrawal: 1 ${currency}`);
+            await ctx.reply(`❌ Minimum withdrawal amount for ${currency} is 1 ${currency}. Please select a valid amount.`);
+            return;
+        }
+
         const rateUrl = config.paymentRateUrl;
 
         if (!rateUrl) {
@@ -282,7 +298,7 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
         const keyboard = Markup.inlineKeyboard([
             [
                 Markup.button.callback("✅ Accept", `withdraw_confirm:${currency}:${amount}`),
-                Markup.button.callback("❌ Decline", "withdraw_cancel"),
+                Markup.button.callback("❌ Decline", "delete_message"),
             ],
         ]);
 
@@ -301,6 +317,7 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
 
         const telegramId = ctx.from?.id;
         const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+        console.log("attempting withdrawal: ", { telegramId, currency, amount });
 
         if (!telegramId) {
             await ctx.answerCbQuery("❌ Unable to identify your account.");
@@ -486,7 +503,6 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
 
 
     static async handleRefreshBalance(ctx: Context): Promise<void> { }
-    static async handleCopyAddress(ctx: Context): Promise<void> { }
     static async handleShowPrivatexKey(ctx: Context): Promise<void> { }
     static async handleWalletDetails(ctx: Context): Promise<void> { }
     static async handleCloseWallet(ctx: Context): Promise<void> { }
