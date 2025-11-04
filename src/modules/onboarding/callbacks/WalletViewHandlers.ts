@@ -73,7 +73,7 @@ Set up a wallet to start trading!`;
           // Fetch USDC and USDT balances for this wallet
           const tokenBalances = await getAllTokenBalances(wallet.address);
 
-          const defaultBadge = index === 0 ? " ⭐ <b>(Default)</b>" : "";
+          const defaultBadge = index === 0 ? " 🟢 <b>(Default)</b>\n" : "";
           walletMessage += `\n<b>${index + 1}.</b> <code>${wallet.address}</code>${defaultBadge}\n`;
           walletMessage += `   SOL: ${balance}   • USDC: ${tokenBalances.usdc.toFixed(1)}   • USDT: ${tokenBalances.usdt.toFixed(1)}\n`;
           walletMessage += `   Updated: ${lastUpdated}\n`;
@@ -89,7 +89,7 @@ Set up a wallet to start trading!`;
           const lastUpdated = wallet.last_updated_balance
             ? new Date(wallet.last_updated_balance).toLocaleDateString()
             : "Never";
-          const defaultBadge = index === 0 ? " ⭐ <b>(Default)</b>" : "";
+          const defaultBadge = index === 0 ? " 🟢 <b>(Default)</b>\n" : "";
           walletMessage += `\n<b>${index + 1}.</b> <code>${wallet.address}</code>${defaultBadge}\n`;
           walletMessage += `   Balance: ${balance} ETH\n`;
           walletMessage += `   Updated: ${lastUpdated}\n`;
@@ -158,10 +158,6 @@ Set up a wallet to start trading!`;
       }
 
       keyboardButtons.push(
-        [
-          Markup.button.callback("💳 Deposit", "deposit_sol"),
-          Markup.button.callback("💸 Withdraw", "withdraw_sol"),
-        ],
         [
           Markup.button.callback("📊 My Profile", "view_profile"),
           Markup.button.callback("🔙 Back to Menu", "back_to_menu"),

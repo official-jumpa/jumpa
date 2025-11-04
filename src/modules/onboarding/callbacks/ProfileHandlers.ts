@@ -1,6 +1,7 @@
 import { Context } from "telegraf";
 import getUser from "@modules/users/getUserInfo";
 import { Markup } from "telegraf";
+import { getUserAjoGroups } from "@modules/ajo-groups/ajoService";
 
 export class ProfileHandlers {
   // Handle view profile callback
@@ -31,24 +32,19 @@ export class ProfileHandlers {
         user.solanaWallets.length > 0 &&
         user.solanaWallets[0].address;
 
+      // Get user's groups
+      const userGroups = await getUserAjoGroups(telegramId);
+
       const profileMessage = `
       <b>📊 Your Profile</b>
 
-<b>Username:</b> ${username}
+<b>Wallet Address:</b> ${hasSolanaWallet ? `<code>${user.solanaWallets[0].address}</code>` : "Wallet not set"}
 
-<b>Wallet Address:</b> ${hasSolanaWallet ? `<code>${user.solanaWallets[0].address}</code>` : "Not set up"}
-
-<b>Balance:</b> ${hasSolanaWallet ? `${user.solanaWallets[0].balance} SOL` : "N/A"}
+<b>Balance:</b> ${hasSolanaWallet ? `${(user.solanaWallets[0].balance).toFixed(4)} SOL` : "N/A"}
 
 <b>Member Since:</b> ${user.created_at?.toLocaleString() || "Unknown"}
 
-<b>Last Active:</b> ${user.last_seen?.toLocaleString() || "Never"}
-
-<b>Status:</b> ${user.is_active ? "Active" : "Inactive"}
-
-<b>Role:</b> ${user.role}
-
-<b>Groups:</b> 0 (Coming Soon!)
+<b>Groups:</b> ${userGroups.length}
       `;
       const keyboard = Markup.inlineKeyboard([
         [

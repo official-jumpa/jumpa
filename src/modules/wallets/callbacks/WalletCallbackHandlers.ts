@@ -5,6 +5,7 @@ import Withdrawal from "@database/models/withdrawal";
 import { WithdrawSolToNgn, WithdrawUSDCToNgn, WithdrawUSDTToNgn } from "@modules/payments/commands/WithdrawToNgn";
 import { safeDeleteMessage } from "@shared/utils/messageUtils";
 import { clearWithdrawalState, getWithdrawalState, setWithdrawalState } from "@shared/state/withdrawalState";
+import { WalletViewHandlers } from "@modules/onboarding/callbacks/WalletViewHandlers";
 
 export class WalletCallbackHandlers {
     static async handleDeposit(ctx: Context): Promise<void> {
@@ -526,8 +527,6 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
             // Import necessary utilities
             const getBalance = (await import("@shared/utils/getBalance")).default;
             const { getAllTokenBalances } = await import("@shared/utils/getTokenBalances");
-            const User = (await import("@database/models/user")).default;
-            const { Markup } = await import("telegraf");
 
             // Refresh all Solana wallet balances (respects cache if not expired)
             for (let i = 0; i < user.solanaWallets.length; i++) {
@@ -545,132 +544,8 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
                 }
             }
 
-            // Fetch updated user data
-            const updatedUser = await getUser(telegramId, username);
-            if (!updatedUser) {
-                await ctx.reply("❌ Error fetching updated wallet data.");
-                return;
-            }
-
-            const solanaWallets = updatedUser.solanaWallets || [];
-            const evmWallets = updatedUser.evmWallets || [];
-
-            // Build wallet message
-            let walletMessage = `<b>Your Wallets</b>\n\n`;
-
-            // Display Solana wallets with refreshed balances
-            if (solanaWallets.length > 0) {
-                walletMessage += `<b>🟣 Solana Wallets (${solanaWallets.length}/3)</b>\n`;
-
-                for (let index = 0; index < solanaWallets.length; index++) {
-                    const wallet = solanaWallets[index];
-                    const balance = wallet.balance?.toFixed(4) || "0.0000";
-                    const lastUpdated = wallet.last_updated_balance
-                        ? new Date(wallet.last_updated_balance).toLocaleDateString()
-                        : "Never";
-
-                    // Get token balances (will use cache if refresh failed)
-                    const tokenBalances = await getAllTokenBalances(wallet.address);
-
-                    const defaultBadge = index === 0 ? " ⭐ <b>(Default)</b>" : "";
-                    walletMessage += `\n<b>${index + 1}.</b> <code>${wallet.address}</code>${defaultBadge}\n`;
-                    walletMessage += `   SOL: ${balance}   • USDC: ${tokenBalances.usdc.toFixed(1)}   • USDT: ${tokenBalances.usdt.toFixed(1)}\n`;
-                    walletMessage += `   Updated: ${lastUpdated}\n`;
-                }
-                walletMessage += `\n`;
-            }
-
-            // Display EVM wallets
-            if (evmWallets.length > 0) {
-                walletMessage += `<b>🔵 EVM Wallets (${evmWallets.length}/3)</b>\n`;
-                evmWallets.forEach((wallet, index) => {
-                    const balance = wallet.balance?.toFixed(4) || "0.0000";
-                    const lastUpdated = wallet.last_updated_balance
-                        ? new Date(wallet.last_updated_balance).toLocaleDateString()
-                        : "Never";
-                    const defaultBadge = index === 0 ? " ⭐ <b>(Default)</b>" : "";
-                    walletMessage += `\n<b>${index + 1}.</b> <code>${wallet.address}</code>${defaultBadge}\n`;
-                    walletMessage += `   Balance: ${balance} ETH\n`;
-                    walletMessage += `   Updated: ${lastUpdated}\n`;
-                });
-                walletMessage += `\n`;
-            }
-
-            // Add summary
-            let totalSolBalance = 0;
-            for (const wallet of solanaWallets) {
-                totalSolBalance += Number(wallet.balance) || 0;
-            }
-
-            let totalEvmBalance = 0;
-            for (const wallet of evmWallets) {
-                totalEvmBalance += Number(wallet.balance) || 0;
-            }
-
-            walletMessage += `<b> Summary</b>\n`;
-            walletMessage += `Total Wallets: ${solanaWallets.length + evmWallets.length}\n`;
-            if (solanaWallets.length > 0) {
-                walletMessage += `Total SOL: ${totalSolBalance.toFixed(4)} SOL\n`;
-            }
-            if (evmWallets.length > 0) {
-                walletMessage += `Total ETH: ${totalEvmBalance.toFixed(4)} ETH\n`;
-            }
-
-            // Build keyboard with set default buttons
-            const keyboardButtons = [
-                [
-                    Markup.button.callback("🔄 Refresh Balance", "refresh_balance"),
-                    Markup.button.callback("➕ Add Wallet", "add_wallet"),
-                ],
-            ];
-
-            // Add "Set as Default" buttons for Solana wallets
-            if (solanaWallets.length > 1) {
-                const solanaButtons = [];
-                for (let i = 1; i < solanaWallets.length; i++) {
-                    const address = solanaWallets[i].address;
-                    const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
-                    solanaButtons.push(
-                        Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_solana:${i}`)
-                    );
-                }
-                for (let i = 0; i < solanaButtons.length; i += 2) {
-                    keyboardButtons.push(solanaButtons.slice(i, i + 2));
-                }
-            }
-
-            // Add "Set as Default" buttons for EVM wallets
-            if (evmWallets.length > 1) {
-                const evmButtons = [];
-                for (let i = 1; i < evmWallets.length; i++) {
-                    const address = evmWallets[i].address;
-                    const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
-                    evmButtons.push(
-                        Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_evm:${i}`)
-                    );
-                }
-                for (let i = 0; i < evmButtons.length; i += 2) {
-                    keyboardButtons.push(evmButtons.slice(i, i + 2));
-                }
-            }
-
-            keyboardButtons.push(
-                [
-                    Markup.button.callback("💳 Deposit", "deposit_sol"),
-                    Markup.button.callback("💸 Withdraw", "withdraw_sol"),
-                ],
-                [
-                    Markup.button.callback("📊 My Profile", "view_profile"),
-                    Markup.button.callback("🔙 Back to Menu", "back_to_menu"),
-                ]
-            );
-
-            const keyboard = Markup.inlineKeyboard(keyboardButtons);
-
-            await ctx.reply(walletMessage, {
-                parse_mode: "HTML",
-                ...keyboard,
-            });
+            // After refreshing, delegate to WalletViewHandlers to display the wallet view
+            await WalletViewHandlers.handleViewWallet(ctx);
         } catch (error) {
             console.error("Refresh balance error:", error);
             await ctx.reply("❌ Failed to refresh balances. Please try again later.");

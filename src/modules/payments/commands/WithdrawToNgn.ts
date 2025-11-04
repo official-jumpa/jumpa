@@ -10,7 +10,9 @@ import {
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
-  getMint
+  getMint,
+  createAssociatedTokenAccountInstruction,
+  getAccount
 } from '@solana/spl-token';
 import { config } from '@core/config/config';
 import getUser from '@modules/users/getUserInfo';
@@ -206,6 +208,17 @@ export async function WithdrawUSDCToNgn(ctx: Context, toAddress: string, amount:
       toPublicKey
     );
 
+    // 5a. Check if recipient's token account exists, if not, we need to create it
+    let recipientAccountExists = false;
+    try {
+      await getAccount(connection, toTokenAccount);
+      recipientAccountExists = true;
+      console.log('Recipient USDC token account exists');
+    } catch (error) {
+      console.log('Recipient USDC token account does not exist, will create it');
+      recipientAccountExists = false;
+    }
+
     // 6. Check sender's USDC balance
     const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
       fromWallet.publicKey,
@@ -248,8 +261,24 @@ export async function WithdrawUSDCToNgn(ctx: Context, toAddress: string, amount:
       };
     }
 
-    // 9. Create token transfer instruction
-    const transaction = new Transaction().add(
+    // 9. Create token transfer transaction
+    const transaction = new Transaction();
+
+    // If recipient account doesn't exist, add instruction to create it
+    if (!recipientAccountExists) {
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          fromWallet.publicKey,  // payer
+          toTokenAccount,        // associated token account address
+          toPublicKey,           // owner
+          USDC_MINT              // mint
+        )
+      );
+      console.log('Added instruction to create recipient USDC token account');
+    }
+
+    // Add transfer instruction
+    transaction.add(
       createTransferInstruction(
         fromTokenAccount,
         toTokenAccount,
@@ -365,6 +394,17 @@ export async function WithdrawUSDTToNgn(ctx: Context, toAddress: string, amount:
       toPublicKey
     );
 
+    // 5a. Check if recipient's token account exists, if not, we need to create it
+    let recipientAccountExists = false;
+    try {
+      await getAccount(connection, toTokenAccount);
+      recipientAccountExists = true;
+      console.log('Recipient USDT token account exists');
+    } catch (error) {
+      console.log('Recipient USDT token account does not exist, will create it');
+      recipientAccountExists = false;
+    }
+
     // 6. Check sender's USDT balance
     const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
       fromWallet.publicKey,
@@ -407,8 +447,24 @@ export async function WithdrawUSDTToNgn(ctx: Context, toAddress: string, amount:
       };
     }
 
-    // 9. Create token transfer instruction
-    const transaction = new Transaction().add(
+    // 9. Create token transfer transaction
+    const transaction = new Transaction();
+
+    // If recipient account doesn't exist, add instruction to create it
+    if (!recipientAccountExists) {
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          fromWallet.publicKey,  // payer
+          toTokenAccount,        // associated token account address
+          toPublicKey,           // owner
+          USDT_MINT              // mint
+        )
+      );
+      console.log('Added instruction to create recipient USDT token account');
+    }
+
+    // Add transfer instruction
+    transaction.add(
       createTransferInstruction(
         fromTokenAccount,
         toTokenAccount,
