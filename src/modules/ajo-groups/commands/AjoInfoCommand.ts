@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getAjoByChatId, getAjoInfo } from "@modules/ajo-groups/ajoService";
+import { getGroupByChatId, getGroupInfo } from "@modules/ajo-groups/groupService";
 import { getGroupFinancialSummary } from "@modules/wallets/balanceService";
 
 export class AjoInfoCommand extends BaseCommand {
@@ -18,7 +18,7 @@ export class AjoInfoCommand extends BaseCommand {
       const groupId = args[0];
 
       if (groupId) {
-        group = await getAjoInfo(groupId);
+        group = await getGroupInfo(groupId);
         if (!group) {
           await ctx.reply(
             `❌ No group found with ID: \`${groupId}\``,
@@ -32,7 +32,7 @@ export class AjoInfoCommand extends BaseCommand {
           await ctx.reply("❌ Unable to identify chat.");
           return;
         }
-        group = await getAjoByChatId(chatId);
+        group = await getGroupByChatId(chatId);
         if (!group) {
           await ctx.reply(
             "❌ No group found in this chat.\n\n" +
@@ -54,7 +54,6 @@ export class AjoInfoCommand extends BaseCommand {
 
 💰 **Capital:** ${group.current_balance} SOL
 👥 **Members:** ${group.members.length}/${group.max_members}
-🗳️ **Consensus:** ${group.consensus_threshold}%
 📈 **Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
 
 📊 **Financial Summary:**

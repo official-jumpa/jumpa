@@ -1,7 +1,7 @@
 import { Context } from "telegraf";
 import getUser from "@modules/users/getUserInfo";
 import { Markup } from "telegraf";
-import { getUserAjoGroups } from "@modules/ajo-groups/ajoService";
+import { getUserGroups } from "@modules/ajo-groups/groupService";
 
 export class ProfileHandlers {
   // Handle view profile callback
@@ -33,7 +33,7 @@ export class ProfileHandlers {
         user.solanaWallets[0].address;
 
       // Get user's groups
-      const userGroups = await getUserAjoGroups(telegramId);
+      const userGroups = await getUserGroups(telegramId);
 
       const profileMessage = `
       <b>📊 Your Profile</b>

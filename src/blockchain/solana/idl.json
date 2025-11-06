@@ -1,1 +1,1828 @@
-{"address":"E4bVkwfeUuh1eWLuz9pjaAkuZYUGY8nWiybCBG3cpHpr","metadata":{"name":"jumpabot","version":"0.1.0","spec":"0.1.0","description":"Created with Anchor"},"instructions":[{"name":"add_trader","discriminator":[242,5,40,133,11,55,94,217],"accounts":[{"name":"signer","writable":true,"signer":true},{"name":"group","writable":true},{"name":"trader"},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[]},{"name":"exit_group","discriminator":[62,62,39,81,95,191,10,214],"accounts":[{"name":"signer","writable":true,"signer":true},{"name":"owner"},{"name":"group","writable":true,"pda":{"seeds":[{"kind":"const","value":[71,82,79,85,80,95,83,69,69,68]},{"kind":"arg","path":"name"},{"kind":"account","path":"owner"}]}},{"name":"member_profile","writable":true,"pda":{"seeds":[{"kind":"const","value":[77,69,77,66,69,82,95,83,69,69,68]},{"kind":"account","path":"group"},{"kind":"account","path":"signer"}]}},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[]},{"name":"initialize_group","discriminator":[191,73,34,229,233,213,189,173],"accounts":[{"name":"signer","writable":true,"signer":true},{"name":"group","writable":true,"pda":{"seeds":[{"kind":"const","value":[71,82,79,85,80,95,83,69,69,68]},{"kind":"arg","path":"group_name"},{"kind":"account","path":"signer"}]}},{"name":"member_profile","writable":true,"pda":{"seeds":[{"kind":"const","value":[77,69,77,66,69,82,95,83,69,69,68]},{"kind":"account","path":"group"},{"kind":"account","path":"signer"}]}},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"group_name","type":"string"},{"name":"admin_name","type":"string"},{"name":"entry_capital","type":"u64"},{"name":"vote_threshhold","type":"u8"}]},{"name":"join_group","discriminator":[121,56,199,19,250,70,44,184],"accounts":[{"name":"signer","writable":true,"signer":true},{"name":"owner"},{"name":"group","writable":true},{"name":"member_profile","writable":true,"pda":{"seeds":[{"kind":"const","value":[77,69,77,66,69,82,95,83,69,69,68]},{"kind":"account","path":"group"},{"kind":"account","path":"signer"}]}},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"member_name","type":"string"}]},{"name":"propose_trade","discriminator":[90,218,7,166,111,48,29,15],"accounts":[{"name":"signer","writable":true,"signer":true},{"name":"owner"},{"name":"group"},{"name":"proposal","writable":true,"pda":{"seeds":[{"kind":"const","value":[80,82,79,80,79,83,65,76,95,83,69,69,68]},{"kind":"account","path":"signer"},{"kind":"account","path":"group"},{"kind":"arg","path":"nounce"}]}},{"name":"token_account"},{"name":"mint_account"},{"name":"member_profile","pda":{"seeds":[{"kind":"const","value":[77,69,77,66,69,82,95,83,69,69,68]},{"kind":"account","path":"group"},{"kind":"account","path":"signer"}]}},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[{"name":"name","type":"string"},{"name":"nounce","type":"u64"},{"name":"amount","type":"u64"},{"name":"buy","type":"bool"}]},{"name":"remove_trader","discriminator":[60,148,215,48,228,172,5,194],"accounts":[{"name":"signer","writable":true,"signer":true},{"name":"group","writable":true},{"name":"trader"},{"name":"system_program","address":"11111111111111111111111111111111"}],"args":[]}],"accounts":[{"name":"Group","discriminator":[209,249,208,63,182,89,186,254]},{"name":"MemberProfile","discriminator":[30,196,27,233,146,140,108,254]},{"name":"TradeProposal","discriminator":[89,131,99,60,98,34,235,216]}],"errors":[{"code":6000,"name":"InvalidName","msg":"Name length should be between {MIN_NAME_LEN} to {MAX_NAME_LEN} characters long"},{"code":6001,"name":"InvalidCapital","msg":"Capital cannot be zero"},{"code":6002,"name":"InvalidThreshold","msg":"Vote threshold cannot be less than 10% and greater than 100%"},{"code":6003,"name":"InsufficientFunds","msg":"Insufficient funds"},{"code":6004,"name":"GroupLockedError","msg":"Group is currently locked"},{"code":6005,"name":"GroupMembersComplete","msg":"Cannot join, group members completed"},{"code":6006,"name":"GroupTradersComplete","msg":"Cannot add more traders"},{"code":6007,"name":"AlreadyJoined","msg":"Already joined"},{"code":6008,"name":"NotAdminError","msg":"Only admin can perform this action"},{"code":6009,"name":"NotAMemberError","msg":"Must be a member first"},{"code":6010,"name":"NotATrader","msg":"Member is not a trader"},{"code":6011,"name":"GroupEnded","msg":"Group has alreaded ended"},{"code":6012,"name":"GroupStarted","msg":"Group has already started trading"}],"types":[{"name":"Dex","type":{"kind":"enum","variants":[{"name":"Raydium"}]}},{"name":"Group","type":{"kind":"struct","fields":[{"name":"owner","type":"pubkey"},{"name":"name","type":"string"},{"name":"traders","type":{"vec":"pubkey"}},{"name":"members","type":{"vec":"pubkey"}},{"name":"entry_capital","type":"u64"},{"name":"vote_threshhold","type":"u8"},{"name":"locked","type":"bool"},{"name":"bump","type":"u8"},{"name":"state","type":{"defined":{"name":"GroupState"}}},{"name":"created_at","type":"i64"}]}},{"name":"GroupState","type":{"kind":"enum","variants":[{"name":"Initialized"},{"name":"Trading"},{"name":"Voting"},{"name":"Ended"}]}},{"name":"MemberProfile","type":{"kind":"struct","fields":[{"name":"group","type":"pubkey"},{"name":"pubkey","type":"pubkey"},{"name":"name","type":"string"},{"name":"last_proposal_date","type":{"option":"u64"}}]}},{"name":"TradeProposal","type":{"kind":"struct","fields":[{"name":"group","type":"pubkey"},{"name":"proposer","type":"pubkey"},{"name":"proposer_name","type":"string"},{"name":"vote_count","type":"u32"},{"name":"amount","type":"u64"},{"name":"target_mint","type":"pubkey"},{"name":"buy","type":"bool"},{"name":"dex","type":{"defined":{"name":"Dex"}}},{"name":"created_at","type":"i64"},{"name":"deadline","type":"i64"},{"name":"nounce","type":"u64"},{"name":"bump","type":"u8"},{"name":"executed","type":"bool"}]}}]}
+{
+  "address": "H4sqqwUbDhyyXN5CWDjNbHFEBZqucKnJTmEbDKN73eDe",
+  "metadata": {
+    "name": "jumpabot",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_to_blacklist",
+      "discriminator": [
+        90,
+        115,
+        98,
+        231,
+        173,
+        119,
+        117,
+        176
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "member_profile",
+          "docs": [
+            "Optional: Member profile (required if address is already a member)",
+            "Will be closed if member is kicked, rent returned to address_to_blacklist"
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "address_to_blacklist"
+              }
+            ]
+          }
+        },
+        {
+          "name": "address_to_blacklist",
+          "docs": [
+            "The address to blacklist (and kick if they're a member)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "add_trader",
+      "discriminator": [
+        242,
+        5,
+        40,
+        133,
+        11,
+        55,
+        94,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "docs": [
+            "The member to promote to trader"
+          ]
+        },
+        {
+          "name": "trader_profile",
+          "docs": [
+            "The trader's member profile (to check approval status)"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "approve_member",
+      "discriminator": [
+        67,
+        153,
+        211,
+        36,
+        192,
+        57,
+        223,
+        105
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "member_profile",
+          "docs": [
+            "The member profile to approve"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "member_to_approve"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member_to_approve",
+          "docs": [
+            "The member being approved"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_group",
+      "discriminator": [
+        40,
+        187,
+        201,
+        187,
+        18,
+        194,
+        122,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "member_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "distribute_profit",
+      "discriminator": [
+        246,
+        105,
+        181,
+        242,
+        225,
+        63,
+        222,
+        121
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "member_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "recipient"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "execute_swap",
+      "discriminator": [
+        56,
+        182,
+        124,
+        215,
+        155,
+        140,
+        157,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  71,
+                  82,
+                  79,
+                  85,
+                  80,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group.name",
+                "account": "Group"
+              },
+              {
+                "kind": "account",
+                "path": "group.owner",
+                "account": "Group"
+              }
+            ]
+          }
+        },
+        {
+          "name": "group_token_account_in",
+          "writable": true
+        },
+        {
+          "name": "group_token_account_out",
+          "writable": true
+        },
+        {
+          "name": "token_mint_in"
+        },
+        {
+          "name": "token_mint_out"
+        },
+        {
+          "name": "jupiter_program"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount_in",
+          "type": "u64"
+        },
+        {
+          "name": "minimum_amount_out",
+          "type": "u64"
+        },
+        {
+          "name": "instruction_data",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "exit_group",
+      "discriminator": [
+        62,
+        62,
+        39,
+        81,
+        95,
+        191,
+        10,
+        214
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "member_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_group",
+      "discriminator": [
+        191,
+        73,
+        34,
+        229,
+        233,
+        213,
+        189,
+        173
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  71,
+                  82,
+                  79,
+                  85,
+                  80,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "group_name"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "group_name",
+          "type": "string"
+        },
+        {
+          "name": "admin_name",
+          "type": "string"
+        },
+        {
+          "name": "is_private",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "join_group",
+      "discriminator": [
+        121,
+        56,
+        199,
+        19,
+        250,
+        70,
+        44,
+        184
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner"
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "member_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "member_name",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "kick_member",
+      "discriminator": [
+        78,
+        65,
+        215,
+        244,
+        103,
+        202,
+        228,
+        27
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "member_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  77,
+                  69,
+                  77,
+                  66,
+                  69,
+                  82,
+                  95,
+                  83,
+                  69,
+                  69,
+                  68
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group"
+              },
+              {
+                "kind": "account",
+                "path": "member_to_kick"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member_to_kick",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "remove_from_blacklist",
+      "discriminator": [
+        47,
+        105,
+        20,
+        10,
+        165,
+        168,
+        203,
+        219
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "address_to_unblacklist"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "remove_trader",
+      "discriminator": [
+        60,
+        148,
+        215,
+        48,
+        228,
+        172,
+        5,
+        194
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "trader"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_exit_penalty",
+      "discriminator": [
+        97,
+        132,
+        111,
+        220,
+        244,
+        43,
+        248,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "penalty_percentage",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "set_minimum_deposit",
+      "discriminator": [
+        34,
+        1,
+        53,
+        159,
+        118,
+        157,
+        68,
+        168
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "group",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_minimum",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Group",
+      "discriminator": [
+        209,
+        249,
+        208,
+        63,
+        182,
+        89,
+        186,
+        254
+      ]
+    },
+    {
+      "name": "MemberProfile",
+      "discriminator": [
+        30,
+        196,
+        27,
+        233,
+        146,
+        140,
+        108,
+        254
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AddressBlacklisted",
+      "discriminator": [
+        170,
+        43,
+        25,
+        117,
+        253,
+        193,
+        194,
+        231
+      ]
+    },
+    {
+      "name": "AddressUnblacklisted",
+      "discriminator": [
+        134,
+        21,
+        136,
+        106,
+        41,
+        41,
+        247,
+        233
+      ]
+    },
+    {
+      "name": "DepositMade",
+      "discriminator": [
+        210,
+        201,
+        130,
+        183,
+        244,
+        203,
+        155,
+        199
+      ]
+    },
+    {
+      "name": "ExitPenaltyUpdated",
+      "discriminator": [
+        121,
+        81,
+        73,
+        65,
+        86,
+        110,
+        178,
+        84
+      ]
+    },
+    {
+      "name": "GroupClosed",
+      "discriminator": [
+        131,
+        184,
+        184,
+        15,
+        45,
+        220,
+        241,
+        73
+      ]
+    },
+    {
+      "name": "GroupInitialized",
+      "discriminator": [
+        103,
+        3,
+        24,
+        70,
+        167,
+        148,
+        163,
+        79
+      ]
+    },
+    {
+      "name": "MemberApproved",
+      "discriminator": [
+        174,
+        128,
+        113,
+        88,
+        4,
+        208,
+        86,
+        234
+      ]
+    },
+    {
+      "name": "MemberExited",
+      "discriminator": [
+        68,
+        17,
+        143,
+        254,
+        130,
+        192,
+        117,
+        169
+      ]
+    },
+    {
+      "name": "MemberJoined",
+      "discriminator": [
+        156,
+        199,
+        149,
+        88,
+        193,
+        203,
+        191,
+        210
+      ]
+    },
+    {
+      "name": "MemberKicked",
+      "discriminator": [
+        180,
+        175,
+        142,
+        172,
+        180,
+        217,
+        45,
+        179
+      ]
+    },
+    {
+      "name": "MinimumDepositUpdated",
+      "discriminator": [
+        112,
+        127,
+        24,
+        154,
+        219,
+        116,
+        182,
+        187
+      ]
+    },
+    {
+      "name": "ProfitDistributed",
+      "discriminator": [
+        157,
+        165,
+        3,
+        217,
+        231,
+        113,
+        50,
+        80
+      ]
+    },
+    {
+      "name": "SwapExecuted",
+      "discriminator": [
+        150,
+        166,
+        26,
+        225,
+        28,
+        89,
+        38,
+        79
+      ]
+    },
+    {
+      "name": "TraderAdded",
+      "discriminator": [
+        50,
+        31,
+        123,
+        236,
+        59,
+        189,
+        164,
+        45
+      ]
+    },
+    {
+      "name": "TraderRemoved",
+      "discriminator": [
+        76,
+        211,
+        211,
+        154,
+        139,
+        90,
+        127,
+        201
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidName",
+      "msg": "Name length should be between 3 to 15 characters"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidCapital",
+      "msg": "Capital cannot be zero"
+    },
+    {
+      "code": 6002,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds"
+    },
+    {
+      "code": 6003,
+      "name": "GroupLockedError",
+      "msg": "Group is currently locked"
+    },
+    {
+      "code": 6004,
+      "name": "GroupMembersComplete",
+      "msg": "Cannot join, group members completed"
+    },
+    {
+      "code": 6005,
+      "name": "GroupTradersComplete",
+      "msg": "Cannot add more traders"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyJoined",
+      "msg": "Already joined"
+    },
+    {
+      "code": 6007,
+      "name": "NotAdminError",
+      "msg": "Only admin can perform this action"
+    },
+    {
+      "code": 6008,
+      "name": "NotAMemberError",
+      "msg": "Must be a member first"
+    },
+    {
+      "code": 6009,
+      "name": "NotATrader",
+      "msg": "Member is not a trader"
+    },
+    {
+      "code": 6010,
+      "name": "GroupEnded",
+      "msg": "Group has already ended"
+    },
+    {
+      "code": 6011,
+      "name": "GroupStarted",
+      "msg": "Group has already started trading"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidExitPenalty",
+      "msg": "Exit penalty percentage must be between 80 and 100"
+    },
+    {
+      "code": 6013,
+      "name": "LockPeriodActive",
+      "msg": "Member is still within lock period and cannot exit yet"
+    },
+    {
+      "code": 6014,
+      "name": "Blacklisted",
+      "msg": "Address is blacklisted and cannot join"
+    },
+    {
+      "code": 6015,
+      "name": "AlreadyBlacklisted",
+      "msg": "Address is already blacklisted"
+    },
+    {
+      "code": 6016,
+      "name": "NotBlacklisted",
+      "msg": "Address is not blacklisted"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidMinimumOut",
+      "msg": "Invalid minimum amount out for swap"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidTokenAccount",
+      "msg": "Invalid token account - must be owned by group"
+    },
+    {
+      "code": 6019,
+      "name": "SlippageExceeded",
+      "msg": "Slippage tolerance exceeded - received less than minimum amount out"
+    },
+    {
+      "code": 6020,
+      "name": "CannotKickOwner",
+      "msg": "Cannot kick the owner from the group"
+    },
+    {
+      "code": 6021,
+      "name": "NotAuthorizedToKick",
+      "msg": "Not authorized to kick members - must be owner or trader"
+    },
+    {
+      "code": 6022,
+      "name": "TraderCannotKickTrader",
+      "msg": "Traders cannot kick other traders - only owner can"
+    },
+    {
+      "code": 6023,
+      "name": "MemberProfileRequired",
+      "msg": "Member profile account is required when blacklisting an existing member"
+    },
+    {
+      "code": 6024,
+      "name": "NotAuthorizedToBlacklist",
+      "msg": "Not authorized to blacklist - must be owner or trader"
+    },
+    {
+      "code": 6025,
+      "name": "TraderCannotBlacklistTrader",
+      "msg": "Traders cannot blacklist other traders - only owner can"
+    },
+    {
+      "code": 6026,
+      "name": "MemberNotApproved",
+      "msg": "Member is not approved yet - awaiting approval from owner or trader"
+    },
+    {
+      "code": 6027,
+      "name": "MemberAlreadyApproved",
+      "msg": "Member is already approved"
+    },
+    {
+      "code": 6028,
+      "name": "NotAuthorizedToApprove",
+      "msg": "Not authorized to approve members - must be owner or trader"
+    }
+  ],
+  "types": [
+    {
+      "name": "AddressBlacklisted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "address",
+            "type": "pubkey"
+          },
+          {
+            "name": "blacklisted_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AddressUnblacklisted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "address",
+            "type": "pubkey"
+          },
+          {
+            "name": "unblacklisted_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositMade",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_contribution_total",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExitPenaltyUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_penalty",
+            "type": "u8"
+          },
+          {
+            "name": "new_penalty",
+            "type": "u8"
+          },
+          {
+            "name": "updated_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Group",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "traders",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "members",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "blacklist",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "minimum_deposit",
+            "type": "u64"
+          },
+          {
+            "name": "total_contributions",
+            "type": "u64"
+          },
+          {
+            "name": "exit_penalty_percentage",
+            "type": "u8"
+          },
+          {
+            "name": "lock_period_days",
+            "type": "u8"
+          },
+          {
+            "name": "locked",
+            "type": "bool"
+          },
+          {
+            "name": "is_private",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "GroupState"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "closed_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "final_balance",
+            "type": "u64"
+          },
+          {
+            "name": "total_members",
+            "type": "u32"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "group_name",
+            "type": "string"
+          },
+          {
+            "name": "admin_name",
+            "type": "string"
+          },
+          {
+            "name": "lock_period_days",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GroupState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Initialized"
+          },
+          {
+            "name": "Trading"
+          },
+          {
+            "name": "Ended"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MemberApproved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "approved_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MemberExited",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "withdrawal_amount",
+            "type": "u64"
+          },
+          {
+            "name": "contribution_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MemberJoined",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "member_name",
+            "type": "string"
+          },
+          {
+            "name": "contribution_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MemberKicked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "kicked_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "withdrawal_amount",
+            "type": "u64"
+          },
+          {
+            "name": "contribution_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MemberProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "contribution_amount",
+            "type": "u64"
+          },
+          {
+            "name": "joined_at",
+            "type": "i64"
+          },
+          {
+            "name": "is_approved",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MinimumDepositUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_minimum",
+            "type": "u64"
+          },
+          {
+            "name": "new_minimum",
+            "type": "u64"
+          },
+          {
+            "name": "updated_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProfitDistributed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "actual_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SwapExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_in",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_out",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_in",
+            "type": "u64"
+          },
+          {
+            "name": "amount_out",
+            "type": "u64"
+          },
+          {
+            "name": "minimum_amount_out",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TraderAdded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "added_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TraderRemoved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "group",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "removed_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -17,38 +17,22 @@ export function isValidSolanaAddress(address: string): boolean {
  */
 export function validateAjoCreation(params: {
   name: string;
-  initial_capital: number;
   max_members: number;
-  consensus_threshold?: number;
 }): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   // Validate name
   if (!params.name || params.name.trim().length === 0) {
     errors.push("Group name is required");
-  } else if (params.name.length > 100) {
-    errors.push("Group name must be 100 characters or less");
-  }
-
-  // Validate initial capital
-  if (params.initial_capital <= 0.05) {
-    console.log("Initial capital validation failed:", params.initial_capital);
-    errors.push("Initial capital must be greater than 0.05 SOL");
+  } else if (params.name.length > 15 || params.name.length < 3) {
+    errors.push("Group name must be between 3 and 15 characters");
   }
 
   // Validate max members
   if (params.max_members < 2) {
     errors.push("Maximum members must be at least 2");
-  } else if (params.max_members > 100) {
-    errors.push("Maximum members cannot exceed 100");
-  }
-
-  // Validate consensus threshold
-  const consensus_threshold = params.consensus_threshold || 67;
-  if (consensus_threshold < 50) {
-    errors.push("Consensus threshold must be at least 50%");
-  } else if (consensus_threshold > 100) {
-    errors.push("Consensus threshold cannot exceed 100%");
+  } else if (params.max_members > 50) {
+    errors.push("Maximum members cannot exceed 50");
   }
 
   return {

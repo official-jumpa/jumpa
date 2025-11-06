@@ -1,6 +1,7 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { checkGroupExists, deriveGroupPDA, fetchGroupAccount } from "@blockchain/solana/solanaService";
+import { deriveGroupPDA, fetchGroupAccount } from "@blockchain/solana";
+import { checkGroupExists } from "@blockchain/solana/utils";
 import { PublicKey } from "@solana/web3.js";
 import getUser from "@modules/users/getUserInfo";
 
@@ -65,6 +66,10 @@ export class CheckGroupCommand extends BaseCommand {
           const [groupPDA] = deriveGroupPDA(groupName, signer);
           const groupData = await fetchGroupAccount(groupPDA.toBase58());
           
+          // Convert lamports to SOL
+          const minimumDepositSol = (parseInt(groupData.minimumDeposit) / 1_000_000_000).toFixed(4);
+          const totalContributionsSol = (parseInt(groupData.totalContributions) / 1_000_000_000).toFixed(4);
+
           const message = `
 ✅ **Group Found On-Chain!**
 
@@ -75,9 +80,14 @@ export class CheckGroupCommand extends BaseCommand {
 **Group Data:**
 • Owner: ${groupData.owner}
 • Name: ${groupData.name}
-• Entry Capital: ${groupData.entryCapital} SOL
-• Vote Threshold: ${groupData.voteThreshold}%
+• Total Contributions: ${totalContributionsSol} SOL
+• Minimum Deposit: ${minimumDepositSol} SOL
+• Group Type: ${groupData.isPrivate ? 'Private (requires approval)' : 'Public (auto-approved)'}
+• Exit Penalty: ${groupData.exitPenaltyPercentage}%
+• Lock Period: ${groupData.lockPeriodDays} days
 • Status: ${groupData.locked ? 'Locked' : 'Active'}
+• Traders: ${groupData.traders.length}
+• Members: ${groupData.members.length}
 
 **This group was successfully created!**
           `;
@@ -94,7 +104,7 @@ export class CheckGroupCommand extends BaseCommand {
         await ctx.reply(
           `❌ Group "${groupName}" does not exist on-chain.\n\n` +
           `You can create it with:\n` +
-          `\`/create_group ${groupName} <max_members> <entry_capital> [consensus_threshold]\``
+          `\`/create_group ${groupName} <max_members> [public|private]\``
         );
       }
     } catch (error) {

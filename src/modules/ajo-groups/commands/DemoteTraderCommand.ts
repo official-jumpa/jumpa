@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getAjoByChatId, removeTraderOnChain } from "@modules/ajo-groups/ajoService";
+import { getGroupByChatId, removeTraderFromGroup } from "@modules/ajo-groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class DemoteTraderCommand extends BaseCommand {
@@ -54,7 +54,7 @@ export class DemoteTraderCommand extends BaseCommand {
       const targetUserId = targetUser.telegram_id;
 
       // Get  group
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -104,7 +104,7 @@ export class DemoteTraderCommand extends BaseCommand {
       try {
         // Remove trader on-chain
         if (ajoGroup.onchain_group_address) {
-          await removeTraderOnChain(
+          await removeTraderFromGroup(
             ajoGroup._id.toString(),
             targetUserId,
             userId

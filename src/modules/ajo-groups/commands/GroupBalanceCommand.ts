@@ -1,10 +1,10 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getAjoByChatId, isUserMember } from "@modules/ajo-groups/ajoService";
+import { getGroupByChatId, isUserMember } from "@modules/ajo-groups/groupService";
 import { getMemberFinancialSummary } from "@modules/wallets/balanceService";
 
-export class AjoBalanceCommand extends BaseCommand {
-  name = "ajo_balance";
+export class GroupBalanceCommand extends BaseCommand {
+  name = "group_balance";
   description = "Show your balance and share in group";
 
   async execute(ctx: Context): Promise<void> {
@@ -17,8 +17,8 @@ export class AjoBalanceCommand extends BaseCommand {
         return;
       }
 
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply(
           "❌ No group found in this chat.\n\n" +
             "Use `/create_group` to create a new group.",
@@ -28,7 +28,7 @@ export class AjoBalanceCommand extends BaseCommand {
       }
 
       const isMember = await isUserMember(
-        ajoGroup._id.toString(),
+        group._id.toString(),
         userId
       );
       if (!isMember) {
@@ -37,7 +37,7 @@ export class AjoBalanceCommand extends BaseCommand {
       }
 
       const financialSummary = getMemberFinancialSummary(
-        ajoGroup,
+        group,
         userId
       );
 
@@ -47,18 +47,18 @@ export class AjoBalanceCommand extends BaseCommand {
       }
 
       const balanceMessage = `
-💰 **Your Balance: ${ajoGroup.name}**
+💰 **Your Balance: ${group.name}**
 
 **Your Contribution:** $${financialSummary.contribution} SOL
 **Your Share:** ${financialSummary.share_percentage.toFixed(2)}%
 **Potential Profit Share:** $${financialSummary.potential_profit_share}
 
-**Group Total Balance:** ${ajoGroup.current_balance} SOL
+**Group Total Balance:** ${group.current_balance} SOL
 **Is Trader:** ${financialSummary.is_trader ? "✅ Yes" : "❌ No"}
 
 📊 **Your Stats:**
 • Rank: #${financialSummary.rank}
-• Status: ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
+• Status: ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
       `;
 
       await ctx.reply(balanceMessage, { parse_mode: "Markdown" });

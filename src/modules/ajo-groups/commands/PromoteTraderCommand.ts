@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getAjoByChatId, promoteToTrader, addTraderOnChain } from "@modules/ajo-groups/ajoService";
+import { getGroupByChatId, promoteToTrader, addTraderToGroup } from "@modules/ajo-groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class PromoteTraderCommand extends BaseCommand {
@@ -54,7 +54,7 @@ export class PromoteTraderCommand extends BaseCommand {
       const targetUserId = targetUser.telegram_id;
 
       // Get group
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -100,7 +100,7 @@ export class PromoteTraderCommand extends BaseCommand {
         // Add trader on-chain first
         let onChainResult;
         if (ajoGroup.onchain_group_address) {
-          onChainResult = await addTraderOnChain(
+          onChainResult = await addTraderToGroup(
             ajoGroup._id.toString(),
             targetUserId,
             userId

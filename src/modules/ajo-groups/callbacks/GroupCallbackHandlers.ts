@@ -1,26 +1,14 @@
 import { Context, Markup } from "telegraf";
 import {
-  createAjo,
-  joinAjo,
-  getAjoInfo,
-  getAjoByChatId,
-  getUserAjoGroups,
+  createGroup,
+  joinGroup,
+  getGroupInfo,
+  getGroupByChatId,
+  getUserGroups,
   isUserMember,
   isUserTrader,
-} from "@modules/ajo-groups/ajoService";
-import {
-  createPoll,
-  voteOnPoll,
-  getGroupPolls,
-  getPollResults,
-  processExpiredPolls,
-} from "@modules/governance/pollService";
-import {
-  validateAjoCreation,
-  validatePollCreation,
-  validateGroupId,
-  validateAndSanitizeGroupName,
-} from "@modules/ajo-groups/ajoValidation";
+} from "@modules/ajo-groups/groupService";
+
 import {
   updateGroupBalance,
   getGroupFinancialSummary,
@@ -28,9 +16,9 @@ import {
 } from "@modules/wallets/balanceService";
 import getUser from "@modules/users/getUserInfo";
 
-export class AjoCallbackHandlers {
+export class GroupCallbackHandlers {
   // Handle create callback
-  static async handleCreateAjo(ctx: Context): Promise<void> {
+  static async handleCreateGroup(ctx: Context): Promise<void> {
     try {
       await ctx.answerCbQuery("🏠 Create Group");
 
@@ -51,14 +39,14 @@ export class AjoCallbackHandlers {
         return;
       }
 
-      const createAjoMessage = `
+      const createGroupMessage = `
 **Create Group**
 
 **Why Group Trading?**
 
 With group trading, you and your members can:
 • Pool funds together for collective trading
-• Vote on trading decisions democratically  
+• Vote on trading decisions democratically
 • Share profits based on contributions
 • Build wealth as a community
 
@@ -74,10 +62,10 @@ With group trading, you and your members can:
             "add_bot_to_group"
           ),
         ],
-        [Markup.button.callback("❓ Learn More", "ajo_help")],
+        [Markup.button.callback("❓ Learn More", "group_help")],
       ]);
 
-      await ctx.reply(createAjoMessage, {
+      await ctx.reply(createGroupMessage, {
         parse_mode: "Markdown",
         ...keyboard,
       });
@@ -88,7 +76,7 @@ With group trading, you and your members can:
   }
 
   // Handle join callback
-  static async handleJoinAjo(ctx: Context): Promise<void> {
+  static async handleJoinGroup(ctx: Context): Promise<void> {
     try {
       await ctx.answerCbQuery("👥 Join Group");
 
@@ -109,13 +97,13 @@ With group trading, you and your members can:
       }
 
       // Get user's groups
-      const userGroups = await getUserAjoGroups(userId);
+      const userGroups = await getUserGroups(userId);
 
-      let joinAjoMessage = `
+      let joinGroupMessage = `
 👥 **Join Group**
 
 **How to Join a group:**
-1. Get a group ID from an group admin
+1. Get a group ID from a group admin
 2. Use the command: \`/join <group_id>\`
 3. Send your contribution to the group
 4. Start voting on trading decisions!
@@ -124,10 +112,10 @@ With group trading, you and your members can:
 `;
 
       if (userGroups.length === 0) {
-        joinAjoMessage += "• You're not a member of any groups yet";
+        joinGroupMessage += "• You're not a member of any groups yet";
       } else {
         userGroups.forEach((group, index) => {
-          joinAjoMessage += `• **${group.name}** (${group.members.length}/${group.max_members} members)\n`;
+          joinGroupMessage += `• **${group.name}** (${group.members.length}/${group.max_members} members)\n`;
         });
       }
 
@@ -141,7 +129,7 @@ With group trading, you and your members can:
         [Markup.button.callback("❓ How to Join", "join_help")],
       ]);
 
-      await ctx.reply(joinAjoMessage, {
+      await ctx.reply(joinGroupMessage, {
         parse_mode: "Markdown",
         ...keyboard,
       });
@@ -152,7 +140,7 @@ With group trading, you and your members can:
   }
 
   // Handle info callback
-  static async handleAjoInfo(ctx: Context): Promise<void> {
+  static async handleGroupInfo(ctx: Context): Promise<void> {
     try {
       await ctx.answerCbQuery("📊 Group Info");
 
@@ -163,28 +151,27 @@ With group trading, you and your members can:
       }
 
       // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply(
           "❌ No group found in this chat.\n\n" +
-            "Use /create_group to create a new group or /join to join an existing one."
+          "Use /create_group to create a new group or /join to join an existing one."
         );
         return;
       }
 
       // Get financial summary
-      const financialSummary = getGroupFinancialSummary(ajoGroup);
-      const activePolls = ajoGroup.polls.filter(
+      const financialSummary = getGroupFinancialSummary(group);
+      const activePolls = group.polls.filter(
         (poll: any) => poll.status === "open"
       );
 
       const infoMessage = `
-📊 **Group: ${ajoGroup.name}**
+📊 **Group: ${group.name}**
 
-💰 **Capital:** ${ajoGroup.current_balance} SOL
-👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
-🗳️ **Consensus:** ${ajoGroup.consensus_threshold}%
-📈 **Status:** ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
+💰 **Capital:** ${group.current_balance} SOL
+👥 **Members:** ${group.members.length}/${group.max_members}
+📈 **Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
 
 📊 **Financial Summary:**
 • Total Contributions: $${financialSummary.total_contributions}
@@ -192,10 +179,10 @@ With group trading, you and your members can:
 • Largest Contribution: $${financialSummary.largest_contribution}
 
 🗳️ **Active Polls:** ${activePolls.length}
-📈 **Total Trades:** ${ajoGroup.trades.length}
+📈 **Total Trades:** ${group.trades.length}
 
-**Group ID:** \`${ajoGroup._id}\`
-**Created:** ${new Date(ajoGroup.created_at).toLocaleDateString()}
+**Group ID:** \`${group._id}\`
+**Created:** ${new Date(group.created_at).toLocaleDateString()}
       `;
 
       // Create inline keyboard for group actions
@@ -222,7 +209,7 @@ With group trading, you and your members can:
   }
 
   // Handle members callback
-  static async handleAjoMembers(ctx: Context): Promise<void> {
+  static async handleGroupMembers(ctx: Context): Promise<void> {
     try {
       await ctx.answerCbQuery("👥 Members");
 
@@ -233,35 +220,34 @@ With group trading, you and your members can:
       }
 
       // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Get financial summary for member details
-      const financialSummary = getGroupFinancialSummary(ajoGroup);
+      const financialSummary = getGroupFinancialSummary(group);
 
-      let membersMessage = `👥 **Members (${ajoGroup.members.length}/${ajoGroup.max_members})**\n\n`;
+      let membersMessage = `👥 **Members (${group.members.length}/${group.max_members})**\n\n`;
 
       // Sort members by contribution (highest first)
-      const sortedMembers = [...ajoGroup.members].sort(
+      const sortedMembers = [...group.members].sort(
         (a: any, b: any) => b.contribution - a.contribution
       );
 
-      sortedMembers.forEach((member: any, index: number) => { 
+      sortedMembers.forEach((member: any, index: number) => {
         const shareInfo = financialSummary.profit_shares.find(
           (share: any) => share.user_id === member.user_id
         );
         const sharePercentage = shareInfo ? shareInfo.share_percentage : 0;
         const role = member.role === "trader" ? "🛠️ Trader" : "👤 Member";
 
-        membersMessage += `${index + 1}. ${role} - $${
-          member.contribution
-        } (${sharePercentage}%)\n`;
+        membersMessage += `${index + 1}. ${role} - $${member.contribution
+          } (${sharePercentage}%)\n`;
       });
 
-      membersMessage += `\n**Total Balance:** ${ajoGroup.current_balance} SOL`;
+      membersMessage += `\n**Total Balance:** ${group.current_balance} SOL`;
 
       await ctx.reply(membersMessage, {
         parse_mode: "Markdown",
@@ -272,71 +258,8 @@ With group trading, you and your members can:
     }
   }
 
-  // Handle polls callback
-  static async handleAjoPolls(ctx: Context): Promise<void> {
-    try {
-      await ctx.answerCbQuery("🗳️ Polls");
-
-      const chatId = ctx.chat?.id;
-      if (!chatId) {
-        await ctx.reply("❌ Unable to identify chat.");
-        return;
-      }
-
-      // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
-        await ctx.reply("❌ No group found in this chat.");
-        return;
-      }
-
-      // Process expired polls first
-      await processExpiredPolls(ajoGroup._id.toString());
-
-      // Get active polls
-      const { polls } = await getGroupPolls(ajoGroup._id.toString(), "open");
-
-      let pollsMessage = `🗳️ **Active Polls (${polls.length})**\n\n`;
-
-      if (polls.length === 0) {
-        pollsMessage += "No active polls at the moment.\n\n";
-        pollsMessage += "**Traders can create polls using:**\n";
-        pollsMessage +=
-          "• `/poll_trade <token> <amount>` - Create trade poll\n";
-        pollsMessage += "• `/poll_end` - Create end poll";
-      } else {
-        polls.forEach((poll: any, index: number) => {
-          const timeLeft = Math.max(
-            0,
-            Math.floor(
-              (new Date(poll.expires_at).getTime() - new Date().getTime()) /
-                (1000 * 60 * 60)
-            )
-          );
-          const votes = poll.votes.length;
-
-          pollsMessage += `${index + 1}. **${poll.title}**\n`;
-          pollsMessage += `   Type: ${
-            poll.type === "trade" ? "🔄 Trade" : "🏁 End Group Trade"
-          }\n`;
-          pollsMessage += `   Votes: ${votes} | Time left: ${timeLeft}h\n`;
-          pollsMessage += `   ID: \`${poll.id}\`\n\n`;
-        });
-
-        pollsMessage += "**Vote using:** `/vote <poll_id> <yes/no>`";
-      }
-
-      await ctx.reply(pollsMessage, {
-        parse_mode: "Markdown",
-      });
-    } catch (error) {
-      console.error("polls error:", error);
-      await ctx.answerCbQuery("❌ Failed to get polls.");
-    }
-  }
-
   // Handle balance callback
-  static async handleAjoBalance(ctx: Context): Promise<void> {
+  static async handleGroupBalance(ctx: Context): Promise<void> {
     try {
       await ctx.answerCbQuery("💰 Balance");
 
@@ -348,21 +271,21 @@ With group trading, you and your members can:
       }
 
       // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is a member
-      const isMember = await isUserMember(ajoGroup._id.toString(), userId);
+      const isMember = await isUserMember(group._id.toString(), userId);
       if (!isMember) {
         await ctx.reply("❌ You are not a member of this group.");
         return;
       }
 
       // Get member's financial summary
-      const memberSummary = getMemberFinancialSummary(ajoGroup, userId);
+      const memberSummary = getMemberFinancialSummary(group, userId);
       if (!memberSummary) {
         await ctx.reply("❌ Unable to get your financial information.");
         return;
@@ -376,8 +299,8 @@ With group trading, you and your members can:
 🏆 **Rank:** #${memberSummary.rank}
 💎 **Role:** ${memberSummary.is_trader ? "🛠️ Trader" : "👤 Member"}
 
-💰 **Group Balance:** ${ajoGroup.current_balance} SOL
-👥 **Total Members:** ${ajoGroup.members.length}
+💰 **Group Balance:** ${group.current_balance} SOL
+👥 **Total Members:** ${group.members.length}
 
 💡 **Potential Profit Share:** $${memberSummary.potential_profit_share}
 *(Based on 10% profit assumption)*
@@ -431,21 +354,16 @@ With group trading, you and your members can:
 
 **3. Minimum Contribution** (required)
 • Minimum amount(in SOL) that each member must contribute before joining.
-  This will be deducted upon joinin the group.
+  This will be deducted upon joining the group.
 • Example: 0.1, 0.5, 1.0
 
-**4. Consensus Threshold** (optional)
-• What percentage of votes needed to approve decisions?
-• Range: 50-100% (default: 67%)
-• Example: 60, 75, 80
-
 **Use this format:**
-\`/create_group <name> <max_members> <amount> [consensus_threshold]\`
+\`/create_group <name> <max_members> <amount>\`
 
 **Examples:**
-\`/create_group GroupOne 10 0.1 67\`
+\`/create_group GroupOne 10 0.1\`
 \`/create_group MoonTraders 25 0.5\`
-\`/create_group DeFi Squad 50 2 75\`
+\`/create_group DefiSquad 50 2\`
       `;
 
       await ctx.reply(formMessage, { parse_mode: "Markdown" });
@@ -455,88 +373,6 @@ With group trading, you and your members can:
     }
   }
 
-  // Add members form handler
-  static async handleAddMembersForm(ctx: Context): Promise<void> {
-    try {
-      await ctx.answerCbQuery("👥 Add Members Form");
-
-      const userId = ctx.from?.id;
-      const chatId = ctx.chat?.id;
-
-      if (!userId || !chatId) {
-        await ctx.reply("❌ Unable to identify user or chat.");
-        return;
-      }
-
-      // Check if this chat has an group
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
-        await ctx.reply(
-          "❌ No group found in this chat.\n\n" +
-            "Create a group first using the 'Create New Group' button.",
-          { parse_mode: "Markdown" }
-        );
-        return;
-      }
-
-      // Check if user is a trader
-      const isTrader = await isUserTrader(ajoGroup._id.toString(), userId);
-      if (!isTrader) {
-        await ctx.reply("❌ Only traders can add members to the group.");
-        return;
-      }
-
-      const formMessage = `
-👥 **Add Members to Group - Step 1**
-
-**Current Group:** ${ajoGroup.name}
-**Current Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
-**Available Slots:** ${ajoGroup.max_members - ajoGroup.members.length}
-
-**How to Add Members:**
-
-**Method 1: Share Group ID**
-• Share this Group ID: \`${ajoGroup._id}\`
-• They can join using: \`/join ${ajoGroup._id}\`
-
-**Method 2: Direct Add (Coming Soon)**
-• Add members by their Telegram username
-• Use: \`/add_member @username\`
-
-**Method 3: Invite Link (Coming Soon)**
-• Generate invite links for easy joining
-• Use: \`/generate_invite\`
-
-**Current Members:**
-
-${ajoGroup.members
-  .map(
-    (member: any, index: number) =>
-      `${index + 1}. ${member.role === "trader" ? "🛠️" : "👤"} Member (ID: ${
-        member.user_id
-      })`
-  )
-  .join("\n")}
-      `;
-
-      // Create inline keyboard for member management
-      const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback("📋 Copy Group ID", "copy_group_id"),
-          Markup.button.callback("📊 View Members", "group_members"),
-        ],
-        [Markup.button.callback("🔄 Refresh", "add_members_form")],
-      ]);
-
-      await ctx.reply(formMessage, {
-        parse_mode: "Markdown",
-        ...keyboard,
-      });
-    } catch (error) {
-      console.error("Add members form error:", error);
-      await ctx.answerCbQuery("❌ Failed to show add members form.");
-    }
-  }
 
   static async handleCustomCreate(ctx: Context): Promise<void> {
     try {
@@ -546,16 +382,15 @@ ${ajoGroup.members
 ⚙️ **Custom Group Creation**
 
 **To create a custom group, use the command:**
-\`/create_group <name> <max_members> <amount> [consensus_threshold]\`
+\`/create_group <name> <max_members> <type>\`
 
 **Example:**
-\`/create_group CryptoCrew 10 0.5 67\`
+\`/create_group CryptoCrew 10 private\`
 
 **Parameters:**
 • **name**: Group name (max 100 characters)
 • **max_members**: Maximum members (2-100)
-• **amount**: Minimum contribution in SOL (at least 0.05)
-• **consensus_threshold**: Voting threshold % (50-100, default: 67)
+• **Type**: Group Type. Can be either public or private. Private groups require admin approval to join and benefit from trades.
 
 **Note:** You'll be the group creator and automatically become a trader!
       `;
@@ -567,14 +402,14 @@ ${ajoGroup.members
     }
   }
 
-  static async handleAjoHelp(ctx: Context): Promise<void> {
+  static async handleGroupHelp(ctx: Context): Promise<void> {
     try {
       await ctx.answerCbQuery("❓ Help");
 
       const helpMessage = `
 ❓ **Group Help**
 
-**What is an Group?**
+**What is a Group?**
 A group is where members pool funds for collective trading.
 
 **Key Features:**
@@ -589,13 +424,13 @@ A group is where members pool funds for collective trading.
 • **Member**: Can vote on polls and contribute funds
 
 **Getting Started:**
-1. Create or join an group
+1. Create or join a group
 2. Contribute funds to the group
 3. Vote on trading decisions
 4. Share in the profits!
 
 **Commands:**
-• \`/create\` - Create new group
+• \`/create_group\` - Create new group
 • \`/join <id>\` - Join existing group
 • \`/info\` - View group details
 • \`/poll trade <token> <amount>\` - Create trade poll
@@ -615,7 +450,7 @@ A group is where members pool funds for collective trading.
       const browseMessage = `
 🔍 **Browse Public Groups**
 
-**Coming Soon!** 
+**Coming Soon!**
 Public group browsing will be available in a future update.
 
 **For now, you can:**
@@ -668,7 +503,7 @@ Public group browsing will be available in a future update.
       }
 
       // Get user's groups
-      const userGroups = await getUserAjoGroups(userId);
+      const userGroups = await getUserGroups(userId);
 
       let groupsMessage = `📋 **Your Groups (${userGroups.length})**\n\n`;
 
@@ -705,7 +540,7 @@ Public group browsing will be available in a future update.
       await ctx.answerCbQuery("❓ Join Help");
 
       const helpMessage = `
-❓ **How to Join an Group**
+❓ **How to Join a Group**
 
 **Step 1: Get a Group ID**
 • Ask a group creator or admin for their group ID
@@ -747,18 +582,18 @@ Public group browsing will be available in a future update.
       }
 
       // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Get financial summary
-      const financialSummary = getGroupFinancialSummary(ajoGroup);
-      const activePolls = ajoGroup.polls.filter(
+      const financialSummary = getGroupFinancialSummary(group);
+      const activePolls = group.polls.filter(
         (poll: any) => poll.status === "open"
       );
-      const executedPolls = ajoGroup.polls.filter(
+      const executedPolls = group.polls.filter(
         (poll: any) => poll.status === "executed"
       );
 
@@ -766,29 +601,27 @@ Public group browsing will be available in a future update.
 📊 **Group Statistics**
 
 **📈 Performance:**
-• Total Trades: ${ajoGroup.trades.length}
+• Total Trades: ${group.trades.length}
 • Successful Trades: ${executedPolls.filter((p: any) => p.type === "trade").length}
 • Active Polls: ${activePolls.length}
-• Total Polls: ${ajoGroup.polls.length}
+• Total Polls: ${group.polls.length}
 
 **💰 Financial:**
-• Current Balance: ${ajoGroup.current_balance} SOL
+• Current Balance: ${group.current_balance} SOL
 • Total Contributions: $${financialSummary.total_contributions}
 • Average Contribution: $${financialSummary.average_contribution}
 • Largest Contribution: $${financialSummary.largest_contribution}
 
 **👥 Members:**
-• Total Members: ${ajoGroup.members.length}
-• Max Capacity: ${ajoGroup.max_members}
-• Traders: ${ajoGroup.members.filter((m: any) => m.role === "trader").length}
-• Regular Members: ${
-        ajoGroup.members.filter((m: any) => m.role === "member").length
-      }
+• Total Members: ${group.members.length}
+• Max Capacity: ${group.max_members}
+• Traders: ${group.members.filter((m: any) => m.role === "trader").length}
+• Regular Members: ${group.members.filter((m: any) => m.role === "member").length
+        }
 
 **⚙️ Settings:**
-• Consensus Threshold: ${ajoGroup.consensus_threshold}%
-• Group Status: ${ajoGroup.status}
-• Created: ${new Date(ajoGroup.created_at).toLocaleDateString()}
+• Group Status: ${group.status}
+• Created: ${new Date(group.created_at).toLocaleDateString()}
       `;
 
       await ctx.reply(statsMessage, { parse_mode: "Markdown" });
@@ -812,8 +645,8 @@ Public group browsing will be available in a future update.
       }
 
       // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
@@ -821,19 +654,19 @@ Public group browsing will be available in a future update.
       const copyMessage = `
 📋 **Group ID Ready to Share**
 
-**Group:** ${ajoGroup.name}
-**Group ID:** \`${ajoGroup._id}\`
+**Group:** ${group.name}
+**Group ID:** \`${group._id}\`
 
 **Share this with people you want to invite:**
-\`/join ${ajoGroup._id}\`
+\`/join ${group._id}\`
 
 **Or share this message:**
-"Join my group '${ajoGroup.name}' using: /join ${ajoGroup._id}"
+"Join my group '${group.name}' using: /join ${group._id}"
 
 **Current Status:**
-• Members: ${ajoGroup.members.length}/${ajoGroup.max_members}
-• Available Slots: ${ajoGroup.max_members - ajoGroup.members.length}
-• Status: ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
+• Members: ${group.members.length}/${group.max_members}
+• Available Slots: ${group.max_members - group.members.length}
+• Status: ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
       `;
 
       await ctx.reply(copyMessage, { parse_mode: "Markdown" });
@@ -868,7 +701,7 @@ The bot needs these permissions:
 **Step 3: Create Group**
 Once the bot is added to your Telegram group:
 1. Use \`/start\` in the group to initialize
-2. Use \`/create_group <name> <max_members>\` to create your group
+2. Use \`/create_group <name> <max_members> <amount>\` to create your group
 3. Share the group ID with members
 4. Start trading!
 
@@ -880,7 +713,7 @@ Once the bot is added to your Telegram group:
 • \`/vote <poll_id> <yes/no>\` - Vote on polls
 
 **Important Notes:**
-• The bot must be added to the group before creating  group
+• The bot must be added to the group before creating group
 • Only group admins can create groups
 • All group members can join and participate
 • The bot will manage polls and voting automatically
@@ -924,12 +757,12 @@ Once the bot is added to your Telegram group:
 📋 **Jumpa Bot Commands**
 
 **Group Management:**
-• \`/create_group <name> <max_members> <amount> [consensus]\` - Create group
+• \`/create_group <name> <max_members> <amount>\` - Create group
 • \`/info\` - View group information
 • \`/members\` - List group members
 • \`/polls\` - Show active polls
 • \`/balance\` - Show your balance
-• \`/add_member <group_id>\` - Join a group
+• \`/join <group_id>\` - Join a group
 
 **Polling & Voting:**
 • \`/poll trade <token> <amount>\` - Create trade poll (traders only)
@@ -945,10 +778,10 @@ Once the bot is added to your Telegram group:
 • \`/help\` - Show help message
 
 **Examples:**
-• \`/create_group CryptoCrew 10 0.1 67\`
+• \`/create_group CryptoCrew 10 0.1\`
 • \`/poll trade BONK 1000\`
 • \`/vote 507f1f77bcf86cd799439012 yes\`
-• \`/add_member 507f1f77bcf86cd799439011\`
+• \`/join 507f1f77bcf86cd799439011\`
 
 **Roles:**
 • **Creator**: Automatically becomes trader
@@ -1009,6 +842,118 @@ The bot only needs these permissions to function properly. It won't:
     } catch (error) {
       console.error("Bot permissions help error:", error);
       await ctx.answerCbQuery("❌ Failed to show permissions info.");
+    }
+  }
+
+  /**
+   * Handle refresh group management panel
+   */
+  static async handleGroupManageRefresh(ctx: Context): Promise<void> {
+    try {
+      await ctx.answerCbQuery("🔄 Refreshing...");
+
+      const chatId = ctx.chat?.id;
+      if (!chatId) {
+        await ctx.reply("❌ Unable to identify chat.");
+        return;
+      }
+
+      // Get group for this chat
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
+        await ctx.reply("❌ No group found in this chat.");
+        return;
+      }
+
+      const managementMessage = `
+🎛️ **${group.name}**
+
+**Group ID:** \`${group._id}\`
+**Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
+**Balance:** ${group.current_balance || 0} SOL
+      `;
+
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback("💰 Deposit Funds", "group_deposit"),
+          Markup.button.callback("🚪 Exit Group", "group_exit"),
+        ],
+        [
+          Markup.button.callback("⚙️ Group Settings", "group_settings"),
+          Markup.button.callback("➕ More Actions", "group_more_actions"),
+        ],
+        [
+          Markup.button.callback("🔄 Refresh", "group_manage_refresh"),
+        ]
+      ]);
+
+      await ctx.reply(managementMessage, {
+        parse_mode: "Markdown",
+        ...keyboard,
+      });
+    } catch (error) {
+      console.error("Group manage refresh error:", error);
+      await ctx.answerCbQuery("❌ Failed to refresh.");
+    }
+  }
+
+  /**
+   * Handle more actions panel - shows additional admin options
+   */
+  static async handleMoreActions(ctx: Context): Promise<void> {
+    try {
+      await ctx.answerCbQuery("➕ More Actions");
+
+      const chatId = ctx.chat?.id;
+      if (!chatId) {
+        await ctx.reply("❌ Unable to identify chat.");
+        return;
+      }
+
+      // Get group for this chat
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
+        await ctx.reply("❌ No group found in this chat.");
+        return;
+      }
+
+      const moreActionsMessage = `
+🎛️ **${group.name} - Admin Actions**
+
+**Group ID:** \`${group._id}\`
+**Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
+
+Select an action below:
+      `;
+
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback("💸 Distribute Profit", "group_distribute"),
+          Markup.button.callback("➖ Remove Member", "group_remove_member"),
+        ],
+        [
+          Markup.button.callback("👤 Add Trader", "group_add_trader"),
+          Markup.button.callback("🚫 Remove Trader", "group_remove_trader"),
+        ],
+        [
+          Markup.button.callback("🔒 Add to Blacklist", "group_add_blacklist"),
+          Markup.button.callback("🔓 Remove from Blacklist", "group_remove_blacklist"),
+        ],
+        [
+          Markup.button.callback("🔴 Close Group", "group_close"),
+        ],
+        [
+          Markup.button.callback("⬅️ Back to Group Menu", "group_manage_refresh"),
+        ]
+      ]);
+
+      await ctx.reply(moreActionsMessage, {
+        parse_mode: "Markdown",
+        ...keyboard,
+      });
+    } catch (error) {
+      console.error("More actions error:", error);
+      await ctx.answerCbQuery("❌ Failed to show more actions.");
     }
   }
 }

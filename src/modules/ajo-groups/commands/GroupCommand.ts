@@ -1,6 +1,7 @@
 import { Context } from "telegraf";
+import { Markup } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getAjoByChatId } from "@modules/ajo-groups/ajoService";
+import { getGroupByChatId } from "@modules/ajo-groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class GroupCommand extends BaseCommand {
@@ -27,11 +28,11 @@ export class GroupCommand extends BaseCommand {
       if (ctx.chat?.type === "private") {
         await ctx.reply(
           "❌ This command is only available in Telegram groups.\n\n" +
-            "**To use group trading in groups:**\n" +
-            "1. Add this bot to your Telegram group\n" +
-            "2. Use `/start` in the group to initialize\n" +
-            "3. Use `/create_group <name> <max_members> <amount> [consensus_threshold]` to create a trading group\n" +
-            "4. Start trading with your group members!",
+          "**To use group trading in groups:**\n" +
+          "1. Add this bot to your Telegram group\n" +
+          "2. Use `/start` in the group to initialize\n" +
+          "3. Use `/create_group <name> <max_members> <type>` to create a trading group\n" +
+          "4. Start trading with your group members!",
           { parse_mode: "Markdown" }
         );
         return;
@@ -46,7 +47,7 @@ export class GroupCommand extends BaseCommand {
       }
 
       if (args.length === 0) {
-        await this.showGroupStatus(ctx);
+        await this.showGroupManagement(ctx);
         return;
       }
 
@@ -65,9 +66,10 @@ export class GroupCommand extends BaseCommand {
         default:
           await ctx.reply(
             "❌ Unknown subcommand. Use:\n" +
-              "• `/group status` - Show group status\n" +
-              "• `/group setup` - Show setup instructions\n" +
-              "• `/group help` - Show help information"
+            "• `/group` - Group management panel\n" +
+            "• `/group status` - Show group status\n" +
+            "• `/group setup` - Show setup instructions\n" +
+            "• `/group help` - Show help information"
           );
       }
     } catch (error) {
@@ -83,10 +85,10 @@ export class GroupCommand extends BaseCommand {
       const chatId = ctx.chat?.id;
       if (!chatId) return;
 
-      // Check if this chat has an  group
-      const ajoGroup = await getAjoByChatId(chatId);
+      // Check if this chat has a group
+      const group = await getGroupByChatId(chatId);
 
-      if (!ajoGroup) {
+      if (!group) {
         const statusMessage = `
 📊 **Group Status**
 
@@ -100,6 +102,7 @@ export class GroupCommand extends BaseCommand {
 3. Start trading!
 
 **Quick Commands:**
+• \`/group\` - Management panel
 • \`/group setup\` - Setup instructions
 • \`/group help\` - Command help
         `;
@@ -111,11 +114,10 @@ export class GroupCommand extends BaseCommand {
       const statusMessage = `
 📊 **Group Status**
 
-**Group:** ✅ ${ajoGroup.name}
-**Group ID:** \`${ajoGroup._id}\`
-**Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
-**Status:** ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
-**Consensus:** ${ajoGroup.consensus_threshold}%
+**Group:** ✅ ${group.name}
+**Group ID:** \`${group._id}\`
+**Members:** ${group.members.length}/${group.max_members}
+**Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
 
 **Group Type:** ${ctx.chat?.type === "supergroup" ? "Supergroup" : "Group"}
 **Bot Status:** ✅ Active
@@ -125,6 +127,7 @@ export class GroupCommand extends BaseCommand {
 • \`/members\` - See members
 • \`/polls\` - Active polls
 • \`/poll trade <token> <amount>\` - Create trade poll
+• \`/group\` - Group management panel
       `;
 
       await ctx.reply(statusMessage, { parse_mode: "Markdown" });
@@ -148,7 +151,7 @@ Make sure the bot has these permissions:
 
 **Step 2: Create Group**
 Use this command to create your group:
-\`/create_group <name> <max_members> <amount> [consensus_threshold]\`
+\`/create_group <name> <max_members> <type>\`
 
 **Examples:**
 • \`/create_group CryptoCrew 10 0.1 67\`
@@ -161,9 +164,6 @@ Use this command to create your group:
 3. Or use: \`/join <group_id>\`
 
 **Step 4: Start Trading**
-• Use \`/poll trade <token> <amount>\` to create polls
-• Members vote with \`/vote <poll_id> <yes/no>\`
-• Execute trades when consensus is reached
 
 **Need Help?**
 • \`/group help\` - Command reference
@@ -183,12 +183,13 @@ Use this command to create your group:
 📋 **Group Commands Reference**
 
 **Group Management:**
+• \`/group\` - Group management panel
 • \`/group status\` - Show group status
 • \`/group setup\` - Setup instructions
 • \`/group help\` - This help message
 
 **Group Commands:**
-• \`/create_group <name> <max_members> <amount> [consensus]\` - Create group
+• \`/create_group <name> <max_members> <type>\` - Create group
 • \`/info\` - View group information
 • \`members\` - List members
 • \`/polls\` - Show active polls
@@ -222,6 +223,58 @@ Use this command to create your group:
     } catch (error) {
       console.error("Show group help error:", error);
       await ctx.reply("❌ Failed to show help.");
+    }
+  }
+
+  private async showGroupManagement(ctx: Context): Promise<void> {
+    try {
+      const chatId = ctx.chat?.id;
+      if (!chatId) return;
+
+      // Check if this chat has a group
+      const group = await getGroupByChatId(chatId);
+
+      if (!group) {
+        await ctx.reply(
+          "❌ No group found in this chat.\n\n" +
+          "Create a group first using:\n" +
+          "`/create_group <name> <max_members> <type>`",
+          { parse_mode: "Markdown" }
+        );
+        return;
+      }
+
+      const managementMessage = `
+🎛️ **${group.name}**
+
+**Group ID:** \`${group._id}\`
+**Type:** ${group.is_private ? "🔒 Private (requires approval)" : "🌐 Public (auto-approved)"}
+**Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
+**Balance:** ${group.current_balance || 0} SOL
+      `;
+
+      // Create inline keyboard with simplified management options
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback("💰 Deposit Funds", "group_deposit"),
+          Markup.button.callback("🚪 Exit Group", "group_exit"),
+        ],
+        [
+          Markup.button.callback("⚙️ Group Settings", "group_settings"),
+          Markup.button.callback("➕ More Actions", "group_more_actions"),
+        ],
+        [
+          Markup.button.callback("🔄 Refresh", "group_manage_refresh"),
+        ]
+      ]);
+
+      await ctx.reply(managementMessage, {
+        parse_mode: "Markdown",
+        ...keyboard
+      });
+    } catch (error) {
+      console.error("Show group management error:", error);
+      await ctx.reply("❌ Failed to show group management options.");
     }
   }
 }

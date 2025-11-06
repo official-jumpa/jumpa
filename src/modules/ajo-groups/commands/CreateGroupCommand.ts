@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { createAjo } from "@modules/ajo-groups/ajoService";
+import { createGroup } from "@modules/ajo-groups/groupService";
 import {
   validateAjoCreation,
   validateAndSanitizeGroupName,
@@ -28,26 +28,28 @@ export class CreateGroupCommand extends BaseCommand {
         return;
       }
       if (!args || args.length === 0) {
-        await ctx.reply(`❌ No arguments provided. Please provide group details. 
+        await ctx.reply(`❌ No arguments provided. Please provide group details.
 
-<b>Usage:</b> /create_group [name] [max_members] [entry_capital] [consensus_threshold].
-        
-<b>Example:</b> /create_group CryptoCrew 20 0.1 70`, { parse_mode: "HTML" });
+<b>Usage:</b> /create_group [name] [max_members] [type]
+
+<b>Example:</b> /create_group CryptoCrew 20 public`, { parse_mode: "HTML" });
         return;
       }
 
-      if (args.length < 3) {
+      if (args.length < 2) {
         await ctx.reply(
-          "❌ Usage: `/create_group <name> <max_members> <entry_capital> [consensus_threshold]`\n\n" +
+          "❌ Usage: `/create_group <name> <max_members> [type]`\n\n" +
           "**Examples:**\n" +
-          "• `/create_group CryptoCrew 10 100 67`\n" +
-          "• `/create_group MoonTraders 25 500`\n" +
-          "• `/create_group DeFi Squad 50 1000 75`\n\n" +
+          "• `/create_group CryptoCrew 10 public` - Anyone can join\n" +
+          "• `/create_group MoonTraders 25 private` - Requires approval\n" +
+          "• `/create_group DeFiSquad 50` - Defaults to public\n\n" +
           "**Parameters:**\n" +
           "• **name**: Group name (max 100 characters)\n" +
           "• **max_members**: Maximum members (2-100)\n" +
-          "• **entry_capital**: Entry capital in SOL (must be > 0)\n" +
-          "• **consensus_threshold**: Voting threshold % (50-100, default: 67)",
+          "• **type**: `public` or `private` (optional, defaults to public)\n\n" +
+          "**Group Types:**\n" +
+          "• **Public**: Members are auto-approved when they join\n" +
+          "• **Private**: Members need approval from owner/trader after joining",
           { parse_mode: "Markdown" }
         );
         return;
@@ -56,9 +58,8 @@ export class CreateGroupCommand extends BaseCommand {
       // Parse arguments
       const name = args[0];
       const maxMembers = parseInt(args[1]);
-      const entryCapital = Number(args[2]);
-      const consensusThreshold = args[3] ? parseInt(args[3]) : 67;
-
+      const groupType = args[2]?.toLowerCase() || "public";
+      const isPrivate = groupType === "private";
       // Validate and sanitize input
       const nameValidation = validateAndSanitizeGroupName(name);
       if (!nameValidation.isValid) {
@@ -66,11 +67,15 @@ export class CreateGroupCommand extends BaseCommand {
         return;
       }
 
+      // Validate group type
+      if (groupType !== "public" && groupType !== "private") {
+        await ctx.reply(`❌ Invalid group type. Use 'public' or 'private'.`);
+        return;
+      }
+
       const validation = validateAjoCreation({
         name: nameValidation.sanitized,
-        initial_capital: entryCapital,
         max_members: maxMembers,
-        consensus_threshold: consensusThreshold,
       });
 
       if (!validation.isValid) {
@@ -105,14 +110,13 @@ export class CreateGroupCommand extends BaseCommand {
       );
 
       try {
-        // Create the  group
-        const group = await createAjo({
+        // Create the group
+        const group = await createGroup({
           name: nameValidation.sanitized,
           creator_id: userId,
           telegram_chat_id: chatId,
-          initial_capital: entryCapital,
+          is_private: isPrivate,
           max_members: maxMembers,
-          consensus_threshold: consensusThreshold,
         });
 
         // Delete the processing message
@@ -127,8 +131,7 @@ export class CreateGroupCommand extends BaseCommand {
 
 🏠 **Name:** ${group.name}
 👥 **Max Members:** ${group.max_members}
-💰 **Entry Capital:** ${group.initial_capital} SOL
-🗳️ **Consensus:** ${group.consensus_threshold}%
+🔒 **Type:** ${isPrivate ? 'Private (requires approval)' : 'Public (auto-approved)'}
 📊 **Status:** Active
 
 **Group ID:** \`${group._id}\`
@@ -136,14 +139,12 @@ export class CreateGroupCommand extends BaseCommand {
 **Next Steps:**
 1. Share the Group ID with people you want to invite
 2. They can join using: \`/join ${group._id}\`
-3. Start creating polls with: \`/poll trade <token> <amount>\`
-
-**You are now a trader and can create polls!**
+${isPrivate ? '3. Approve new members using: `/approve_member`\n4. Start trading' : '3. Start trading'}
 
 **Quick Actions:**
 • Use \`/info\` to view group details
 • Use \`/members\` to see members
-• Use \`/add_members\` to manage members
+• Use \`/set_minimum_deposit\` to set minimum deposit amount
       `;
 
         await ctx.reply(successMessage, { parse_mode: "Markdown" });

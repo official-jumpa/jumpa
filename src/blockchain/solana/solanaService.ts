@@ -244,8 +244,7 @@ export interface InitializeGroupParams {
   telegramId: number;
   groupName: string;
   adminName: string;
-  entryCapital: number; // in SOL (will be converted to lamports)
-  voteThreshold: number; // percentage (e.g., 67 for 67%)
+  isPrivate: boolean; // specify private or public group type
 }
 
 export async function initializeGroup(params: InitializeGroupParams) {
@@ -290,18 +289,13 @@ export async function initializeGroup(params: InitializeGroupParams) {
     console.log(`Group Bump: ${groupBump}`);
     console.log('=============================');
 
-    // Convert SOL to lamports (1 SOL = 1,000,000,000 lamports)
-    const entryCapitalLamports = params.entryCapital * 1_000_000_000;
-    console.log(`Entry Capital: ${params.entryCapital} SOL = ${entryCapitalLamports} lamports`);
-
     // Execute the transaction with timeout (no retries to prevent double-execution)
     const tx = await executeTransactionWithTimeout(async () => {
       return await program.methods
         .initializeGroup(
           params.groupName,
           params.adminName,
-          new BN(entryCapitalLamports),
-          params.voteThreshold
+          params.isPrivate
         )
         .accounts({
           signer: signer,
@@ -863,11 +857,15 @@ export async function fetchGroupAccount(groupPDA: string, telegramId?: number) {
       name: groupAccount.name,
       traders: groupAccount.traders.map((t: any) => t.toBase58()),
       members: groupAccount.members.map((m: any) => m.toBase58()),
-      entryCapital: groupAccount.entryCapital.toString(),
-      voteThreshold: groupAccount.voteThreshhold,
+      blacklist: groupAccount.blacklist.map((b: any) => b.toBase58()),
+      minimumDeposit: groupAccount.minimum_deposit?.toString() || "0",
+      totalContributions: groupAccount.total_contributions?.toString() || "0",
+      exitPenaltyPercentage: groupAccount.exit_penalty_percentage || 0,
+      lockPeriodDays: groupAccount.lock_period_days || 0,
       locked: groupAccount.locked,
+      isPrivate: groupAccount.is_private || false,
       state: groupAccount.state,
-      createdAt: new Date(groupAccount.createdAt.toNumber() * 1000),
+      createdAt: new Date(groupAccount.created_at.toNumber() * 1000),
     };
   } catch (error) {
     console.error("Error fetching group account:", error);

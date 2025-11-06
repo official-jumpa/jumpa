@@ -1,6 +1,7 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { checkGroupExists, deriveGroupPDA, fetchGroupAccount } from "@blockchain/solana/solanaService";
+import { deriveGroupPDA, fetchGroupAccount } from "@blockchain/solana";
+import { checkGroupExists } from "@blockchain/solana/utils";
 import getUser from "@modules/users/getUserInfo";
 import { decryptPrivateKey } from "@shared/utils/encryption";
 import { Keypair } from "@solana/web3.js";
@@ -25,10 +26,10 @@ export class RecoverGroupCommand extends BaseCommand {
         return;
       }
 
-      if (args.length < 3) {
+      if (args.length < 2) {
         await ctx.reply(
-          "❌ Usage: `/recover_group <group_name> <max_members> <entry_capital> [consensus_threshold]`\n\n" +
-            "**Example:** `/recover_group arkshitters 5 100 50`\n\n" +
+          "❌ Usage: `/recover_group <group_name> <max_members>`\n\n" +
+            "**Example:** `/recover_group arkshitters 50`\n\n" +
             "**Note:** This command will recover an existing on-chain group and create a database record for it.",
           { parse_mode: "Markdown" }
         );
@@ -38,8 +39,6 @@ export class RecoverGroupCommand extends BaseCommand {
       // Parse arguments
       const groupName = args[0];
       const maxMembers = parseInt(args[1]);
-      const entryCapital = parseInt(args[2]);
-      const consensusThreshold = args[3] ? parseInt(args[3]) : 67;
 
       // Check if user is registered
       try {
@@ -67,7 +66,7 @@ export class RecoverGroupCommand extends BaseCommand {
         await ctx.reply(
           `❌ Group "${groupName}" does not exist on-chain.\n\n` +
           `You can create it with:\n` +
-          `\`/create_group ${groupName} ${maxMembers} ${entryCapital} ${consensusThreshold}\``
+          `\`/create_group ${groupName} ${maxMembers} [public|private]\``
         );
         return;
       }
@@ -90,14 +89,17 @@ export class RecoverGroupCommand extends BaseCommand {
       const [groupPDA] = deriveGroupPDA(groupName, signer);
       const groupData = await fetchGroupAccount(groupPDA.toBase58());
 
+      // Convert lamports to SOL
+      const totalContributionsSol = (parseInt(groupData.totalContributions) / 1_000_000_000).toFixed(4);
+
       // Create the database record
       const ajoGroup = await AjoGroup.create({
         name: groupName,
         creator_id: userId,
         telegram_chat_id: chatId,
-        initial_capital: entryCapital,
+        initial_capital: 0, // Deprecated field
+        is_private: groupData.isPrivate,
         max_members: maxMembers,
-        consensus_threshold: consensusThreshold,
         status: "active",
         members: [
           {
@@ -109,19 +111,20 @@ export class RecoverGroupCommand extends BaseCommand {
         ],
         polls: [],
         trades: [],
-        current_balance: 0,
+        current_balance: parseFloat(totalContributionsSol),
         // Store on-chain addresses
         onchain_group_address: groupPDA.toBase58(),
         onchain_tx_signature: "recovered", // Mark as recovered
       });
+
+      const minimumDepositSol = (parseInt(groupData.minimumDeposit) / 1_000_000_000).toFixed(4);
 
       const successMessage = `
 ✅ **Group Successfully Recovered!**
 
 🏠 **Name:** ${ajoGroup.name}
 👥 **Max Members:** ${ajoGroup.max_members}
-💰 **Entry Capital:** ${ajoGroup.initial_capital} SOL
-🗳️ **Consensus:** ${ajoGroup.consensus_threshold}%
+💰 **Current Balance:** ${totalContributionsSol} SOL
 📊 **Status:** Active
 
 **On-Chain Address:** \`${groupPDA.toBase58()}\`
@@ -129,14 +132,18 @@ export class RecoverGroupCommand extends BaseCommand {
 
 **Group Data from Blockchain:**
 • Owner: ${groupData.owner}
-• Vote Threshold: ${groupData.voteThreshold}%
+• Total Contributions: ${totalContributionsSol} SOL
+• Minimum Deposit: ${minimumDepositSol} SOL
+• Group Type: ${groupData.isPrivate ? 'Private (requires approval)' : 'Public (auto-approved)'}
+• Exit Penalty: ${groupData.exitPenaltyPercentage}%
+• Lock Period: ${groupData.lockPeriodDays} days
 • Locked: ${groupData.locked ? 'Yes' : 'No'}
 • Created: ${groupData.createdAt.toLocaleString()}
 
 **Next Steps:**
 1. Share the Group ID with people you want to invite
 2. They can join using: \`/join ${ajoGroup._id}\`
-3. Start creating polls with: \`/poll trade <token> <amount>\`
+3. Start creating polls with: \`/poll_trade <token> <amount>\`
 
 **You are now a trader and can create polls!**
       `;

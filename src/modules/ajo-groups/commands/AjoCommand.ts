@@ -1,24 +1,17 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
 import {
-  createAjo,
-  joinAjo,
-  getAjoInfo,
-  getAjoByChatId,
-  getUserAjoGroups,
+  createGroup,
+  joinGroup,
+  getGroupInfo,
+  getGroupByChatId,
+  getUserGroups,
   isUserMember,
   isUserTrader,
-} from "@modules/ajo-groups/ajoService";
-import {
-  createPoll,
-  voteOnPoll,
-  getGroupPolls,
-  getPollResults,
-  processExpiredPolls,
-} from "@modules/governance/pollService";
+} from "@modules/ajo-groups/groupService";
+
 import {
   validateAjoCreation,
-  validatePollCreation,
   validateGroupId,
   validateAndSanitizeGroupName,
 } from "@modules/ajo-groups/ajoValidation";
@@ -60,9 +53,6 @@ export class AjoCommand extends BaseCommand {
       case "members":
         await this.handleMembers(ctx);
         break;
-      case "polls":
-        await this.handlePolls(ctx);
-        break;
       case "balance":
         await this.handleBalance(ctx);
         break;
@@ -79,7 +69,7 @@ export class AjoCommand extends BaseCommand {
 🏠 **Commands**
 
 **Group Management:**
-• \`/create <name> <max_members> <amount> [consensus_threshold]\` - Create new group
+• \`/create <name> <max_members> [type]\` - Create new group
 • \`/join <group_id>\` - Join existing group
 • \`/info\` - Show current group info
 • \`/my_groups\` - Show your groups
@@ -95,7 +85,8 @@ export class AjoCommand extends BaseCommand {
 • \`/vote <poll_id> <yes/no>\` - Vote on poll
 
 **Examples:**
-\`/create CryptoCrew 10 67\`
+\`/create CryptoCrew 10 public\` - Public group
+\`/create MoonTraders 20 private\` - Private group (requires approval)
 \`/join 507f1f77bcf86cd799439011\`
 \`/poll_trade BONK 1000\`
 \`/vote 507f1f77bcf86cd799439012 yes\`
@@ -115,10 +106,12 @@ export class AjoCommand extends BaseCommand {
         return;
       }
 
-      if (args.length < 3) {
+      if (args.length < 2) {
         await ctx.reply(
-          "❌ Usage: `/create <name> <max_members> <entry_capital> [consensus_threshold]`\n\n" +
-            "**Example:** `/create CryptoCrew 10 100 67`",
+          "❌ Usage: `/create <name> <max_members> [type]`\n\n" +
+            "**Examples:**\n" +
+            "• `/create CryptoCrew 10 public` - Public group\n" +
+            "• `/create MoonTraders 20 private` - Private group",
           { parse_mode: "Markdown" }
         );
         return;
@@ -127,8 +120,14 @@ export class AjoCommand extends BaseCommand {
       // Parse arguments
       const name = args[0];
       const maxMembers = parseInt(args[1]);
-      const entryCapital = parseInt(args[2]);
-      const consensusThreshold = args[3] ? parseInt(args[3]) : 67;
+      const groupType = args[2]?.toLowerCase() || "public";
+      const isPrivate = groupType === "private";
+
+      // Validate group type
+      if (groupType !== "public" && groupType !== "private") {
+        await ctx.reply(`❌ Invalid group type. Use 'public' or 'private'.`);
+        return;
+      }
 
       // Validate and sanitize input
       const nameValidation = validateAndSanitizeGroupName(name);
@@ -139,9 +138,7 @@ export class AjoCommand extends BaseCommand {
 
       const validation = validateAjoCreation({
         name: nameValidation.sanitized,
-        initial_capital: entryCapital,
         max_members: maxMembers,
-        consensus_threshold: consensusThreshold,
       });
 
       if (!validation.isValid) {
@@ -158,13 +155,12 @@ export class AjoCommand extends BaseCommand {
       }
 
       // Create the group
-      const ajoGroup = await createAjo({
+      const ajoGroup = await createGroup({
         name: nameValidation.sanitized,
         creator_id: userId,
         telegram_chat_id: chatId,
-        initial_capital: entryCapital,
-        max_members: maxMembers,
-        consensus_threshold: consensusThreshold,
+        is_private: isPrivate,
+        max_members: maxMembers
       });
 
       const successMessage = `
@@ -172,8 +168,7 @@ export class AjoCommand extends BaseCommand {
 
 🏠 **Name:** ${ajoGroup.name}
 👥 **Max Members:** ${ajoGroup.max_members}
-💰 **Entry Capital:** ${ajoGroup.initial_capital} SOL
-🗳️ **Consensus:** ${ajoGroup.consensus_threshold}%
+🔒 **Type:** ${isPrivate ? 'Private (requires approval)' : 'Public (auto-approved)'}
 📊 **Status:** Active
 
 **Group ID:** \`${ajoGroup._id}\`
@@ -181,7 +176,7 @@ export class AjoCommand extends BaseCommand {
 **Next Steps:**
 1. Share the Group ID with people you want to invite
 2. They can join using: \`/join ${ajoGroup._id}\`
-3. Start creating polls with: \`/poll_trade <token> <amount>\`
+${isPrivate ? '3. Approve new members using: `/approve_member`\n4. Start creating polls with: `/poll_trade <token> <amount>`' : '3. Start creating polls with: `/poll_trade <token> <amount>`'}
 
 **You are now a trader and can create polls!**
       `;
@@ -249,7 +244,7 @@ export class AjoCommand extends BaseCommand {
 
       try {
         // Join the group
-        const ajoGroup = await joinAjo({
+        const ajoGroup = await joinGroup({
           group_id: groupId,
           user_id: userId,
           contribution: 0, // Will be updated when they contribute
@@ -267,7 +262,6 @@ export class AjoCommand extends BaseCommand {
 
 🏠 **Group:** ${ajoGroup.name}
 👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
-🗳️ **Consensus:** ${ajoGroup.consensus_threshold}%
 
 **Next Steps:**
 1. Contribute funds to the group
@@ -316,7 +310,7 @@ export class AjoCommand extends BaseCommand {
       }
 
       // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
           "❌ No group found in this chat.\n\n" +
@@ -337,7 +331,6 @@ export class AjoCommand extends BaseCommand {
 
 💰 **Capital:** ${ajoGroup.current_balance} SOL
 👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
-🗳️ **Consensus:** ${ajoGroup.consensus_threshold}%
 📈 **Status:** ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
 
 📊 **Financial Summary:**
@@ -368,7 +361,7 @@ export class AjoCommand extends BaseCommand {
       }
 
       // Get group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -405,64 +398,6 @@ export class AjoCommand extends BaseCommand {
     }
   }
 
-  private async handlePolls(ctx: Context): Promise<void> {
-    try {
-      const chatId = ctx.chat?.id;
-      if (!chatId) {
-        await ctx.reply("❌ Unable to identify chat.");
-        return;
-      }
-
-      // Get  group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
-      if (!ajoGroup) {
-        await ctx.reply("❌ No  group found in this chat.");
-        return;
-      }
-
-      // Process expired polls first
-      await processExpiredPolls(ajoGroup._id.toString());
-
-      // Get active polls
-      const { polls } = await getGroupPolls(ajoGroup._id.toString(), "open");
-
-      let pollsMessage = `🗳️ **Active Polls (${polls.length})**\n\n`;
-
-      if (polls.length === 0) {
-        pollsMessage += "No active polls at the moment.\n\n";
-        pollsMessage += "**Traders can create polls using:**\n";
-        pollsMessage +=
-          "• `/poll_trade <token> <amount>` - Create trade poll\n";
-        pollsMessage += "• `/poll_end` - Create end poll";
-      } else {
-        polls.forEach((poll: any, index: any) => {
-          const timeLeft = Math.max(
-            0,
-            Math.floor(
-              (new Date(poll.expires_at).getTime() - new Date().getTime()) /
-                (1000 * 60 * 60)
-            )
-          );
-          const votes = poll.votes.length;
-
-          pollsMessage += `${index + 1}. **${poll.title}**\n`;
-          pollsMessage += `   Type: ${
-            poll.type === "trade" ? "🔄 Trade" : "🏁 End Trade"
-          }\n`;
-          pollsMessage += `   Votes: ${votes} | Time left: ${timeLeft}h\n`;
-          pollsMessage += `   ID: \`${poll.id}\`\n\n`;
-        });
-
-        pollsMessage += "**Vote using:** `/vote <poll_id> <yes/no>`";
-      }
-
-      await ctx.reply(pollsMessage, { parse_mode: "Markdown" });
-    } catch (error) {
-      console.error(" polls error:", error);
-      await ctx.reply("❌ Failed to get  polls.");
-    }
-  }
-
   private async handleBalance(ctx: Context): Promise<void> {
     try {
       const userId = ctx.from?.id;
@@ -473,7 +408,7 @@ export class AjoCommand extends BaseCommand {
       }
 
       // Get  group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply("❌ No  group found in this chat.");
         return;
@@ -524,7 +459,7 @@ export class AjoCommand extends BaseCommand {
       }
 
       // Get user's  groups
-      const userGroups = await getUserAjoGroups(userId);
+      const userGroups = await getUserGroups(userId);
 
       let groupsMessage = `🏠 **Your Groups (${userGroups.length})**\n\n`;
 

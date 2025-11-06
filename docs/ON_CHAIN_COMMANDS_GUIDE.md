@@ -9,7 +9,7 @@ Your bot now interacts with the Solana blockchain for all group operations. Ever
 
 ### 1️⃣ Create Group (On-Chain)
 ```bash
-/create_group <name> <max_members> <amount> [consensus_threshold]
+/create_group <name> <max_members> <type>
 ```
 
 **Example:**
@@ -98,7 +98,7 @@ Your bot now interacts with the Solana blockchain for all group operations. Ever
 - Group state (Initialized, Trading, Voting, Ended)
 - Vote threshold
 - Lock status
-- Entry capital
+- Group Type
 
 ---
 

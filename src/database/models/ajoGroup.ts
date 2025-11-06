@@ -18,23 +18,15 @@ const ajoGroupSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    initial_capital: {
-      type: Number,
-      required: true,
-      min: 0,
+    is_private: {
+      type: Boolean,
+      default: false,
     },
     max_members: {
       type: Number,
       required: true,
       min: 2,
       max: 100,
-    },
-    consensus_threshold: {
-      type: Number,
-      required: true,
-      min: 50,
-      max: 100,
-      default: 67,
     },
     status: {
       type: String,

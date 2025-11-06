@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { syncGroupFromChain, getAjoByChatId } from "@modules/ajo-groups/ajoService";
+import { syncGroupFromChain, getGroupByChatId } from "@modules/ajo-groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class SyncGroupCommand extends BaseCommand {
@@ -27,7 +27,7 @@ export class SyncGroupCommand extends BaseCommand {
       }
 
       // Get the group for this chat
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
           "❌ No group found in this chat. Create one first with /create_group"
@@ -40,6 +40,10 @@ export class SyncGroupCommand extends BaseCommand {
       // Sync group from chain
       const syncData = await syncGroupFromChain(ajoGroup._id.toString());
 
+      // Convert lamports to SOL for display
+      const totalContributionsSol = (parseInt(syncData.onChain.totalContributions) / 1_000_000_000).toFixed(4);
+      const minimumDepositSol = (parseInt(syncData.onChain.minimumDeposit) / 1_000_000_000).toFixed(4);
+
       const message = `
 ✅ **Group Synced Successfully!**
 
@@ -47,16 +51,19 @@ ${syncData.syncedRoles > 0 ? `🔄 **Synced ${syncData.syncedRoles} member role(
 **Database Info:**
 • Name: ${syncData.database.name}
 • Members: ${syncData.database.members.length}/${syncData.database.max_members}
-• Balance: ${syncData.database.current_balance}
+• Balance: ${syncData.database.current_balance} SOL
 
 **On-Chain Info:**
 • Owner: \`${syncData.onChain.owner.substring(0, 8)}...${syncData.onChain.owner.substring(syncData.onChain.owner.length - 8)}\`
 • State: ${syncData.onChain.state}
 • Traders: ${syncData.onChain.traders.length}
 • Members: ${syncData.onChain.members.length}
-• Entry Capital: ${syncData.onChain.entryCapital}
-• Vote Threshold: ${syncData.onChain.voteThreshold}%
+• Total Contributions: ${totalContributionsSol} SOL
+• Minimum Deposit: ${minimumDepositSol} SOL
+• Group Type: ${syncData.onChain.isPrivate ? "Private (requires approval)" : "Public (auto-approved)"}
 • Locked: ${syncData.onChain.locked ? "Yes" : "No"}
+• Exit Penalty: ${syncData.onChain.exitPenaltyPercentage}%
+• Lock Period: ${syncData.onChain.lockPeriodDays} days
 • Created: ${syncData.onChain.createdAt.toLocaleDateString()}
 
 **On-Chain Address:** \`${ajoGroup.onchain_group_address}\`

@@ -4,33 +4,27 @@ import { StartCommand } from "@modules/onboarding/commands/StartCommand";
 import { HelpCommand } from "@modules/onboarding/commands/HelpCommand";
 import { WalletCommand } from "@modules/wallets/commands/WalletCommand";
 import { AjoCommand } from "@modules/ajo-groups/commands/AjoCommand";
-import { PollCommand } from "@modules/governance/commands/PollCommand";
 import { CreateGroupCommand } from "@modules/ajo-groups/commands/CreateGroupCommand";
-import { AddMemberCommand } from "@modules/ajo-groups/commands/AddMemberCommand";
 import { GroupCommand } from "@modules/ajo-groups/commands/GroupCommand";
 import { AjoInfoCommand } from "@modules/ajo-groups/commands/AjoInfoCommand";
 import { AjoMembersCommand } from "@modules/ajo-groups/commands/AjoMembersCommand";
 import { AjoPollsCommand } from "@modules/ajo-groups/commands/AjoPollsCommand";
-import { AjoBalanceCommand } from "@modules/ajo-groups/commands/AjoBalanceCommand";
-import { PollTradeCommand } from "@modules/governance/commands/PollTradeCommand";
-import { PollEndCommand } from "@modules/governance/commands/PollEndCommand";
-import { PollResultsCommand } from "@modules/governance/commands/PollResultsCommand";
-import { PollExecuteCommand } from "@modules/governance/commands/PollExecuteCommand";
-import { ProposeTradeCommand } from "@modules/governance/commands/ProposeTradeCommand";
-import { SyncGroupCommand } from "@modules/ajo-groups/commands/SyncGroupCommand";
-import { FetchProposalsCommand } from "@modules/governance/commands/FetchProposalsCommand";
+import { GroupBalanceCommand } from "@modules/ajo-groups/commands/GroupBalanceCommand";
 import { CheckGroupCommand } from "@modules/ajo-groups/commands/CheckGroupCommand";
 import { RecoverGroupCommand } from "@modules/ajo-groups/commands/RecoverGroupCommand";
 import { FundWalletCommand } from "@modules/wallets/commands/FundWalletCommand";
 import { PromoteTraderCommand } from "@modules/ajo-groups/commands/PromoteTraderCommand";
-import { VoteCommand } from "@modules/governance/commands/VoteCommand";
 import { LeaveGroupCommand } from "@modules/ajo-groups/commands/LeaveGroupCommand";
 import { DemoteTraderCommand } from "@modules/ajo-groups/commands/DemoteTraderCommand";
 import { JoinGroupCommand } from "@modules/ajo-groups/commands/JoinGroupCommand";
 import { getBankUpdateState } from "@shared/state/bankState";
 import { WalletCallbackHandlers } from "@modules/wallets/callbacks/WalletCallbackHandlers";
 import { StartCallbackHandlers } from "@modules/onboarding/callbacks/StartCallbackHandlers";
-import { AjoCallbackHandlers } from "@modules/ajo-groups/callbacks/AjoCallbackHandlers";
+import { GroupCallbackHandlers } from "@modules/ajo-groups/callbacks/GroupCallbackHandlers";
+import { DepositHandlers } from "@modules/ajo-groups/callbacks/DepositHandlers";
+import { CloseGroupHandlers } from "@modules/ajo-groups/callbacks/CloseGroupHandlers";
+import { ExitGroupHandlers } from "@modules/ajo-groups/callbacks/ExitGroupHandlers";
+import { DistributeProfitHandlers } from "@modules/ajo-groups/callbacks/DistributeProfitHandlers";
 import { BankHandler } from "@modules/payments/commands/BankHandler";
 import { getWithdrawalState, clearWithdrawalState } from "@shared/state/withdrawalState";
 import { handleDetectToken } from "@modules/trading/utils/DetectTokenAddress";
@@ -61,26 +55,16 @@ export class CommandManager {
       new HelpCommand(),
       new WalletCommand(),
       new AjoCommand(),
-      new PollCommand(),
       new CreateGroupCommand(),
-      new AddMemberCommand(),
       new GroupCommand(),
       new AjoInfoCommand(),
       new AjoMembersCommand(),
       new AjoPollsCommand(),
-      new AjoBalanceCommand(),
-      new PollTradeCommand(),
-      new PollEndCommand(),
-      new PollResultsCommand(),
-      new PollExecuteCommand(),
-      new ProposeTradeCommand(),
-      new SyncGroupCommand(),
-      new FetchProposalsCommand(),
+      new GroupBalanceCommand(),
       new CheckGroupCommand(),
       new RecoverGroupCommand(),
       new FundWalletCommand(),
       new PromoteTraderCommand(),
-      new VoteCommand(),
       new LeaveGroupCommand(),
       new JoinGroupCommand(),
       new DemoteTraderCommand(),
@@ -108,7 +92,7 @@ export class CommandManager {
     this.bot.action("view_wallet", StartCallbackHandlers.handleViewWallet);
     this.bot.action("view_profile", StartCallbackHandlers.handleViewProfile);
     this.bot.action("create_group", StartCallbackHandlers.handleCreateAjo);
-    this.bot.action("join_group", StartCallbackHandlers.handleJoinAjo);
+    this.bot.action("join", StartCallbackHandlers.handleJoinAjo);
     this.bot.action("show_help", StartCallbackHandlers.handleShowHelp);
     this.bot.action("show_about", StartCallbackHandlers.handleShowAbout);
     this.bot.action("back_to_menu", StartCallbackHandlers.handleBackToMenu);
@@ -271,40 +255,97 @@ export class CommandManager {
     });
 
     // Register callback handlers for group command
-    this.bot.action("group_info", AjoCallbackHandlers.handleAjoInfo);
-    this.bot.action("group_members", AjoCallbackHandlers.handleAjoMembers);
-    this.bot.action("group_polls", AjoCallbackHandlers.handleAjoPolls);
-    this.bot.action("group_balance", AjoCallbackHandlers.handleAjoBalance);
+    this.bot.action("group_info", GroupCallbackHandlers.handleGroupInfo);
+    this.bot.action("group_members", GroupCallbackHandlers.handleGroupMembers);
+    this.bot.action("group_balance", GroupCallbackHandlers.handleGroupBalance);
 
     // Register new group callback handlers
     this.bot.action(
       "create_group_form",
-      AjoCallbackHandlers.handleCreateGroupForm
+      GroupCallbackHandlers.handleCreateGroupForm
     );
-    this.bot.action(
-      "add_members_form",
-      AjoCallbackHandlers.handleAddMembersForm
-    );
-    this.bot.action("copy_group_id", AjoCallbackHandlers.handleCopyGroupId);
+    this.bot.action("copy_group_id", GroupCallbackHandlers.handleCopyGroupId);
     this.bot.action(
       "add_bot_to_group",
-      AjoCallbackHandlers.handleAddBotToGroup
+      GroupCallbackHandlers.handleAddBotToGroup
     );
     this.bot.action(
       "bot_commands_help",
-      AjoCallbackHandlers.handleBotCommandsHelp
+      GroupCallbackHandlers.handleBotCommandsHelp
     );
     this.bot.action(
       "bot_permissions_help",
-      AjoCallbackHandlers.handleBotPermissionsHelp
+      GroupCallbackHandlers.handleBotPermissionsHelp
     );
-    this.bot.action("custom_create", AjoCallbackHandlers.handleCustomCreate);
-    this.bot.action("group_help", AjoCallbackHandlers.handleAjoHelp);
-    this.bot.action("browse_groups", AjoCallbackHandlers.handleBrowseGroups);
-    this.bot.action("join_with_id", AjoCallbackHandlers.handleJoinWithId);
-    this.bot.action("my_groups", AjoCallbackHandlers.handleMyGroups);
-    this.bot.action("join_help", AjoCallbackHandlers.handleJoinHelp);
-    this.bot.action("group_stats", AjoCallbackHandlers.handleGroupStats)
+    this.bot.action("custom_create", GroupCallbackHandlers.handleCustomCreate);
+    this.bot.action("group_help", GroupCallbackHandlers.handleGroupHelp);
+    this.bot.action("browse_groups", GroupCallbackHandlers.handleBrowseGroups);
+    this.bot.action("join_with_id", GroupCallbackHandlers.handleJoinWithId);
+    this.bot.action("my_groups", GroupCallbackHandlers.handleMyGroups);
+    this.bot.action("join_help", GroupCallbackHandlers.handleJoinHelp);
+    this.bot.action("group_stats", GroupCallbackHandlers.handleGroupStats);
+
+    // Register deposit callback handlers
+    this.bot.action("group_deposit", DepositHandlers.handleDepositFunds);
+    this.bot.action("deposit_custom", DepositHandlers.handleDepositCustom);
+    this.bot.action("deposit_cancel", DepositHandlers.handleDepositCancel);
+    this.bot.action("group_manage_refresh", GroupCallbackHandlers.handleGroupManageRefresh);
+    this.bot.action("group_more_actions", GroupCallbackHandlers.handleMoreActions);
+
+    // Register close group callback handlers
+    this.bot.action("group_close", CloseGroupHandlers.handleCloseGroup);
+    this.bot.action("close_group_confirm", CloseGroupHandlers.handleCloseGroupConfirm);
+    this.bot.action("close_group_cancel", CloseGroupHandlers.handleCloseGroupCancel);
+
+    // Register exit group callback handlers
+    this.bot.action("group_exit", ExitGroupHandlers.handleExitGroup);
+    this.bot.action("exit_group_confirm", ExitGroupHandlers.handleExitGroupConfirm);
+    this.bot.action("exit_group_cancel", ExitGroupHandlers.handleExitGroupCancel);
+
+    // Register distribute profit callback handlers
+    this.bot.action("group_distribute", DistributeProfitHandlers.handleDistributeProfit);
+    this.bot.action("distribute_custom", DistributeProfitHandlers.handleCustomAmount);
+    this.bot.action("distribute_cancel", DistributeProfitHandlers.handleDistributeCancel);
+
+    // Register distribute profit member selection callbacks
+    this.bot.action(/^distribute_select_member_(.+)$/, async (ctx) => {
+      const match = ctx.match;
+      if (match && match[1]) {
+        await DistributeProfitHandlers.handleMemberSelection(ctx, match[1]);
+      }
+    });
+
+    // Register distribute profit amount callbacks
+    this.bot.action(/^distribute_amount_(.+)$/, async (ctx) => {
+      const match = ctx.match;
+      if (match && match[1]) {
+        await DistributeProfitHandlers.handleAmountSelection(ctx, match[1]);
+      }
+    });
+
+    // Register distribute profit confirm callbacks
+    this.bot.action(/^distribute_confirm_(.+)$/, async (ctx) => {
+      const match = ctx.match;
+      if (match && match[1]) {
+        await DistributeProfitHandlers.handleDistributeConfirm(ctx, match[1]);
+      }
+    });
+
+    // Register deposit amount callbacks
+    this.bot.action(/^deposit_amount_(.+)$/, async (ctx) => {
+      const match = ctx.match;
+      if (match && match[1]) {
+        await DepositHandlers.handleDepositAmount(ctx, match[1]);
+      }
+    });
+
+    // Register deposit confirm callbacks
+    this.bot.action(/^deposit_confirm_(.+)$/, async (ctx) => {
+      const match = ctx.match;
+      if (match && match[1]) {
+        await DepositHandlers.handleDepositConfirm(ctx, match[1]);
+      }
+    });
   }
 
   public async updateBotCommands(): Promise<void> {

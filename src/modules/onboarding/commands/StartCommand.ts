@@ -78,7 +78,7 @@ SOL: ${(user.solanaWallets[0].balance).toFixed(4)}   • USDC: ${tokenBalances.u
           ],
           [
             Markup.button.callback(" Create Group", "create_group"),
-            Markup.button.callback(" Join  Group", "join_group"),
+            Markup.button.callback(" Join  Group", "join"),
           ],
           [
             Markup.button.callback(" Group Info", "group_info"),

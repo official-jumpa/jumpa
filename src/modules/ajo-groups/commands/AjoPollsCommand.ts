@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getAjoByChatId } from "@modules/ajo-groups/ajoService";
+import { getGroupByChatId } from "@modules/ajo-groups/groupService";
 
 export class AjoPollsCommand extends BaseCommand {
   name = "ajo_polls";
@@ -14,7 +14,7 @@ export class AjoPollsCommand extends BaseCommand {
         return;
       }
 
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply(
           "❌ No group found in this chat.\n\n" +
@@ -56,7 +56,6 @@ ${index + 1}. **${poll.poll_type.toUpperCase()} Poll**
    • ID: \`${poll._id}\`
    • Status: ${poll.status === "open" ? "🟢 Open" : "🔴 Closed"}
    • Votes: ${yesVotes} Yes / ${noVotes} No (${yesPercentage}% Yes)
-   • Required: ${ajoGroup.consensus_threshold}%
    • Expires: ${new Date(poll.expires_at).toLocaleString()}
    ${poll.poll_type === "trade" ? `• Token: ${poll.trade_details?.token_address}\n   • Amount: ${poll.trade_details?.amount}` : ""}
 `;

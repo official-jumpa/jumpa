@@ -1,10 +1,10 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { joinAjo } from "@modules/ajo-groups/ajoService";
+import { joinGroup } from "@modules/ajo-groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class JoinGroupCommand extends BaseCommand {
-  name = "join_group";
+  name = "join";
   description = "Join an existing group with a group ID";
 
   async execute(ctx: Context): Promise<void> {
@@ -24,9 +24,9 @@ export class JoinGroupCommand extends BaseCommand {
 
       if (args.length !== 1) {
         await ctx.reply(
-          "❌ Usage: `/join_group <groupId>`\n\n" +
+          "❌ Usage: `/join <groupId>`\n\n" +
             "**Example:**\n" +
-            "• `/join_group 60d5f1b3e6b3f3b3f3b3f3b3`\n\n" +
+            "• `/join 60d5f1b3e6b3f3b3f3b3f3b3`\n\n" +
             "**Parameter:**\n" +
             "• **groupId**: The ID of the group you want to join",
           { parse_mode: "Markdown" }
@@ -66,7 +66,7 @@ ${user.wallet_address}
       );
 
       try {
-        const group = await joinAjo({ group_id: groupId, user_id: userId });
+        const group = await joinGroup({ group_id: groupId, user_id: userId });
 
         try {
           await ctx.telegram.deleteMessage(ctx.chat!.id, processingMessage.message_id);
@@ -79,7 +79,7 @@ ${user.wallet_address}
 
 🏠 **Name:** ${group.name}
 👥 **Members:** ${group.members.length}/${group.max_members}
-💰 **Entry Capital:** ${group.initial_capital} SOL
+💰 **Group Type:** ${group.is_private == true ? "Public" : "Private"}
 
 **You are now a member of this group!**
 

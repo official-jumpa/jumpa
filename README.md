@@ -220,7 +220,7 @@ See [Testing Guide](docs/TESTING_GUIDE.md) for detailed testing instructions.
 
 ### Group Commands
 - `/create_group` - Create new group
-- `/join_group` - Join existing group
+- `/join` - Join existing group
 - `/leave_group` - Leave group
 - `/group` - View group details
 - `/poll` - Create poll for trading decision

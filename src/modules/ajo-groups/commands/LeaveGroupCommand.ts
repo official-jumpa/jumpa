@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getAjoByChatId } from "@modules/ajo-groups/ajoService";
+import { getGroupByChatId } from "@modules/ajo-groups/groupService";
 import solanaService from "@blockchain/solana/solanaService";
 import getUser from "@modules/users/getUserInfo";
 
@@ -29,7 +29,7 @@ export class LeaveGroupCommand extends BaseCommand {
       }
 
       // Get  group
-      const ajoGroup = await getAjoByChatId(chatId);
+      const ajoGroup = await getGroupByChatId(chatId);
       if (!ajoGroup) {
         await ctx.reply("❌ No group found in this chat.");
         return;

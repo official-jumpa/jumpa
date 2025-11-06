@@ -80,7 +80,7 @@ Choose an option:`;
         ],
         [
           Markup.button.callback("🏠 Create Group", "create_group"),
-          Markup.button.callback("👥 Join Group", "join_group"),
+          Markup.button.callback("👥 Join Group", "join"),
         ],
         [
           Markup.button.callback("📊 Group Info", "group_info"),
