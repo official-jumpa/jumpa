@@ -105,7 +105,7 @@ export async function getAllTokenBalances(
 
     if (isCacheValid) {
       // Return cached values
-      console.log(`Using cached token balances for ${walletAddress} (age: ${Math.round(cacheAge / 1000)}s)`);
+      console.log(`Using cached token balances for ${walletAddress} (age: ${Math.round(cacheAge / 1000)}s) usdc - ${wallet.usdcBalance}, usdt - ${wallet.usdtBalance}`);
       return {
         usdc: wallet.usdcBalance || 0,
         usdt: wallet.usdtBalance || 0

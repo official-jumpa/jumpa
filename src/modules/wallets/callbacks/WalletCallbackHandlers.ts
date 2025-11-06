@@ -129,10 +129,10 @@ export class WalletCallbackHandlers {
         } else if (currency === "USDC" || currency === "USDT") {
             // USDC and USDT are typically 1:1 with USD
             const usdToNgn = rate.data.sell.NGN;
-            rateMessage = `1 USD = ₦${usdToNgn.toFixed(2)}\n\n0.1 ${currency} = ₦${(0.1 * usdToNgn).toFixed(2)}\n0.2 ${currency} = ₦${(0.2 * usdToNgn).toFixed(2)}\n0.3 ${currency} = ₦${(0.3 * usdToNgn).toFixed(2)}`;
+            rateMessage = `1 USD = ₦${usdToNgn.toFixed(2)}\n\n2 ${currency} = ₦${(2 * usdToNgn).toFixed(2)}\n5 ${currency} = ₦${(5 * usdToNgn).toFixed(2)}\n10 ${currency} = ₦${(10 * usdToNgn).toFixed(2)}`;
         }
 
-        const minAmountText = currency === "SOL" ? "Minimum: 0.01 SOL" : `Minimum: 1 ${currency}`;
+        const minAmountText = currency === "SOL" ? "Minimum: 0.01 SOL" : `Minimum: 2.5 ${currency}`;
         const message = `Your selected bank account:\n\nBank: ${user.bank_details.bank_name}\nAccount Name: ${user.bank_details.account_name}\nAccount Number: ${user.bank_details.account_number}\n\n📊 Current Exchange Rates:\n\n${rateMessage}\n\n⚠️ ${minAmountText}\n\nRate expires in 30 seconds. Message auto deletes in 30 seconds`;
 
         // Create amount buttons based on currency
@@ -150,7 +150,7 @@ export class WalletCallbackHandlers {
             amountButtons.push([
                 Markup.button.callback("✏️ Custom Amount", `withdraw_custom_amount:${currency}`),
             ], [
-                Markup.button.callback("1 " + currency, `withdraw_amount:${currency}:1`),
+                Markup.button.callback("2.5 " + currency, `withdraw_amount:${currency}:2.5`),
                 Markup.button.callback("5 " + currency, `withdraw_amount:${currency}:5`),
                 Markup.button.callback("10 " + currency, `withdraw_amount:${currency}:10`),
                 Markup.button.callback("20 " + currency, `withdraw_amount:${currency}:20`),
@@ -270,9 +270,9 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
             await ctx.answerCbQuery("❌ Minimum withdrawal: 0.01 SOL");
             await ctx.reply("❌ Minimum withdrawal amount for SOL is 0.01 SOL. Please select a valid amount.");
             return;
-        } else if ((currency === "USDC" || currency === "USDT") && amountNum < 1) {
-            await ctx.answerCbQuery(`❌ Minimum withdrawal: 1 ${currency}`);
-            await ctx.reply(`❌ Minimum withdrawal amount for ${currency} is 1 ${currency}. Please select a valid amount.`);
+        } else if ((currency === "USDC" || currency === "USDT") && amountNum < 2.5) {
+            await ctx.answerCbQuery(`❌ Minimum withdrawal is 2.5${currency}`);
+            await ctx.reply(`❌ Minimum withdrawal amount is 2.5 ${currency}.`);
             return;
         }
 
