@@ -4,7 +4,6 @@ export { HelpCommand } from "@modules/onboarding/commands/HelpCommand";
 export { WalletCommand } from "@modules/wallets/commands/WalletCommand";
 export { AjoCommand } from "@modules/ajo-groups/commands/AjoCommand";
 export { CreateGroupCommand } from "@modules/ajo-groups/commands/CreateGroupCommand";
-export { AddMemberCommand } from "@modules/ajo-groups/commands/AddMemberCommand";
 export { GroupCommand } from "@modules/ajo-groups/commands/GroupCommand";
 export { AjoInfoCommand } from "@modules/ajo-groups/commands/AjoInfoCommand";
 export { AjoMembersCommand } from "@modules/ajo-groups/commands/AjoMembersCommand";

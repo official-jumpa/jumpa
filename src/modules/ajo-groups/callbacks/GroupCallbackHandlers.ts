@@ -358,7 +358,7 @@ With group trading, you and your members can:
 • Example: 0.1, 0.5, 1.0
 
 **Use this format:**
-\`/create_group <name> <max_members> <amount>\`
+\`/create_group <name> <max_members> <type>\`
 
 **Examples:**
 \`/create_group GroupOne 10 0.1\`
@@ -701,7 +701,7 @@ The bot needs these permissions:
 **Step 3: Create Group**
 Once the bot is added to your Telegram group:
 1. Use \`/start\` in the group to initialize
-2. Use \`/create_group <name> <max_members> <amount>\` to create your group
+2. Use \`/create_group <name> <max_members> <type>\` to create your group
 3. Share the group ID with members
 4. Start trading!
 
