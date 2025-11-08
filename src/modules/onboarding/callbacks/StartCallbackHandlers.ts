@@ -71,6 +71,10 @@ export class StartCallbackHandlers {
   static async handleAddEVMWallet(ctx: Context): Promise<void> {
     return AddWalletHandlers.handleAddEVMWallet(ctx);
   }
+  // Handle add EVM wallet callback
+  static async handleGenerateEVMWallet(ctx: Context): Promise<void> {
+    return AddWalletHandlers.handleGenerateEVMWallet(ctx);
+  }
 
   // Handle add EVM private key input
   static async handleAddEVMPrivateKeyInput(

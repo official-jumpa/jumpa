@@ -27,8 +27,8 @@ import { ExitGroupHandlers } from "@modules/ajo-groups/callbacks/ExitGroupHandle
 import { DistributeProfitHandlers } from "@modules/ajo-groups/callbacks/DistributeProfitHandlers";
 import { BankHandler } from "@modules/payments/commands/BankHandler";
 import { getWithdrawalState, clearWithdrawalState } from "@shared/state/withdrawalState";
-import { handleDetectToken } from "@modules/trading/utils/DetectTokenAddress";
-import { handleBuy } from "@modules/trading/commands/BuyCommand";
+import { handleDetectToken, handleGroupToken } from "@modules/trading/utils/DetectTokenAddress";
+import { handleBuy, handleGroupBuy } from "@modules/trading/commands/BuyCommand";
 import { BuyCallbackHandlers } from "@modules/trading/callbacks/BuyCallbackHandlers";
 import { handleSell } from "@modules/trading/commands/SellCommand";
 import { SellCallbackHandlers } from "@modules/trading/callbacks/SellCallbackHandlers";
@@ -100,7 +100,8 @@ export class CommandManager {
     this.bot.action("import_wallet", StartCallbackHandlers.handleImportWallet);
     this.bot.action("add_wallet", StartCallbackHandlers.handleAddWallet);
     this.bot.action("add_wallet_solana", StartCallbackHandlers.handleAddSolanaWallet);
-    this.bot.action("add_wallet_evm", StartCallbackHandlers.handleAddEVMWallet);
+    this.bot.action("add_wallet_evm", StartCallbackHandlers.handleAddEVMWallet); 
+    this.bot.action("generate_evm_wallet", StartCallbackHandlers.handleGenerateEVMWallet);
     this.bot.action(/set_default_solana:/, StartCallbackHandlers.handleSetDefaultSolanaWallet);
     this.bot.action(/set_default_evm:/, StartCallbackHandlers.handleSetDefaultEVMWallet);
 
@@ -140,6 +141,9 @@ export class CommandManager {
     this.bot.action(/^sell:.+/, handleSell);
     this.bot.action(/^approve_sell:.+/, SellCallbackHandlers.handleApprove);
     this.bot.action("decline_sell", SellCallbackHandlers.handleDecline);
+
+    //register buy and sell commands for groups
+    this.bot.action(/^groupBuy:.+/, handleGroupBuy);
 
 
     //register callback handlers for bank account
@@ -249,7 +253,14 @@ export class CommandManager {
       // Check if it looks like a contract address
       if (solanaAddressRegex.test(text)) {
         console.log('Detected potential Solana contract address:', text);
-        await handleDetectToken(ctx, text);
+        // Check if message came from a group and call the group function
+        if (ctx.chat.type === 'group' || ctx.chat.type === 'supergroup') {
+          // Call your group-specific function here
+          await handleGroupToken(ctx, text);
+        } else {
+          // Call this for private chats
+          await handleDetectToken(ctx, text);
+        }
         return;
       }
     });

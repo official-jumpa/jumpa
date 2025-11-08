@@ -26,10 +26,12 @@ Choose the wallet type you want to add. Choose EVM if you want to import a walle
 
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback("🟣 Solana", "add_wallet_solana"),
-          Markup.button.callback("🔵 EVM", "add_wallet_evm"),
+          Markup.button.callback("🟣 Import Solana", "add_wallet_solana"),
+          Markup.button.callback("🔵 Import EVM", "add_wallet_evm"),
         ],
         [
+          Markup.button.callback("🔵 Generate EVM Wallet", "generate_evm_wallet"),
+        ], [
           Markup.button.callback("🔙 Back", "view_wallet"),
         ],
       ]);
@@ -388,5 +390,88 @@ Your wallet has been added to your account!`;
         );
       }
     }
+  }
+
+  static async handleGenerateEVMWallet(ctx: Context): Promise<void> {
+    try {
+      const telegramId = ctx.from?.id;
+
+      if (!telegramId) {
+        await ctx.answerCbQuery("❌ Unable to identify your account.");
+        return;
+      }
+
+      await ctx.answerCbQuery("🔵 Generating New EVM Wallet...");
+
+      // Get user to check if wallet already exists
+      const user = await getUser(
+        telegramId,
+        ctx.from?.username || ctx.from?.first_name || "Unknown"
+      );
+
+      if (!user) {
+        await ctx.reply("❌ User not found. Please use /start to register first.");
+        return;
+      }
+
+      // Check wallet limit
+      if (user.evmWallets.length >= 3) {
+        await ctx.reply("❌ You have reached the maximum limit of 3 EVM wallets.");
+        return;
+      }
+
+      // Try generating a new wallet
+      const newWallet = createRandomEvmWallet();
+
+      if (newWallet && newWallet.success) {
+        // Encrypt and save
+        const encryptedPrivateKey = encryptPrivateKey(newWallet.newPrivateKey);
+        await addEVMWalletToUser(
+          telegramId,
+          newWallet.newAddress,
+          encryptedPrivateKey
+        );
+
+        const replyMessage = `📥 **Generate New EVM Wallet**
+  
+  A new wallet has been generated for you and can be used for trade and P2P transactions.
+  
+  **Address:** \`${newWallet.newAddress}\`
+  `;
+
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback("🔙 Back", "view_wallet")],
+        ]);
+
+        await ctx.reply(replyMessage, {
+          parse_mode: "Markdown",
+          ...keyboard,
+        });
+      } else {
+        // Wallet generation failed
+        await ctx.reply("❌ Failed to generate a new EVM wallet. Please try again later.");
+      }
+    } catch (error) {
+      console.error("Wallet generation error:", error);
+      await ctx.reply("⚠️ An unexpected error occurred while generating your wallet. Please try again.");
+    }
+  }
+}
+//function to generate the wallet
+const createRandomEvmWallet = () => {
+  try {
+    const wallet = Wallet.createRandom(); // generate random wallet
+    console.log("wallet", wallet);
+    console.log("address:", wallet.address);
+    console.log("privateKey:", wallet.privateKey);
+    // console.log("mnemonic:", wallet.mnemonic?.phrase); // the 12/24-word phrase (if available)
+
+    const newAddress = wallet.address;
+    const newPrivateKey = wallet.privateKey;
+    return { success: true, newAddress, newPrivateKey }
+
+  } catch (error) {
+    console.log("failed to generate wallet", error)
+    return { success: false }
   }
 }

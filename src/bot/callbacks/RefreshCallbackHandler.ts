@@ -13,11 +13,11 @@ export async function handleRefresh(ctx: Context) {
 
     await ctx.answerCbQuery('Refreshing...');
 
-    const { metricsMessage, keyboard } = await generateTokenInfoMessage(contractAddress);
+    const { metricsMessage,privateChatOptions } = await generateTokenInfoMessage(contractAddress);
 
     await ctx.editMessageText(metricsMessage, {
       parse_mode: 'HTML',
-      ...keyboard,
+      ...privateChatOptions,
     });
 
   } catch (error: any) {
