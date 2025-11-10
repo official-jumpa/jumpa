@@ -7,6 +7,7 @@ import { withdrawETHToNGN, withdrawUSDCToNGN as withdrawUSDCToNGNEVM, withdrawUS
 import { safeDeleteMessage } from "@shared/utils/messageUtils";
 import { clearWithdrawalState, getWithdrawalState, setWithdrawalState } from "@shared/state/withdrawalState";
 import { WalletViewHandlers } from "@modules/onboarding/callbacks/WalletViewHandlers";
+import { getUserBalances, formatBalances } from "@modules/onboarding/utils/getUserBalances";
 
 export class WalletCallbackHandlers {
     static async handleDeposit(ctx: Context): Promise<void> {
@@ -72,33 +73,52 @@ export class WalletCallbackHandlers {
             return;
         }
 
-        const message = `Select the currency you want to withdraw to NGN. For EVM chains, we only support the following blockchains for now: CELO, BASE, OPTIMISM, POLYGON, ARBITRUM.`;
+        // Fetch and display user balances
+        const balances = await getUserBalances(telegramId, username);
+        const balancesMessage = formatBalances(balances);
+
+        console.log(`[WITHDRAWAL] User ${telegramId} initiated withdrawal flow`);
+        console.log(`[WITHDRAWAL] Balances fetched:`, {
+            solana: balances.solana ? `SOL: ${balances.solana.sol}, USDC: ${balances.solana.usdc}, USDT: ${balances.solana.usdt}` : 'No Solana wallet',
+            evm: balances.evm ? `CELO ETH: ${balances.evm.celo.eth}, BASE ETH: ${balances.evm.base.eth}` : 'No EVM wallet'
+        });
+
+        const message = `${balancesMessage}\n\n<b>Select currency and chain to withdraw:</b>\n\nNote: Withdrawals use your default wallet. To withdraw from a different wallet, set it as default first.`;
+
         const keyboard = Markup.inlineKeyboard([
             [
-                Markup.button.callback("SOL (SOL)", "withdraw_currency:SOL:SOLANA"),
-                Markup.button.callback("USDC (SOL)", "withdraw_currency:USDC:SOLANA"),
-                Markup.button.callback("USDT (SOL)", "withdraw_currency:USDT:SOLANA"),
-            ], [
-                Markup.button.callback("ETH (EVM)", "withdraw_currency:ETH:EVM"),
-                Markup.button.callback("USDC (EVM)", "withdraw_currency:USDC:EVM"),
-                Markup.button.callback("USDT (EVM)", "withdraw_currency:USDT:EVM"),
+                Markup.button.callback("SOL (Solana)", "withdraw_currency:SOL:SOLANA"),
+                Markup.button.callback("USDC (Solana)", "withdraw_currency:USDC:SOLANA"),
+                Markup.button.callback("USDT (Solana)", "withdraw_currency:USDT:SOLANA"),
+            ],
+            [
+                Markup.button.callback("ETH (Base)", "withdraw_currency:ETH:BASE"),
+                Markup.button.callback("USDC (Base)", "withdraw_currency:USDC:BASE"),
+                Markup.button.callback("USDT (Base)", "withdraw_currency:USDT:BASE"),
+            ],
+            [
+                Markup.button.callback("ETH (Celo)", "withdraw_currency:ETH:CELO"),
+                Markup.button.callback("USDC (Celo)", "withdraw_currency:USDC:CELO"),
+                Markup.button.callback("USDT (Celo)", "withdraw_currency:USDT:CELO"),
             ],
             [
                 Markup.button.callback("❌ Cancel", "delete_message"),
             ],
         ]);
 
-        await ctx.reply(message, keyboard);
+        await ctx.reply(message, { parse_mode: "HTML", ...keyboard });
     }
 
     static async handleWithdrawCurrencySelection(ctx: Context): Promise<void> {
         const cbData = (ctx.callbackQuery as any).data;
         const parts = cbData.split(":");
         const currency = parts[1]; // SOL, USDC, USDT, or ETH
-        const chain = parts[2]; // SOLANA or EVM
+        const chain = parts[2]; // SOLANA, BASE, or CELO
 
         const telegramId = ctx.from?.id;
         const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+
+        console.log(`[WITHDRAWAL] Currency selection:`, { userId: telegramId, currency, chain, callbackData: cbData });
 
         if (!telegramId) {
             await ctx.answerCbQuery("❌ Unable to identify your account.");
@@ -200,9 +220,11 @@ export class WalletCallbackHandlers {
         // Format: withdraw_custom_amount:CURRENCY:CHAIN
         const parts = cbData.split(":");
         const currency = parts[1]; // SOL, USDC, USDT, or ETH
-        const chain = parts[2]; // SOLANA or EVM
+        const chain = parts[2]; // SOLANA, BASE, or CELO
 
         const telegramId = ctx.from?.id;
+
+        console.log(`[WITHDRAWAL] Custom amount requested:`, { userId: telegramId, currency, chain });
 
         if (!telegramId) {
             await ctx.answerCbQuery("❌ Unable to identify your account.");
@@ -210,7 +232,7 @@ export class WalletCallbackHandlers {
         }
 
         // Set state to await custom amount input
-        setWithdrawalState(telegramId, 'awaiting_custom_amount', { currency: currency as 'SOL' | 'USDC' | 'USDT' | 'ETH', chain: chain as 'SOLANA' | 'EVM' });
+        setWithdrawalState(telegramId, 'awaiting_custom_amount', { currency: currency as 'SOL' | 'USDC' | 'USDT' | 'ETH', chain: chain as 'SOLANA' | 'BASE' | 'CELO' });
 
         let minAmount = "";
         let example = "";
@@ -370,17 +392,17 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
         const parts = cbData.split(":");
         const currency = parts[1]; // SOL, USDC, USDT, or ETH
         const amount = parts[2];
-        const chain = parts[3] || 'SOLANA'; // SOLANA or EVM
+        const chain = parts[3] || 'SOLANA'; // SOLANA, BASE, or CELO
 
         const telegramId = ctx.from?.id;
         const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
-        console.log("attempting withdrawal: ", { telegramId, currency, amount, chain });
+        console.log(`[WITHDRAWAL] Confirmation received:`, { telegramId, currency, amount, chain });
 
         if (!telegramId) {
             await ctx.answerCbQuery("❌ Unable to identify your account.");
             return;
         }
-        setWithdrawalState(telegramId, 'awaiting_pin', { amount, currency: currency as 'SOL' | 'USDC' | 'USDT' | 'ETH', chain: chain as 'SOLANA' | 'EVM' });
+        setWithdrawalState(telegramId, 'awaiting_pin', { amount, currency: currency as 'SOL' | 'USDC' | 'USDT' | 'ETH', chain: chain as 'SOLANA' | 'BASE' | 'CELO' });
 
         const user = await getUser(telegramId, username);
         if (!user) {
@@ -441,12 +463,22 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
         const { amount, currency, chain } = state.data;
         clearWithdrawalState(userId);
 
+        console.log(`[WITHDRAWAL] PIN verified successfully for user ${userId}`);
+        console.log(`[WITHDRAWAL] Processing withdrawal:`, { userId, amount, currency, chain });
+
         if (!currency) {
+            console.error(`[WITHDRAWAL] Currency not specified in state`);
             await ctx.reply("❌ Currency not specified. Please try again.");
             return;
         }
 
-        console.log(`Processing withdrawal: ${amount} ${currency} on ${chain} chain`);
+        if (!chain) {
+            console.error(`[WITHDRAWAL] Chain not specified in state`);
+            await ctx.reply("❌ Chain not specified. Please try again.");
+            return;
+        }
+
+        console.log(`[WITHDRAWAL] Creating payment widget for ${amount} ${currency} on ${chain}`);
 
         //create a payment widget with the user details and account number
         const widget = config.paymentWidgetUrl;
@@ -510,7 +542,7 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
                 const fiatPayoutAmount = paymentWidget.data.fiatPayoutAmount;
 
                 // Determine recipient address based on chain
-                const recipientAddress = chain === 'EVM' ? ethAddress : solAddress;
+                const recipientAddress = chain === 'SOLANA' ? solAddress : ethAddress;
                 console.log(`Recipient address (${chain}): ${recipientAddress}`);
 
                 const saveTxtoDb = await Withdrawal.create({
@@ -525,6 +557,7 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
                 // Use the appropriate withdrawal function based on currency and chain
                 let initTx;
                 if (chain === 'SOLANA') {
+                    console.log(`[WITHDRAWAL] Executing Solana ${currency} withdrawal`);
                     if (currency === 'SOL') {
                         initTx = await WithdrawSolToNgn(ctx, recipientAddress, depositAmount);
                     } else if (currency === 'USDC') {
@@ -535,18 +568,20 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
                         await ctx.reply(`❌ Unsupported Solana currency: ${currency}`);
                         return;
                     }
-                } else if (chain === 'EVM') {
+                } else if (chain === 'BASE' || chain === 'CELO') {
+                    console.log(`[WITHDRAWAL] Executing ${chain} ${currency} withdrawal`);
                     if (currency === 'ETH') {
-                        initTx = await withdrawETHToNGN(ctx, recipientAddress, depositAmount);
+                        initTx = await withdrawETHToNGN(ctx, recipientAddress, depositAmount, chain);
                     } else if (currency === 'USDC') {
-                        initTx = await withdrawUSDCToNGNEVM(ctx, recipientAddress, depositAmount);
+                        initTx = await withdrawUSDCToNGNEVM(ctx, recipientAddress, depositAmount, chain);
                     } else if (currency === 'USDT') {
-                        initTx = await withdrawUSDTToNGNEVM(ctx, recipientAddress, depositAmount);
+                        initTx = await withdrawUSDTToNGNEVM(ctx, recipientAddress, depositAmount, chain);
                     } else {
-                        await ctx.reply(`❌ Unsupported EVM currency: ${currency}`);
+                        await ctx.reply(`❌ Unsupported ${chain} currency: ${currency}`);
                         return;
                     }
                 } else {
+                    console.error(`[WITHDRAWAL] Unsupported chain: ${chain}`);
                     await ctx.reply(`❌ Unsupported chain: ${chain}`);
                     return;
                 }

@@ -5,7 +5,7 @@ interface WithdrawalState {
   data: {
     amount?: string;
     currency?: 'SOL' | 'USDC' | 'USDT' | 'ETH';
-    chain?: 'SOLANA' | 'EVM';
+    chain?: 'SOLANA' | 'BASE' | 'CELO';
   };
 }
 
