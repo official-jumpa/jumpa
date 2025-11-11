@@ -104,6 +104,10 @@ export class CommandManager {
     this.bot.action("generate_evm_wallet", StartCallbackHandlers.handleGenerateEVMWallet);
     this.bot.action(/set_default_solana:/, StartCallbackHandlers.handleSetDefaultSolanaWallet);
     this.bot.action(/set_default_evm:/, StartCallbackHandlers.handleSetDefaultEVMWallet);
+    this.bot.action(/delete_solana_wallet:/, StartCallbackHandlers.handleDeleteSolanaWallet);
+    this.bot.action(/delete_evm_wallet:/, StartCallbackHandlers.handleDeleteEVMWallet);
+    this.bot.action(/confirm_delete_solana:/, StartCallbackHandlers.handleDeleteSolanaWallet);
+    this.bot.action(/confirm_delete_evm:/, StartCallbackHandlers.handleDeleteEVMWallet);
 
     // Register referral callback handler
     this.bot.action("referral", async (ctx) => {

@@ -130,10 +130,8 @@ export class DefaultWalletHandlers {
       if (solanaWallets.length > 1) {
         const solanaButtons = [];
         for (let i = 1; i < solanaWallets.length; i++) {
-          const address = solanaWallets[i].address;
-          const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
           solanaButtons.push(
-            Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_solana:${i}`)
+            Markup.button.callback(`⭐ Set Wallet ${i + 1} as Main`, `set_default_solana:${i}`)
           );
         }
         // Add buttons in rows of 2
@@ -146,15 +144,41 @@ export class DefaultWalletHandlers {
       if (evmWallets.length > 1) {
         const evmButtons = [];
         for (let i = 1; i < evmWallets.length; i++) {
-          const address = evmWallets[i].address;
-          const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
           evmButtons.push(
-            Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_evm:${i}`)
+            Markup.button.callback(`⭐ Set EVM ${i + 1} as Main`, `set_default_evm:${i}`)
           );
         }
         // Add buttons in rows of 2
         for (let i = 0; i < evmButtons.length; i += 2) {
           keyboardButtons.push(evmButtons.slice(i, i + 2));
+        }
+      }
+
+      // Add delete buttons for Solana wallets
+      if (solanaWallets.length > 0) {
+        const deleteButtons = [];
+        for (let i = 0; i < solanaWallets.length; i++) {
+          deleteButtons.push(
+            Markup.button.callback(`🗑️ Delete Sol Wallet ${i + 1}`, `delete_solana_wallet:${i}`)
+          );
+        }
+        // Add buttons in rows of 2
+        for (let i = 0; i < deleteButtons.length; i += 2) {
+          keyboardButtons.push(deleteButtons.slice(i, i + 2));
+        }
+      }
+
+      // Add delete buttons for EVM wallets
+      if (evmWallets.length > 0) {
+        const deleteButtons = [];
+        for (let i = 0; i < evmWallets.length; i++) {
+          deleteButtons.push(
+            Markup.button.callback(`🗑️ Delete EVM ${i + 1}`, `delete_evm_wallet:${i}`)
+          );
+        }
+        // Add buttons in rows of 2
+        for (let i = 0; i < deleteButtons.length; i += 2) {
+          keyboardButtons.push(deleteButtons.slice(i, i + 2));
         }
       }
 
@@ -308,10 +332,8 @@ export class DefaultWalletHandlers {
       if (solanaWallets.length > 1) {
         const solanaButtons = [];
         for (let i = 1; i < solanaWallets.length; i++) {
-          const address = solanaWallets[i].address;
-          const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
           solanaButtons.push(
-            Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_solana:${i}`)
+            Markup.button.callback(`⭐ Set Wallet ${i + 1} as Main`, `set_default_solana:${i}`)
           );
         }
         // Add buttons in rows of 2
@@ -324,15 +346,41 @@ export class DefaultWalletHandlers {
       if (evmWallets.length > 1) {
         const evmButtons = [];
         for (let i = 1; i < evmWallets.length; i++) {
-          const address = evmWallets[i].address;
-          const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
           evmButtons.push(
-            Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_evm:${i}`)
+            Markup.button.callback(`⭐ Set EVM ${i + 1} as Main`, `set_default_evm:${i}`)
           );
         }
         // Add buttons in rows of 2
         for (let i = 0; i < evmButtons.length; i += 2) {
           keyboardButtons.push(evmButtons.slice(i, i + 2));
+        }
+      }
+
+      // Add delete buttons for Solana wallets
+      if (solanaWallets.length > 0) {
+        const deleteButtons = [];
+        for (let i = 0; i < solanaWallets.length; i++) {
+          deleteButtons.push(
+            Markup.button.callback(`🗑️ Delete Sol Wallet ${i + 1}`, `delete_solana_wallet:${i}`)
+          );
+        }
+        // Add buttons in rows of 2
+        for (let i = 0; i < deleteButtons.length; i += 2) {
+          keyboardButtons.push(deleteButtons.slice(i, i + 2));
+        }
+      }
+
+      // Add delete buttons for EVM wallets
+      if (evmWallets.length > 0) {
+        const deleteButtons = [];
+        for (let i = 0; i < evmWallets.length; i++) {
+          deleteButtons.push(
+            Markup.button.callback(`🗑️ Delete EVM ${i + 1}`, `delete_evm_wallet:${i}`)
+          );
+        }
+        // Add buttons in rows of 2
+        for (let i = 0; i < deleteButtons.length; i += 2) {
+          keyboardButtons.push(deleteButtons.slice(i, i + 2));
         }
       }
 
@@ -356,6 +404,206 @@ export class DefaultWalletHandlers {
     } catch (error) {
       console.error("Set default EVM wallet error:", error);
       await ctx.answerCbQuery("❌ Failed to set default wallet.");
+    }
+  }
+
+  // Handle delete Solana wallet callback
+  static async handleDeleteSolanaWallet(ctx: Context): Promise<void> {
+    const telegramId = ctx.from?.id;
+    const cbData = (ctx.callbackQuery as any).data;
+
+    if (!telegramId) {
+      await ctx.answerCbQuery("❌ Unable to identify your account.");
+      return;
+    }
+
+    try {
+      // Format: delete_solana_wallet:INDEX or confirm_delete_solana:INDEX
+      const [action, indexStr] = cbData.split(":");
+      const walletIndex = parseInt(indexStr);
+
+      if (isNaN(walletIndex)) {
+        await ctx.answerCbQuery("❌ Invalid wallet index.");
+        return;
+      }
+
+      const User = (await import("@database/models/user")).default;
+      const user = await User.findOne({ telegram_id: telegramId });
+
+      if (!user || !user.solanaWallets[walletIndex]) {
+        await ctx.answerCbQuery("❌ Wallet not found.");
+        return;
+      }
+
+      const wallet = user.solanaWallets[walletIndex];
+      const shortAddress = `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`;
+
+      // If this is the first click (not confirmed yet), show confirmation
+      if (action === "delete_solana_wallet") {
+        await ctx.answerCbQuery("⚠️ Confirm deletion");
+
+        // Delete the old message
+        try {
+          await ctx.deleteMessage();
+        } catch (error) {
+          console.log("Could not delete message:", error);
+        }
+
+        const confirmMessage = `⚠️ <b>Confirm Deletion</b>\n\nAre you sure you want to delete Sol Wallet ${walletIndex + 1}?\n\n<b>Address:</b> <code>${shortAddress}</code>\n\n<b>Warning:</b> This action cannot be undone. Make sure you have backed up your private key before proceeding.`;
+
+        const keyboard = Markup.inlineKeyboard([
+          [
+            Markup.button.callback("✅ Yes, Delete", `confirm_delete_solana:${walletIndex}`),
+            Markup.button.callback("❌ Cancel", "view_wallet"),
+          ],
+        ]);
+
+        await ctx.reply(confirmMessage, {
+          parse_mode: "HTML",
+          ...keyboard,
+        });
+        return;
+      }
+
+      // If confirmed, proceed with deletion
+      if (action === "confirm_delete_solana") {
+        // Delete the old message
+        try {
+          await ctx.deleteMessage();
+        } catch (error) {
+          console.log("Could not delete message:", error);
+        }
+
+        // Remove the wallet from the array
+        user.solanaWallets.splice(walletIndex, 1);
+        await user.save();
+
+        await ctx.answerCbQuery("✅ Wallet deleted successfully!");
+
+        // Show confirmation message
+        await ctx.reply(
+          `🗑️ Sol Wallet ${walletIndex + 1} (${shortAddress}) has been deleted.`,
+          {
+            parse_mode: "HTML",
+          }
+        );
+
+        // Rebuild and display the wallet view if there are remaining wallets
+        if (user.solanaWallets.length > 0 || user.evmWallets.length > 0) {
+          const { WalletViewHandlers } = await import("./WalletViewHandlers");
+          await WalletViewHandlers.handleViewWallet(ctx);
+        } else {
+          await ctx.reply(
+            "You have no wallets left. Use /start to set up a new wallet.",
+            {
+              parse_mode: "HTML",
+            }
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Delete Solana wallet error:", error);
+      await ctx.answerCbQuery("❌ Failed to delete wallet.");
+    }
+  }
+
+  // Handle delete EVM wallet callback
+  static async handleDeleteEVMWallet(ctx: Context): Promise<void> {
+    const telegramId = ctx.from?.id;
+    const cbData = (ctx.callbackQuery as any).data;
+
+    if (!telegramId) {
+      await ctx.answerCbQuery("❌ Unable to identify your account.");
+      return;
+    }
+
+    try {
+      // Format: delete_evm_wallet:INDEX or confirm_delete_evm:INDEX
+      const [action, indexStr] = cbData.split(":");
+      const walletIndex = parseInt(indexStr);
+
+      if (isNaN(walletIndex)) {
+        await ctx.answerCbQuery("❌ Invalid wallet index.");
+        return;
+      }
+
+      const User = (await import("@database/models/user")).default;
+      const user = await User.findOne({ telegram_id: telegramId });
+
+      if (!user || !user.evmWallets[walletIndex]) {
+        await ctx.answerCbQuery("❌ Wallet not found.");
+        return;
+      }
+
+      const wallet = user.evmWallets[walletIndex];
+      const shortAddress = `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`;
+
+      // If this is the first click (not confirmed yet), show confirmation
+      if (action === "delete_evm_wallet") {
+        await ctx.answerCbQuery("⚠️ Confirm deletion");
+
+        // Delete the old message
+        try {
+          await ctx.deleteMessage();
+        } catch (error) {
+          console.log("Could not delete message:", error);
+        }
+
+        const confirmMessage = `⚠️ <b>Confirm Deletion</b>\n\nAre you sure you want to delete EVM Wallet ${walletIndex + 1}?\n\n<b>Address:</b> <code>${shortAddress}</code>\n\n<b>Warning:</b> This action cannot be undone. Make sure you have backed up your private key before proceeding.`;
+
+        const keyboard = Markup.inlineKeyboard([
+          [
+            Markup.button.callback("✅ Yes, Delete", `confirm_delete_evm:${walletIndex}`),
+            Markup.button.callback("❌ Cancel", "view_wallet"),
+          ],
+        ]);
+
+        await ctx.reply(confirmMessage, {
+          parse_mode: "HTML",
+          ...keyboard,
+        });
+        return;
+      }
+
+      // If confirmed, proceed with deletion
+      if (action === "confirm_delete_evm") {
+        // Delete the old message
+        try {
+          await ctx.deleteMessage();
+        } catch (error) {
+          console.log("Could not delete message:", error);
+        }
+
+        // Remove the wallet from the array
+        user.evmWallets.splice(walletIndex, 1);
+        await user.save();
+
+        await ctx.answerCbQuery("✅ Wallet deleted successfully!");
+
+        // Show confirmation message
+        await ctx.reply(
+          `🗑️ EVM Wallet ${walletIndex + 1} (${shortAddress}) has been deleted.`,
+          {
+            parse_mode: "HTML",
+          }
+        );
+
+        // Rebuild and display the wallet view if there are remaining wallets
+        if (user.solanaWallets.length > 0 || user.evmWallets.length > 0) {
+          const { WalletViewHandlers } = await import("./WalletViewHandlers");
+          await WalletViewHandlers.handleViewWallet(ctx);
+        } else {
+          await ctx.reply(
+            "You have no wallets left. Use /start to set up a new wallet.",
+            {
+              parse_mode: "HTML",
+            }
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Delete EVM wallet error:", error);
+      await ctx.answerCbQuery("❌ Failed to delete wallet.");
     }
   }
 }

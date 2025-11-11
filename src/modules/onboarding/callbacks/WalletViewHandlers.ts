@@ -129,10 +129,8 @@ Set up a wallet to start trading!`;
       if (solanaWallets.length > 1) {
         const solanaButtons = [];
         for (let i = 1; i < solanaWallets.length; i++) {
-          const address = solanaWallets[i].address;
-          const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
           solanaButtons.push(
-            Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_solana:${i}`)
+            Markup.button.callback(`⭐ Set SOL Wallet ${i + 1} as Main`, `set_default_solana:${i}`)
           );
         }
         // Add buttons in rows of 2
@@ -145,15 +143,41 @@ Set up a wallet to start trading!`;
       if (evmWallets.length > 1) {
         const evmButtons = [];
         for (let i = 1; i < evmWallets.length; i++) {
-          const address = evmWallets[i].address;
-          const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
           evmButtons.push(
-            Markup.button.callback(`⭐ Set ${shortAddress} as Default`, `set_default_evm:${i}`)
+            Markup.button.callback(`⭐ Set EVM ${i + 1} as Main`, `set_default_evm:${i}`)
           );
         }
         // Add buttons in rows of 2
         for (let i = 0; i < evmButtons.length; i += 2) {
           keyboardButtons.push(evmButtons.slice(i, i + 2));
+        }
+      }
+
+      // Add delete buttons for Solana wallets
+      if (solanaWallets.length > 0) {
+        const deleteButtons = [];
+        for (let i = 0; i < solanaWallets.length; i++) {
+          deleteButtons.push(
+            Markup.button.callback(`🗑️ Delete Sol Wallet ${i + 1}`, `delete_solana_wallet:${i}`)
+          );
+        }
+        // Add buttons in rows of 2
+        for (let i = 0; i < deleteButtons.length; i += 2) {
+          keyboardButtons.push(deleteButtons.slice(i, i + 2));
+        }
+      }
+
+      // Add delete buttons for EVM wallets
+      if (evmWallets.length > 0) {
+        const deleteButtons = [];
+        for (let i = 0; i < evmWallets.length; i++) {
+          deleteButtons.push(
+            Markup.button.callback(`🗑️ Delete EVM ${i + 1}`, `delete_evm_wallet:${i}`)
+          );
+        }
+        // Add buttons in rows of 2
+        for (let i = 0; i < deleteButtons.length; i += 2) {
+          keyboardButtons.push(deleteButtons.slice(i, i + 2));
         }
       }
 

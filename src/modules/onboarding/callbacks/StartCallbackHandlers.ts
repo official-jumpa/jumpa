@@ -102,6 +102,16 @@ export class StartCallbackHandlers {
     return DefaultWalletHandlers.handleSetDefaultEVMWallet(ctx);
   }
 
+  // Handle delete Solana wallet callback
+  static async handleDeleteSolanaWallet(ctx: Context): Promise<void> {
+    return DefaultWalletHandlers.handleDeleteSolanaWallet(ctx);
+  }
+
+  // Handle delete EVM wallet callback
+  static async handleDeleteEVMWallet(ctx: Context): Promise<void> {
+    return DefaultWalletHandlers.handleDeleteEVMWallet(ctx);
+  }
+
   // Handle back to main menu callback
   static async handleBackToMenu(ctx: Context): Promise<void> {
     return MenuHandlers.handleBackToMenu(ctx);
