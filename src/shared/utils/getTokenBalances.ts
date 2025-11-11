@@ -1,15 +1,67 @@
-import { Connection, PublicKey } from "@solana/web3.js";
 import { config } from "@core/config/config";
 import User from "@database/models/user";
 
-const connection = new Connection(config.solMainnet, 'confirmed');
+// Use Alchemy RPC endpoint (fallback to solMainnet if not set)
+const RPC_ENDPOINT = config.alchemyMainnetRpc;
 
 // Token mint addresses on Solana mainnet
-const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-const USDT_MINT = new PublicKey('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
 
-// Cache duration in milliseconds (5 minutes)
-const CACHE_DURATION = 5 * 60 * 1000;
+// Cache duration in milliseconds (0.5 minutes)
+const CACHE_DURATION = 0.5 * 60 * 1000;
+
+/**
+ * Fetch token accounts by owner via HTTP JSON-RPC
+ * @param walletAddress - The Solana wallet address
+ * @param mintAddress - The token mint address
+ * @returns Token balance or 0 if not found
+ */
+async function fetchTokenBalanceViaHTTP(walletAddress: string, mintAddress: string): Promise<number> {
+  console.log("fetchTokenBalanceViaHTTP gettokenbalance called")
+  try {
+    const response = await fetch(RPC_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getTokenAccountsByOwner',
+        params: [
+          walletAddress,
+          {
+            mint: mintAddress
+          },
+          {
+            encoding: 'jsonParsed'
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(`RPC error: ${data.error.message}`);
+    }
+
+    const tokenAccounts = data.result.value;
+
+    if (tokenAccounts.length === 0) {
+      return 0; // No token account found
+    }
+
+    const balanceInfo = tokenAccounts[0].account.data.parsed.info.tokenAmount;
+    return balanceInfo.uiAmount || 0;
+  } catch (error) {
+    console.error(`Error fetching token balance for mint ${mintAddress}:`, error);
+    throw error;
+  }
+}
 
 /**
  * Get USDC balance for a Solana wallet address (internal - no caching)
@@ -17,24 +69,7 @@ const CACHE_DURATION = 5 * 60 * 1000;
  * @returns USDC balance as a number
  */
 async function fetchUSDCBalance(walletAddress: string): Promise<number> {
-  try {
-    const publicKey = new PublicKey(walletAddress);
-
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-      publicKey,
-      { mint: USDC_MINT }
-    );
-
-    if (tokenAccounts.value.length === 0) {
-      return 0; // No USDC token account found
-    }
-
-    const balanceInfo = tokenAccounts.value[0].account.data.parsed.info.tokenAmount;
-    return balanceInfo.uiAmount || 0;
-  } catch (error) {
-    console.error('Error fetching USDC balance:', error);
-    throw error;
-  }
+  return fetchTokenBalanceViaHTTP(walletAddress, USDC_MINT);
 }
 
 /**
@@ -43,24 +78,7 @@ async function fetchUSDCBalance(walletAddress: string): Promise<number> {
  * @returns USDT balance as a number
  */
 async function fetchUSDTBalance(walletAddress: string): Promise<number> {
-  try {
-    const publicKey = new PublicKey(walletAddress);
-
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-      publicKey,
-      { mint: USDT_MINT }
-    );
-
-    if (tokenAccounts.value.length === 0) {
-      return 0; // No USDT token account found
-    }
-
-    const balanceInfo = tokenAccounts.value[0].account.data.parsed.info.tokenAmount;
-    return balanceInfo.uiAmount || 0;
-  } catch (error) {
-    console.error('Error fetching USDT balance:', error);
-    throw error;
-  }
+  return fetchTokenBalanceViaHTTP(walletAddress, USDT_MINT);
 }
 
 /**

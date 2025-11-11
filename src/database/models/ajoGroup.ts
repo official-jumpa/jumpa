@@ -165,7 +165,6 @@ const ajoGroupSchema = new mongoose.Schema(
 
 // Indexes
 ajoGroupSchema.index({ creator_id: 1 });
-ajoGroupSchema.index({ telegram_chat_id: 1 });
 ajoGroupSchema.index({ status: 1 });
 ajoGroupSchema.index({ "members.user_id": 1 });
 

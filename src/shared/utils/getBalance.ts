@@ -1,9 +1,41 @@
-import { PublicKey } from "@solana/web3.js";
-import { getSolanaConnection } from "./rpcConfig";
 import User from "@database/models/user";
+import { config } from "@core/config/config";
 
+// Use Alchemy RPC endpoint (fallback to solMainnet if not set)
+const RPC_ENDPOINT = config.alchemyMainnetRpc;
 // Cache duration in milliseconds (20 secs) - matches token balance cache
 const CACHE_DURATION = 0.2 * 60 * 1000;
+
+/**
+ * Fetches SOL balance via direct HTTP JSON-RPC call
+ * @param walletAddress - The Solana wallet address
+ * @returns Balance in lamports
+ */
+async function fetchBalanceViaHTTP(walletAddress: string): Promise<number> {
+  console.log("get single token balance called")
+  const response = await fetch(RPC_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'getBalance',
+      params: [walletAddress]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(`RPC error: ${data.error.message}`);
+  }
+
+  return data.result.value; // Returns balance in lamports
+}
 
 /**
  * Get SOL balance for a Solana wallet address with caching support
@@ -39,10 +71,8 @@ async function getBalance(walletAddress: string, forceRefresh: boolean = false):
     }
 
     // Cache expired, not found, or force refresh - fetch fresh data
-    console.log(`Fetching fresh SOL balance for ${walletAddress}`);
-    const connection = getSolanaConnection();
-    const publicKey = new PublicKey(walletAddress);
-    const balanceLamports = await connection.getBalance(publicKey);
+    console.log(`Fetching fresh SOL balance for ${walletAddress} via HTTP`);
+    const balanceLamports = await fetchBalanceViaHTTP(walletAddress);
     const userBalance = balanceLamports / 1e9;
 
     // Update cache in database if user exists

@@ -13,5 +13,7 @@ export const config = {
   solDevnet: process.env.SOL_DEVNET || "",
   solMainnet: process.env.SOL_MAINNET || "",
   encryptionKey: process.env.ENCRYPTION_KEY || "",
+  alchemyDevnetRpc: process.env.ALCHEMY_DEVNET_RPC || "",
+  alchemyMainnetRpc: process.env.ALCHEMY_MAINNET_RPC || "",
 
 };
