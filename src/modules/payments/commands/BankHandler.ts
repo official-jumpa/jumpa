@@ -25,7 +25,7 @@ export class BankHandler {
           return;
         } else if (!usrInfo.bank_details.account_name || !usrInfo.bank_details.account_number || !usrInfo.bank_details.bank_name) {
 
-          const createAjoMessage = `
+          const createMessage = `
           ❌ No bank account found. Please set up your bank account below. 
 
 
@@ -41,13 +41,13 @@ export class BankHandler {
               Markup.button.callback("❓Add Account Number", "update_account_number"),
             ],
           ]);
-          await ctx.reply(createAjoMessage, {
+          await ctx.reply(createMessage, {
             parse_mode: "Markdown", ...keyboard,
           });
           return;
         }
 
-        const createAjoMessage = `
+        const createMessage = `
  <b>🏠 YOUR BANK DETAILS</b>
         
 
@@ -58,7 +58,7 @@ export class BankHandler {
     <b>Account Number:</b> ${usrInfo.bank_details.account_number}
         
               `;
-        const sentMessage = await ctx.reply(createAjoMessage, {
+        const sentMessage = await ctx.reply(createMessage, {
           parse_mode: "HTML"
         });
 
@@ -122,7 +122,7 @@ export class BankHandler {
       if (cbData && typeof cbData === "string") {
         if (cbData === 'update_bank_name') {
           setBankUpdateState(userId, 'awaiting_bank_name');
-          const createAjoMessage = `
+          const createMessage = `
             Choose from a list of the supported banks below.
 
 <b>Supported Banks:</b>
@@ -132,7 +132,7 @@ ${banks
               .join("\n")}
 Reply with the bank id to select it. For eg: reply with 0️⃣1️⃣ to select Opay.
                   `;
-          await ctx.reply(createAjoMessage, { parse_mode: "HTML" });
+          await ctx.reply(createMessage, { parse_mode: "HTML" });
           return;
         }
       }

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const ajoGroupSchema = new mongoose.Schema(
+const groupSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -68,7 +68,7 @@ const ajoGroupSchema = new mongoose.Schema(
         },
         type: {
           type: String,
-          enum: ["trade", "end_ajo"],
+          enum: ["trade", "end_group"],
           required: true,
         },
         title: {
@@ -164,9 +164,9 @@ const ajoGroupSchema = new mongoose.Schema(
 );
 
 // Indexes
-ajoGroupSchema.index({ creator_id: 1 });
-ajoGroupSchema.index({ status: 1 });
-ajoGroupSchema.index({ "members.user_id": 1 });
+groupSchema.index({ creator_id: 1 });
+groupSchema.index({ status: 1 });
+groupSchema.index({ "members.user_id": 1 });
 
-const AjoGroup = mongoose.model("AjoGroup", ajoGroupSchema);
-export default AjoGroup;
+const Group = mongoose.model("Group", groupSchema);
+export default Group;

@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getGroupByChatId } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId } from "@modules/groups/groupService";
 import solanaService from "@blockchain/solana/solanaService";
 import getUser from "@modules/users/getUserInfo";
 
@@ -29,21 +29,21 @@ export class LeaveGroupCommand extends BaseCommand {
       }
 
       // Get  group
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is a member
-      const memberIndex = ajoGroup.members.findIndex(m => m.user_id === userId);
+      const memberIndex = group.members.findIndex(m => m.user_id === userId);
       if (memberIndex === -1) {
         await ctx.reply("❌ You are not a member of this group.");
         return;
       }
 
       // Check if user is the owner
-      if (ajoGroup.creator_id === userId) {
+      if (group.creator_id === userId) {
         await ctx.reply(
           "❌ Group owners cannot leave their own group.\n\n" +
           "You can end the group using `/poll_end` instead.",
@@ -54,7 +54,7 @@ export class LeaveGroupCommand extends BaseCommand {
 
       // Get group owner
       const User = (await import("@database/models/user")).default;
-      const owner = await User.findOne({ telegram_id: ajoGroup.creator_id });
+      const owner = await User.findOne({ telegram_id: group.creator_id });
       if (!owner) {
         await ctx.reply("❌ Group owner not found.");
         return;
@@ -69,17 +69,17 @@ export class LeaveGroupCommand extends BaseCommand {
 
       try {
         // Exit group on-chain
-        if (ajoGroup.onchain_group_address) {
+        if (group.onchain_group_address) {
           await solanaService.exitGroup({
             telegramId: userId,
-            groupName: ajoGroup.name,
+            groupName: group.name,
             ownerPubkey: owner.solanaWallets[0].address,
           });
         }
 
         // Remove from database
-        ajoGroup.members.splice(memberIndex, 1);
-        await ajoGroup.save();
+        group.members.splice(memberIndex, 1);
+        await group.save();
 
         // Delete the processing message
         try {
@@ -90,8 +90,8 @@ export class LeaveGroupCommand extends BaseCommand {
 
         const successMessage = `✅ *You've Left the Group*
 
-🏠 *Group:* ${ajoGroup.name}
-👥 *Remaining Members:* ${ajoGroup.members.length}/${ajoGroup.max_members}
+🏠 *Group:* ${group.name}
+👥 *Remaining Members:* ${group.members.length}/${group.max_members}
 
 Your member profile has been closed and any remaining balance will be returned to you.
 

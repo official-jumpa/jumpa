@@ -1,5 +1,5 @@
 import { Context } from "telegraf";
-import { GroupCallbackHandlers } from "@modules/ajo-groups/callbacks/GroupCallbackHandlers";
+import { GroupCallbackHandlers } from "@modules/groups/callbacks/GroupCallbackHandlers";
 import { WalletViewHandlers } from "./WalletViewHandlers";
 import { ProfileHandlers } from "./ProfileHandlers";
 import { HelpAboutHandlers } from "./HelpAboutHandlers";
@@ -20,12 +20,12 @@ export class StartCallbackHandlers {
   }
 
   // Handle create callback
-  static async handleCreateAjo(ctx: Context): Promise<void> {
+  static async handleCreateGroup(ctx: Context): Promise<void> {
     return GroupCallbackHandlers.handleCreateGroup(ctx);
   }
 
   // Handle join callback
-  static async handleJoinAjo(ctx: Context): Promise<void> {
+  static async handleJoinGroup(ctx: Context): Promise<void> {
     return GroupCallbackHandlers.handleJoinGroup(ctx);
   }
 

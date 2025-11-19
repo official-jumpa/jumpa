@@ -1,9 +1,9 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getGroupByChatId } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId } from "@modules/groups/groupService";
 
-export class AjoPollsCommand extends BaseCommand {
-  name = "ajo_polls";
+export class GroupPollsCommand extends BaseCommand {
+  name = "group_polls";
   description = "Show active group polls";
 
   async execute(ctx: Context): Promise<void> {
@@ -14,31 +14,31 @@ export class AjoPollsCommand extends BaseCommand {
         return;
       }
 
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply(
           "❌ No group found in this chat.\n\n" +
-            "Use `/create_group` to create a new group.",
+          "Use `/create_group` to create a new group.",
           { parse_mode: "Markdown" }
         );
         return;
       }
 
-      const activePolls = ajoGroup.polls.filter(
+      const activePolls = group.polls.filter(
         (poll: any) => poll.status === "open"
       );
 
       if (activePolls.length === 0) {
         await ctx.reply(
           "📊 No active polls in this group.\n\n" +
-            "Traders can create polls using `/poll_trade` or `/poll_end`.",
+          "Traders can create polls using `/poll_trade` or `/poll_end`.",
           { parse_mode: "Markdown" }
         );
         return;
       }
 
       let pollsMessage = `
-🗳️ **Active Polls: ${ajoGroup.name}**
+🗳️ **Active Polls: ${group.name}**
 
 **Total Active Polls:** ${activePolls.length}
 

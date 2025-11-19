@@ -29,8 +29,8 @@ export class RecoverGroupCommand extends BaseCommand {
       if (args.length < 2) {
         await ctx.reply(
           "❌ Usage: `/recover_group <group_name> <max_members>`\n\n" +
-            "**Example:** `/recover_group arkshitters 50`\n\n" +
-            "**Note:** This command will recover an existing on-chain group and create a database record for it.",
+          "**Example:** `/recover_group arkshitters 50`\n\n" +
+          "**Note:** This command will recover an existing on-chain group and create a database record for it.",
           { parse_mode: "Markdown" }
         );
         return;
@@ -72,8 +72,8 @@ export class RecoverGroupCommand extends BaseCommand {
       }
 
       // Check if group already exists in database
-      const AjoGroup = (await import("@database/models/ajoGroup")).default;
-      const existingDbGroup = await AjoGroup.findOne({
+      const Group = (await import("@database/models/group")).default;
+      const existingDbGroup = await Group.findOne({
         telegram_chat_id: chatId,
       });
 
@@ -93,7 +93,7 @@ export class RecoverGroupCommand extends BaseCommand {
       const totalContributionsSol = (parseInt(groupData.totalContributions) / 1_000_000_000).toFixed(4);
 
       // Create the database record
-      const ajoGroup = await AjoGroup.create({
+      const group = await Group.create({
         name: groupName,
         creator_id: userId,
         telegram_chat_id: chatId,
@@ -122,13 +122,13 @@ export class RecoverGroupCommand extends BaseCommand {
       const successMessage = `
 ✅ **Group Successfully Recovered!**
 
-🏠 **Name:** ${ajoGroup.name}
-👥 **Max Members:** ${ajoGroup.max_members}
+🏠 **Name:** ${group.name}
+👥 **Max Members:** ${group.max_members}
 💰 **Current Balance:** ${totalContributionsSol} SOL
 📊 **Status:** Active
 
 **On-Chain Address:** \`${groupPDA.toBase58()}\`
-**Database ID:** \`${ajoGroup._id}\`
+**Database ID:** \`${group._id}\`
 
 **Group Data from Blockchain:**
 • Owner: ${groupData.owner}
@@ -142,7 +142,7 @@ export class RecoverGroupCommand extends BaseCommand {
 
 **Next Steps:**
 1. Share the Group ID with people you want to invite
-2. They can join using: \`/join ${ajoGroup._id}\`
+2. They can join using: \`/join ${group._id}\`
 3. Start creating polls with: \`/poll_trade <token> <amount>\`
 
 **You are now a trader and can create polls!**

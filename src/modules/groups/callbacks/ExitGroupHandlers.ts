@@ -1,8 +1,8 @@
 import { Context, Markup } from "telegraf";
-import { getGroupByChatId, isUserMember } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, isUserMember } from "@modules/groups/groupService";
 import { exitGroup, deriveGroupPDA, fetchGroupAccount, fetchMemberProfile, deriveMemberProfilePDA } from "@blockchain/solana";
 import { PublicKey } from "@solana/web3.js";
-import AjoGroup from "@database/models/ajoGroup";
+import Group from "@database/models/group";
 import User from "@database/models/user";
 
 export class ExitGroupHandlers {
@@ -144,7 +144,7 @@ Are you sure you want to exit this group?
 
         // Remove member from database
         const updatedMembers = group.members.filter((m: any) => m.user_id !== userId);
-        await AjoGroup.findByIdAndUpdate(group._id, {
+        await Group.findByIdAndUpdate(group._id, {
           members: updatedMembers,
           current_balance: actualBalance,
         });

@@ -1,9 +1,9 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getGroupByChatId, getGroupInfo } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, getGroupInfo } from "@modules/groups/groupService";
 import { getMemberFinancialSummary } from "@modules/wallets/balanceService";
 
-export class AjoMembersCommand extends BaseCommand {
+export class GroupMembersCommand extends BaseCommand {
   name = "members";
   description = "List all group members. Optionally specify a group ID.";
 
@@ -14,12 +14,12 @@ export class AjoMembersCommand extends BaseCommand {
           ? ctx.message.text.split(" ").slice(1)
           : [];
 
-      let ajoGroup;
+      let group;
       const groupId = args[0];
 
       if (groupId) {
-        ajoGroup = await getGroupInfo(groupId);
-        if (!ajoGroup) {
+        group = await getGroupInfo(groupId);
+        if (!group) {
           await ctx.reply(
             `❌ No group found with ID: \`${groupId}\``,
             { parse_mode: "Markdown" }
@@ -32,11 +32,11 @@ export class AjoMembersCommand extends BaseCommand {
           await ctx.reply("❌ Unable to identify chat.");
           return;
         }
-        ajoGroup = await getGroupByChatId(chatId);
-        if (!ajoGroup) {
+        group = await getGroupByChatId(chatId);
+        if (!group) {
           await ctx.reply(
             "❌ No group found in this chat.\n\n" +
-              "Use `/create_group` to create a new group, or specify a group ID: `/members <groupId>`.",
+            "Use `/create_group` to create a new group, or specify a group ID: `/members <groupId>`.",
             { parse_mode: "Markdown" }
           );
           return;
@@ -44,15 +44,15 @@ export class AjoMembersCommand extends BaseCommand {
       }
 
       let membersMessage = `
-👥 **Group Members: ${ajoGroup.name}**
+👥 **Group Members: ${group.name}**
 
-**Total Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
+**Total Members:** ${group.members.length}/${group.max_members}
 
 `;
 
-      ajoGroup.members.forEach((member: any, index: number) => {
+      group.members.forEach((member: any, index: number) => {
         const financialSummary = getMemberFinancialSummary(
-          ajoGroup,
+          group,
           member.user_id
         );
         const roleEmoji =

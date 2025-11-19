@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { syncGroupFromChain, getGroupByChatId } from "@modules/ajo-groups/groupService";
+import { syncGroupFromChain, getGroupByChatId } from "@modules/groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class SyncGroupCommand extends BaseCommand {
@@ -27,8 +27,8 @@ export class SyncGroupCommand extends BaseCommand {
       }
 
       // Get the group for this chat
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply(
           "❌ No group found in this chat. Create one first with /create_group"
         );
@@ -38,7 +38,7 @@ export class SyncGroupCommand extends BaseCommand {
       await ctx.reply("🔄 Syncing group data from blockchain...");
 
       // Sync group from chain
-      const syncData = await syncGroupFromChain(ajoGroup._id.toString());
+      const syncData = await syncGroupFromChain(group._id.toString());
 
       // Convert lamports to SOL for display
       const totalContributionsSol = (parseInt(syncData.onChain.totalContributions) / 1_000_000_000).toFixed(4);
@@ -66,7 +66,7 @@ ${syncData.syncedRoles > 0 ? `🔄 **Synced ${syncData.syncedRoles} member role(
 • Lock Period: ${syncData.onChain.lockPeriodDays} days
 • Created: ${syncData.onChain.createdAt.toLocaleDateString()}
 
-**On-Chain Address:** \`${ajoGroup.onchain_group_address}\`
+**On-Chain Address:** \`${group.onchain_group_address}\`
       `;
 
       await ctx.reply(message, { parse_mode: "Markdown" });

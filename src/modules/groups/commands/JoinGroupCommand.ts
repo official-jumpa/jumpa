@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { joinGroup } from "@modules/ajo-groups/groupService";
+import { joinGroup } from "@modules/groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class JoinGroupCommand extends BaseCommand {

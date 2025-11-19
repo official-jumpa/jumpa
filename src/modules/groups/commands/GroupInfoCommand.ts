@@ -1,9 +1,9 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getGroupByChatId, getGroupInfo } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, getGroupInfo } from "@modules/groups/groupService";
 import { getGroupFinancialSummary } from "@modules/wallets/balanceService";
 
-export class AjoInfoCommand extends BaseCommand {
+export class GroupInfoCommand extends BaseCommand {
   name = "info";
   description = "Show current group information. Optionally specify a group ID.";
 
@@ -36,7 +36,7 @@ export class AjoInfoCommand extends BaseCommand {
         if (!group) {
           await ctx.reply(
             "❌ No group found in this chat.\n\n" +
-              "Use `/create_group` to create a new group, or specify a group ID: `/info <groupId>`.",
+            "Use `/create_group` to create a new group, or specify a group ID: `/info <groupId>`.",
             { parse_mode: "Markdown" }
           );
           return;

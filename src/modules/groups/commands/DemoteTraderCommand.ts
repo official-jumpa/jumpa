@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getGroupByChatId, removeTraderFromGroup } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, removeTraderFromGroup } from "@modules/groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class DemoteTraderCommand extends BaseCommand {
@@ -54,14 +54,14 @@ export class DemoteTraderCommand extends BaseCommand {
       const targetUserId = targetUser.telegram_id;
 
       // Get  group
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is the owner
-      if (ajoGroup.creator_id !== userId) {
+      if (group.creator_id !== userId) {
         await ctx.reply(
           "❌ Only the group owner can demote traders.\n\n" +
             "Contact the group owner to change member roles.",
@@ -71,7 +71,7 @@ export class DemoteTraderCommand extends BaseCommand {
       }
 
       // Check if target user is a member
-      const targetMember = ajoGroup.members.find(
+      const targetMember = group.members.find(
         (member) => member.user_id === targetUserId
       );
       if (!targetMember) {
@@ -103,9 +103,9 @@ export class DemoteTraderCommand extends BaseCommand {
 
       try {
         // Remove trader on-chain
-        if (ajoGroup.onchain_group_address) {
+        if (group.onchain_group_address) {
           await removeTraderFromGroup(
-            ajoGroup._id.toString(),
+            group._id.toString(),
             targetUserId,
             userId
           );
@@ -113,7 +113,7 @@ export class DemoteTraderCommand extends BaseCommand {
 
         // Update database
         targetMember.role = "member";
-        await ajoGroup.save();
+        await group.save();
 
         // Delete the processing message
         try {
@@ -125,7 +125,7 @@ export class DemoteTraderCommand extends BaseCommand {
         const successMessage = `✅ *Trader Demoted to Member!*
 
 👤 *User:* @${targetUsername}
-🏠 *Group:* ${ajoGroup.name}
+🏠 *Group:* ${group.name}
 👥 *New Role:* Member
 
 *Member Permissions:*
@@ -142,7 +142,7 @@ export class DemoteTraderCommand extends BaseCommand {
           await ctx.telegram.sendMessage(
             targetUserId,
             `📢 *Role Update*\n\n` +
-            `You've been changed to *Member* role in the group "${ajoGroup.name}".\n\n` +
+            `You've been changed to *Member* role in the group "${group.name}".\n\n` +
             `You can still:\n` +
             `• Vote on proposals\n` +
             `• Contribute funds\n` +

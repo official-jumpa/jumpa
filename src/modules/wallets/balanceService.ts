@@ -1,23 +1,23 @@
-import AjoGroup from "@database/models/ajoGroup";
+import Group from "@database/models/group";
 
 /**
  * Update group balance based on member contributions
  */
 export async function updateGroupBalance(group_id: string) {
   try {
-    const ajoGroup = await AjoGroup.findById(group_id);
-    if (!ajoGroup) {
+    const group = await Group.findById(group_id);
+    if (!group) {
       throw new Error("group not found");
     }
 
     // Calculate total balance from member contributions
-    const totalBalance = ajoGroup.members.reduce(
+    const totalBalance = group.members.reduce(
       (total, member) => total + member.contribution,
       0
     );
 
-    ajoGroup.current_balance = totalBalance;
-    await ajoGroup.save();
+    group.current_balance = totalBalance;
+    await group.save();
 
     console.log(`Group balance updated: ${totalBalance} SOL`);
     return totalBalance;
@@ -30,23 +30,23 @@ export async function updateGroupBalance(group_id: string) {
 /**
  * Calculate profit share percentage for each member
  */
-export function calculateProfitShares(ajoGroup: any): Array<{
+export function calculateProfitShares(group: any): Array<{
   user_id: number;
   contribution: number;
   share_percentage: number;
   share_amount?: number;
 }> {
-  const totalBalance = ajoGroup.current_balance;
+  const totalBalance = group.current_balance;
 
   if (totalBalance === 0) {
-    return ajoGroup.members.map((member: any) => ({
+    return group.members.map((member: any) => ({
       user_id: member.user_id,
       contribution: member.contribution,
       share_percentage: 0,
     }));
   }
 
-  return ajoGroup.members.map((member: any) => {
+  return group.members.map((member: any) => {
     const sharePercentage = (member.contribution / totalBalance) * 100;
     return {
       user_id: member.user_id,
@@ -60,7 +60,7 @@ export function calculateProfitShares(ajoGroup: any): Array<{
  * Calculate profit distribution
  */
 export function calculateProfitDistribution(
-  ajoGroup: any,
+  group: any,
   totalProfit: number
 ): Array<{
   user_id: number;
@@ -68,7 +68,7 @@ export function calculateProfitDistribution(
   share_percentage: number;
   profit_share: number;
 }> {
-  const profitShares = calculateProfitShares(ajoGroup);
+  const profitShares = calculateProfitShares(group);
 
   return profitShares.map((share) => ({
     user_id: share.user_id,
@@ -83,24 +83,24 @@ export function calculateProfitDistribution(
  * Get member's contribution and share info
  */
 export function getMemberShareInfo(
-  ajoGroup: any,
+  group: any,
   user_id: number
 ): {
   contribution: number;
   share_percentage: number;
   rank: number;
 } | null {
-  const member = ajoGroup.members.find((m: any) => m.user_id === user_id);
+  const member = group.members.find((m: any) => m.user_id === user_id);
   if (!member) {
     return null;
   }
 
-  const totalBalance = ajoGroup.current_balance;
+  const totalBalance = group.current_balance;
   const sharePercentage =
     totalBalance > 0 ? (member.contribution / totalBalance) * 100 : 0;
 
   // Calculate rank based on contribution
-  const sortedMembers = [...ajoGroup.members].sort(
+  const sortedMembers = [...group.members].sort(
     (a: any, b: any) => b.contribution - a.contribution
   );
   const rank = sortedMembers.findIndex((m: any) => m.user_id === user_id) + 1;
@@ -115,7 +115,7 @@ export function getMemberShareInfo(
 /**
  * Get group financial summary
  */
-export function getGroupFinancialSummary(ajoGroup: any): {
+export function getGroupFinancialSummary(group: any): {
   total_balance: number;
   total_contributions: number;
   member_count: number;
@@ -128,24 +128,24 @@ export function getGroupFinancialSummary(ajoGroup: any): {
     share_percentage: number;
   }>;
 } {
-  const totalBalance = ajoGroup.current_balance;
-  const totalContributions = ajoGroup.members.reduce(
+  const totalBalance = group.current_balance;
+  const totalContributions = group.members.reduce(
     (total: number, member: any) => total + member.contribution,
     0
   );
 
-  const contributions = ajoGroup.members.map((m: any) => m.contribution);
+  const contributions = group.members.map((m: any) => m.contribution);
   const averageContribution =
     contributions.length > 0 ? totalContributions / contributions.length : 0;
   const largestContribution = Math.max(...contributions, 0);
   const smallestContribution = Math.min(...contributions, 0);
 
-  const profitShares = calculateProfitShares(ajoGroup);
+  const profitShares = calculateProfitShares(group);
 
   return {
     total_balance: totalBalance,
     total_contributions: totalContributions,
-    member_count: ajoGroup.members.length,
+    member_count: group.members.length,
     average_contribution: Math.round(averageContribution * 100) / 100,
     largest_contribution: largestContribution,
     smallest_contribution: smallestContribution,
@@ -156,14 +156,14 @@ export function getGroupFinancialSummary(ajoGroup: any): {
 /**
  * Calculate group performance metrics
  */
-export function calculateGroupPerformance(ajoGroup: any): {
+export function calculateGroupPerformance(group: any): {
   total_trades: number;
   successful_trades: number;
   total_volume: number;
   average_trade_size: number;
   roi_percentage: number;
 } {
-  const trades = ajoGroup.trades || [];
+  const trades = group.trades || [];
   const totalTrades = trades.length;
   const successfulTrades = trades.length; // Assuming all recorded trades are successful
 
@@ -175,8 +175,8 @@ export function calculateGroupPerformance(ajoGroup: any): {
   const averageTradeSize = totalTrades > 0 ? totalVolume / totalTrades : 0;
 
   // Calculate ROI based on current balance vs initial capital
-  const initialCapital = ajoGroup.initial_capital;
-  const currentBalance = ajoGroup.current_balance;
+  const initialCapital = group.initial_capital;
+  const currentBalance = group.current_balance;
   const roiPercentage =
     initialCapital > 0
       ? ((currentBalance - initialCapital) / initialCapital) * 100
@@ -200,12 +200,12 @@ export async function trackMemberContribution(
   contribution: number
 ) {
   try {
-    const ajoGroup = await AjoGroup.findById(group_id);
-    if (!ajoGroup) {
+    const group = await Group.findById(group_id);
+    if (!group) {
       throw new Error("group not found");
     }
 
-    const memberIndex = ajoGroup.members.findIndex(
+    const memberIndex = group.members.findIndex(
       (member) => member.user_id === user_id
     );
     if (memberIndex === -1) {
@@ -213,7 +213,7 @@ export async function trackMemberContribution(
     }
 
     // Update member contribution
-    ajoGroup.members[memberIndex].contribution = contribution;
+    group.members[memberIndex].contribution = contribution;
 
     // Update group balance
     await updateGroupBalance(group_id);
@@ -221,7 +221,7 @@ export async function trackMemberContribution(
     console.log(
       `Contribution tracked: User ${user_id} contributed ${contribution} SOL to group ${group_id}`
     );
-    return ajoGroup;
+    return group;
   } catch (error) {
     console.error("Error tracking member contribution:", error);
     throw error;
@@ -232,7 +232,7 @@ export async function trackMemberContribution(
  * Get member's financial summary
  */
 export function getMemberFinancialSummary(
-  ajoGroup: any,
+  group: any,
   user_id: number
 ): {
   contribution: number;
@@ -241,18 +241,18 @@ export function getMemberFinancialSummary(
   potential_profit_share: number;
   is_trader: boolean;
 } | null {
-  const member = ajoGroup.members.find((m: any) => m.user_id === user_id);
+  const member = group.members.find((m: any) => m.user_id === user_id);
   if (!member) {
     return null;
   }
 
-  const shareInfo = getMemberShareInfo(ajoGroup, user_id);
+  const shareInfo = getMemberShareInfo(group, user_id);
   if (!shareInfo) {
     return null;
   }
 
   // Calculate potential profit share (assuming 10% profit for example)
-  const potentialProfit = ajoGroup.current_balance * 0.1; // 10% profit assumption
+  const potentialProfit = group.current_balance * 0.1; // 10% profit assumption
   const potentialProfitShare =
     (potentialProfit * shareInfo.share_percentage) / 100;
 
@@ -297,9 +297,9 @@ export function validateContributionAmount(amount: number): {
 /**
  * Calculate minimum contribution for meaningful share
  */
-export function calculateMinimumMeaningfulContribution(ajoGroup: any): number {
-  const totalBalance = ajoGroup.current_balance;
-  const memberCount = ajoGroup.members.length;
+export function calculateMinimumMeaningfulContribution(group: any): number {
+  const totalBalance = group.current_balance;
+  const memberCount = group.members.length;
 
   // Minimum contribution to get at least 1% share
   const minimumForOnePercent = totalBalance * 0.01;

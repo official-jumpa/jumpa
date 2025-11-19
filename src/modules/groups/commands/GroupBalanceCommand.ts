@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getGroupByChatId, isUserMember } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, isUserMember } from "@modules/groups/groupService";
 import { getMemberFinancialSummary } from "@modules/wallets/balanceService";
 
 export class GroupBalanceCommand extends BaseCommand {

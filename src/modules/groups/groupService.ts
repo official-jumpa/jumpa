@@ -1,4 +1,4 @@
-import AjoGroup from "@database/models/ajoGroup";
+import Group from "@database/models/group";
 import User from "@database/models/user";
 import {
   createGroup as createGroupOnChain,
@@ -42,7 +42,7 @@ export async function createGroup(params: CreateGroupParams) {
     }
 
     // Check if chat already has a group
-    const existingGroup = await AjoGroup.findOne({
+    const existingGroup = await Group.findOne({
       telegram_chat_id: params.telegram_chat_id,
     });
     if (existingGroup) {
@@ -91,7 +91,7 @@ export async function createGroup(params: CreateGroupParams) {
     }
 
     // Create the group in database
-    const group = new AjoGroup({
+    const group = new Group({
       name: params.name,
       creator_id: params.creator_id,
       telegram_chat_id: params.telegram_chat_id,
@@ -137,7 +137,7 @@ export async function joinGroup(params: JoinGroupParams) {
     }
 
     // Find the group
-    const group = await AjoGroup.findById(params.group_id);
+    const group = await Group.findById(params.group_id);
     if (!group) {
       throw new Error("Group not found");
     }
@@ -215,7 +215,7 @@ export async function joinGroup(params: JoinGroupParams) {
  */
 export async function exitGroup(group_id: string, user_id: number) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       throw new Error("Group not found");
     }
@@ -270,7 +270,7 @@ export async function exitGroup(group_id: string, user_id: number) {
  */
 export async function getGroupInfo(group_id: string) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       throw new Error("Group not found");
     }
@@ -287,7 +287,7 @@ export async function getGroupInfo(group_id: string) {
  */
 export async function getGroupByChatId(telegram_chat_id: number) {
   try {
-    const group = await AjoGroup.findOne({ telegram_chat_id });
+    const group = await Group.findOne({ telegram_chat_id });
     return group;
   } catch (error) {
     console.error("Error getting group by chat ID:", error);
@@ -303,7 +303,7 @@ export async function updateGroupStatus(
   status: "active" | "ended"
 ) {
   try {
-    const group = await AjoGroup.findByIdAndUpdate(
+    const group = await Group.findByIdAndUpdate(
       group_id,
       { status },
       { new: true }
@@ -326,7 +326,7 @@ export async function updateGroupStatus(
  */
 export async function getUserGroups(user_id: number) {
   try {
-    const groups = await AjoGroup.find({
+    const groups = await Group.find({
       "members.user_id": user_id,
     });
 
@@ -342,7 +342,7 @@ export async function getUserGroups(user_id: number) {
  */
 export async function isUserMember(group_id: string, user_id: number) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       return false;
     }
@@ -359,7 +359,7 @@ export async function isUserMember(group_id: string, user_id: number) {
  */
 export async function isUserTrader(group_id: string, user_id: number) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       return false;
     }
@@ -383,7 +383,7 @@ export async function updateMemberContribution(
   contribution: number
 ) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       throw new Error("Group not found");
     }
@@ -420,7 +420,7 @@ export async function updateMemberContribution(
  */
 export async function promoteToTrader(group_id: string, user_id: number) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       throw new Error("Group not found");
     }
@@ -452,7 +452,7 @@ export async function addTraderToGroup(
   admin_telegram_id: number
 ) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       throw new Error("Group not found");
     }
@@ -514,7 +514,7 @@ export async function removeTraderFromGroup(
   admin_telegram_id: number
 ) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       throw new Error("Group not found");
     }
@@ -557,7 +557,7 @@ export async function removeTraderFromGroup(
  */
 export async function syncGroupFromChain(group_id: string) {
   try {
-    const group = await AjoGroup.findById(group_id);
+    const group = await Group.findById(group_id);
     if (!group) {
       throw new Error("Group not found");
     }

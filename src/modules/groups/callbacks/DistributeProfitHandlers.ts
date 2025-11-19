@@ -1,8 +1,8 @@
 import { Context, Markup } from "telegraf";
-import { getGroupByChatId, isUserTrader } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, isUserTrader } from "@modules/groups/groupService";
 import { distributeProfit, deriveGroupPDA, fetchGroupAccount } from "@blockchain/solana";
 import { PublicKey } from "@solana/web3.js";
-import AjoGroup from "@database/models/ajoGroup";
+import Group from "@database/models/group";
 import User from "@database/models/user";
 
 // Store temporary distribute profit data
@@ -140,7 +140,7 @@ Select a member to distribute profit to:
       });
 
       // Get member info
-      const group = await AjoGroup.findById(state.groupId);
+      const group = await Group.findById(state.groupId);
       const member = group?.members.find((m: any) => m.user_id === parseInt(memberUserId));
       const memberUser = await User.findOne({ telegram_id: parseInt(memberUserId) });
       const memberName = memberUser?.username || `User ${memberUserId}`;
@@ -371,7 +371,7 @@ Please enter the amount of SOL you want to distribute:
 
         // Update group balance in database with actual blockchain data
         // Note: We do NOT update member contribution because profit goes directly to wallet
-        await AjoGroup.findByIdAndUpdate(group._id, {
+        await Group.findByIdAndUpdate(group._id, {
           current_balance: actualBalance
         });
 

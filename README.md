@@ -44,7 +44,7 @@ jumpa/
 │   ├── modules/                  # Feature modules
 │   │   ├── onboarding/           # User onboarding
 │   │   ├── wallets/              # Wallet management
-│   │   ├── ajo-groups/           # Group operations
+│   │   ├── groups/           # Group operations
 │   │   ├── governance/           # Polls & voting
 │   │   ├── trading/              # Token trading
 │   │   ├── payments/             # Fiat withdrawals

@@ -7,7 +7,7 @@ import {
   getUserGroups,
   isUserMember,
   isUserTrader,
-} from "@modules/ajo-groups/groupService";
+} from "@modules/groups/groupService";
 
 import {
   updateGroupBalance,

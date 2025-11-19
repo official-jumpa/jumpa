@@ -32,12 +32,12 @@ Your bot now interacts with the Solana blockchain for all group operations. Ever
 
 ### 2️⃣ Join Group (On-Chain)
 ```bash
-/ajo join <group_id>
+/join <group_id>
 ```
 
 **Example:**
 ```bash
-/ajo join 507f1f77bcf86cd799439011
+/join 507f1f77bcf86cd799439011
 ```
 
 **What Happens:**
@@ -209,13 +209,13 @@ Example: PROPOSAL_SEED + ProposerAddr... + GroupAddr... + 12345
 #### 2. Members Join
 ```bash
 # Member 1
-/ajo join <group_id>
+/join <group_id>
 
 # Member 2  
-/ajo join <group_id>
+/join <group_id>
 
 # Member 3
-/ajo join <group_id>
+/join <group_id>
 ```
 📤 **Result:** Each gets MemberProfile PDA
 

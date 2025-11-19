@@ -3,27 +3,27 @@ import { BaseCommand } from "./BaseCommand";
 import { StartCommand } from "@modules/onboarding/commands/StartCommand";
 import { HelpCommand } from "@modules/onboarding/commands/HelpCommand";
 import { WalletCommand } from "@modules/wallets/commands/WalletCommand";
-import { CreateGroupCommand } from "@modules/ajo-groups/commands/CreateGroupCommand";
-import { GroupCommand } from "@modules/ajo-groups/commands/GroupCommand";
-import { AjoInfoCommand } from "@modules/ajo-groups/commands/AjoInfoCommand";
-import { AjoMembersCommand } from "@modules/ajo-groups/commands/AjoMembersCommand";
-import { AjoPollsCommand } from "@modules/ajo-groups/commands/AjoPollsCommand";
-import { GroupBalanceCommand } from "@modules/ajo-groups/commands/GroupBalanceCommand";
-import { CheckGroupCommand } from "@modules/ajo-groups/commands/CheckGroupCommand";
-import { RecoverGroupCommand } from "@modules/ajo-groups/commands/RecoverGroupCommand";
+import { CreateGroupCommand } from "@modules/groups/commands/CreateGroupCommand";
+import { GroupCommand } from "@modules/groups/commands/GroupCommand";
+import { GroupInfoCommand } from "@modules/groups/commands/GroupInfoCommand";
+import { GroupMembersCommand } from "@modules/groups/commands/GroupMembersCommand";
+import { GroupPollsCommand } from "@modules/groups/commands/GroupPollsCommand";
+import { GroupBalanceCommand } from "@modules/groups/commands/GroupBalanceCommand";
+import { CheckGroupCommand } from "@modules/groups/commands/CheckGroupCommand";
+import { RecoverGroupCommand } from "@modules/groups/commands/RecoverGroupCommand";
 import { FundWalletCommand } from "@modules/wallets/commands/FundWalletCommand";
-import { PromoteTraderCommand } from "@modules/ajo-groups/commands/PromoteTraderCommand";
-import { LeaveGroupCommand } from "@modules/ajo-groups/commands/LeaveGroupCommand";
-import { DemoteTraderCommand } from "@modules/ajo-groups/commands/DemoteTraderCommand";
-import { JoinGroupCommand } from "@modules/ajo-groups/commands/JoinGroupCommand";
+import { PromoteTraderCommand } from "@modules/groups/commands/PromoteTraderCommand";
+import { LeaveGroupCommand } from "@modules/groups/commands/LeaveGroupCommand";
+import { DemoteTraderCommand } from "@modules/groups/commands/DemoteTraderCommand";
+import { JoinGroupCommand } from "@modules/groups/commands/JoinGroupCommand";
 import { getBankUpdateState } from "@shared/state/bankState";
 import { WalletCallbackHandlers } from "@modules/wallets/callbacks/WalletCallbackHandlers";
 import { StartCallbackHandlers } from "@modules/onboarding/callbacks/StartCallbackHandlers";
-import { GroupCallbackHandlers } from "@modules/ajo-groups/callbacks/GroupCallbackHandlers";
-import { DepositHandlers } from "@modules/ajo-groups/callbacks/DepositHandlers";
-import { CloseGroupHandlers } from "@modules/ajo-groups/callbacks/CloseGroupHandlers";
-import { ExitGroupHandlers } from "@modules/ajo-groups/callbacks/ExitGroupHandlers";
-import { DistributeProfitHandlers } from "@modules/ajo-groups/callbacks/DistributeProfitHandlers";
+import { GroupCallbackHandlers } from "@modules/groups/callbacks/GroupCallbackHandlers";
+import { DepositHandlers } from "@modules/groups/callbacks/DepositHandlers";
+import { CloseGroupHandlers } from "@modules/groups/callbacks/CloseGroupHandlers";
+import { ExitGroupHandlers } from "@modules/groups/callbacks/ExitGroupHandlers";
+import { DistributeProfitHandlers } from "@modules/groups/callbacks/DistributeProfitHandlers";
 import { BankHandler } from "@modules/payments/commands/BankHandler";
 import { getWithdrawalState, clearWithdrawalState } from "@shared/state/withdrawalState";
 import { handleDetectToken, handleGroupToken } from "@modules/trading/utils/DetectTokenAddress";
@@ -56,9 +56,9 @@ export class CommandManager {
       new WalletCommand(),
       new CreateGroupCommand(),
       new GroupCommand(),
-      new AjoInfoCommand(),
-      new AjoMembersCommand(),
-      new AjoPollsCommand(),
+      new GroupInfoCommand(),
+      new GroupMembersCommand(),
+      new GroupPollsCommand(),
       new GroupBalanceCommand(),
       new CheckGroupCommand(),
       new RecoverGroupCommand(),
@@ -91,8 +91,8 @@ export class CommandManager {
     // Register callback handlers for start command
     this.bot.action("view_wallet", StartCallbackHandlers.handleViewWallet);
     this.bot.action("view_profile", StartCallbackHandlers.handleViewProfile);
-    this.bot.action("create_group", StartCallbackHandlers.handleCreateAjo);
-    this.bot.action("join", StartCallbackHandlers.handleJoinAjo);
+    this.bot.action("create_group", StartCallbackHandlers.handleCreateGroup);
+    this.bot.action("join", StartCallbackHandlers.handleJoinGroup);
     this.bot.action("show_help", StartCallbackHandlers.handleShowHelp);
     this.bot.action("show_about", StartCallbackHandlers.handleShowAbout);
     this.bot.action("back_to_menu", StartCallbackHandlers.handleBackToMenu);

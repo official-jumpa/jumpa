@@ -1,10 +1,10 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { createGroup } from "@modules/ajo-groups/groupService";
+import { createGroup } from "@modules/groups/groupService";
 import {
-  validateAjoCreation,
+  validateGroupCreation,
   validateAndSanitizeGroupName,
-} from "@modules/ajo-groups/ajoValidation";
+} from "@modules/groups/groupValidation";
 import getUser from "@modules/users/getUserInfo";
 
 export class CreateGroupCommand extends BaseCommand {
@@ -73,7 +73,7 @@ export class CreateGroupCommand extends BaseCommand {
         return;
       }
 
-      const validation = validateAjoCreation({
+      const validation = validateGroupCreation({
         name: nameValidation.sanitized,
         max_members: maxMembers,
       });

@@ -125,7 +125,7 @@ https://explorer.solana.com/tx/<SIGNATURE>?cluster=devnet
 /start
 
 # Then joins your group:
-/ajo join <group_id>
+/join <group_id>
 ```
 
 **What happens:**
@@ -236,11 +236,11 @@ Sign up at:
    - ✅ Group created on-chain
    - ✅ Check transaction on explorer
 
-2. **User 2**: `/ajo join <group_id>`
+2. **User 2**: `/join <group_id>`
    - ✅ Joined on-chain
    - ✅ Check MemberProfile PDA
 
-3. **User 3**: `/ajo join <group_id>`
+3. **User 3**: `/join <group_id>`
    - ✅ Joined on-chain
    - ✅ Now 3 members total
 

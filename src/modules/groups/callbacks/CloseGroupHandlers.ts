@@ -1,8 +1,8 @@
 import { Context, Markup } from "telegraf";
-import { getGroupByChatId, isUserTrader } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, isUserTrader } from "@modules/groups/groupService";
 import { closeGroup, deriveGroupPDA } from "@blockchain/solana";
 import { PublicKey } from "@solana/web3.js";
-import AjoGroup from "@database/models/ajoGroup";
+import Group from "@database/models/group";
 import User from "@database/models/user";
 
 export class CloseGroupHandlers {
@@ -151,7 +151,7 @@ Are you sure you want to close this group?
         });
 
         // Update group status in database
-        await AjoGroup.findByIdAndUpdate(group._id, {
+        await Group.findByIdAndUpdate(group._id, {
           status: "ended"
         });
 

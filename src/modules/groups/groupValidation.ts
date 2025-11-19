@@ -15,7 +15,7 @@ export function isValidSolanaAddress(address: string): boolean {
 /**
  * Validate group creation parameters
  */
-export function validateAjoCreation(params: {
+export function validateGroupCreation(params: {
   name: string;
   max_members: number;
 }): { isValid: boolean; errors: string[] } {
@@ -45,7 +45,7 @@ export function validateAjoCreation(params: {
  * Validate poll creation parameters
  */
 export function validatePollCreation(params: {
-  type: "trade" | "end_ajo";
+  type: "trade" | "end_group";
   title: string;
   token_address?: string;
   token_symbol?: string;

@@ -1,8 +1,8 @@
 import { Context, Markup } from "telegraf";
-import { getGroupByChatId, isUserMember } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, isUserMember } from "@modules/groups/groupService";
 import { deposit, deriveGroupPDA, fetchGroupAccount, fetchMemberProfile, deriveMemberProfilePDA } from "@blockchain/solana";
 import { PublicKey } from "@solana/web3.js";
-import AjoGroup from "@database/models/ajoGroup";
+import Group from "@database/models/group";
 import User from "@database/models/user";
 
 // Store temporary deposit data
@@ -252,7 +252,7 @@ This will:
         const actualContribution = parseFloat(memberProfile.contributionAmount) / 1_000_000_000; // Convert lamports to SOL
 
         // Update group balance in database with actual blockchain data
-        await AjoGroup.findByIdAndUpdate(group._id, {
+        await Group.findByIdAndUpdate(group._id, {
           current_balance: actualBalance
         });
 
@@ -263,7 +263,7 @@ This will:
         if (memberIndex !== -1) {
           const updatedMembers = [...group.members];
           updatedMembers[memberIndex].contribution = actualContribution;
-          await AjoGroup.findByIdAndUpdate(group._id, {
+          await Group.findByIdAndUpdate(group._id, {
             members: updatedMembers
           });
         }

@@ -1,7 +1,7 @@
 import { Context } from "telegraf";
 import getUser from "@modules/users/getUserInfo";
 import { Markup } from "telegraf";
-import { getUserGroups } from "@modules/ajo-groups/groupService";
+import { getUserGroups } from "@modules/groups/groupService";
 
 export class ProfileHandlers {
   // Handle view profile callback

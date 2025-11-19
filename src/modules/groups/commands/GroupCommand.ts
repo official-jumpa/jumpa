@@ -5,7 +5,7 @@ import {
   getGroupByChatId,
   getUserGroups,
   isUserMember,
-} from "@modules/ajo-groups/groupService";
+} from "@modules/groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 import {
   getGroupFinancialSummary,
@@ -302,8 +302,8 @@ Use this command to create your group:
       }
 
       // Get group for this chat
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply(
           "❌ No group found in this chat.\n\n" +
             "Use `/create_group` to create a new group.",
@@ -313,17 +313,17 @@ Use this command to create your group:
       }
 
       // Get financial summary
-      const financialSummary = getGroupFinancialSummary(ajoGroup);
-      const activePolls = ajoGroup.polls.filter(
+      const financialSummary = getGroupFinancialSummary(group);
+      const activePolls = group.polls.filter(
         (poll: any) => poll.status === "open"
       );
 
       const infoMessage = `
-📊 **Group: ${ajoGroup.name}**
+📊 **Group: ${group.name}**
 
-💰 **Capital:** ${ajoGroup.current_balance} SOL
-👥 **Members:** ${ajoGroup.members.length}/${ajoGroup.max_members}
-📈 **Status:** ${ajoGroup.status === "active" ? "🟢 Active" : "🔴 Ended"}
+💰 **Capital:** ${group.current_balance} SOL
+👥 **Members:** ${group.members.length}/${group.max_members}
+📈 **Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
 
 📊 **Financial Summary:**
 • Total Contributions: $${financialSummary.total_contributions}
@@ -331,10 +331,10 @@ Use this command to create your group:
 • Largest Contribution: $${financialSummary.largest_contribution}
 
 🗳️ **Active Polls:** ${activePolls.length}
-📈 **Total Trades:** ${ajoGroup.trades.length}
+📈 **Total Trades:** ${group.trades.length}
 
-**Group ID:** \`${ajoGroup._id}\`
-**Created:** ${new Date(ajoGroup.created_at).toLocaleDateString()}
+**Group ID:** \`${group._id}\`
+**Created:** ${new Date(group.created_at).toLocaleDateString()}
       `;
 
       await ctx.reply(infoMessage, { parse_mode: "Markdown" });
@@ -353,19 +353,19 @@ Use this command to create your group:
       }
 
       // Get group for this chat
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Get financial summary for member details
-      const financialSummary = getGroupFinancialSummary(ajoGroup);
+      const financialSummary = getGroupFinancialSummary(group);
 
-      let membersMessage = `👥 **Members (${ajoGroup.members.length}/${ajoGroup.max_members})**\n\n`;
+      let membersMessage = `👥 **Members (${group.members.length}/${group.max_members})**\n\n`;
 
       // Sort members by contribution (highest first)
-      const sortedMembers = [...ajoGroup.members].sort(
+      const sortedMembers = [...group.members].sort(
         (a: any, b: any) => b.contribution - a.contribution
       );
 
@@ -381,7 +381,7 @@ Use this command to create your group:
         } (${sharePercentage}%)\n`;
       });
 
-      membersMessage += `\n**Total Balance:** ${ajoGroup.current_balance} SOL`;
+      membersMessage += `\n**Total Balance:** ${group.current_balance} SOL`;
 
       await ctx.reply(membersMessage, { parse_mode: "Markdown" });
     } catch (error) {
@@ -400,21 +400,21 @@ Use this command to create your group:
       }
 
       // Get group for this chat
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is a member
-      const isMember = await isUserMember(ajoGroup._id.toString(), userId);
+      const isMember = await isUserMember(group._id.toString(), userId);
       if (!isMember) {
         await ctx.reply("❌ You are not a member of this group.");
         return;
       }
 
       // Get member's financial summary
-      const memberSummary = getMemberFinancialSummary(ajoGroup, userId);
+      const memberSummary = getMemberFinancialSummary(group, userId);
       if (!memberSummary) {
         await ctx.reply("❌ Unable to get your financial information.");
         return;
@@ -428,8 +428,8 @@ Use this command to create your group:
 🏆 **Rank:** #${memberSummary.rank}
 💎 **Role:** ${memberSummary.is_trader ? "🛠️ Trader" : "👤 Member"}
 
-💰 **Group Balance:** ${ajoGroup.current_balance} SOL
-👥 **Total Members:** ${ajoGroup.members.length}
+💰 **Group Balance:** ${group.current_balance} SOL
+👥 **Total Members:** ${group.members.length}
 
 💡 **Potential Profit Share:** $${memberSummary.potential_profit_share}
 *(Based on 10% profit assumption)*

@@ -249,12 +249,12 @@ abstract class BaseCommand {
 1. `start` - User registration & main menu
 2. `help` - Help documentation
 3. `wallet` - Wallet info & management
-4. `ajo` - Group overview/navigation
+4. `group` - Group overview/navigation
 5. `create_group` - Create collaborative trading group
 6. `group` - Group details
-7. `ajo_info` - Group info
-8. `ajo_members` - Group member list
-9. `ajo_polls` - Group voting polls
+7. `group_info` - Group info
+8. `group_members` - Group member list
+9. `group_polls` - Group voting polls
 10. `group_balance` - Group financial summary
 11. `check_group` - Verify group on-chain
 12. `recover_group` - Recover out-of-sync group
@@ -443,13 +443,13 @@ evmWallets: [
 
 ---
 
-## 6. AJO GROUP (COLLABORATIVE TRADING) SYSTEM
+## 6. GROUP (COLLABORATIVE TRADING) SYSTEM
 
 ### Group Database Model
-**Location**: `/src/database/models/ajoGroup.ts`
+**Location**: `/src/database/models/group.ts`
 
 ```
-AjoGroup Document
+Group Document
 ├── name (String)
 ├── creator_id (Number - telegram_id)
 ├── telegram_chat_id (Number, unique)
@@ -462,7 +462,7 @@ AjoGroup Document
 │   ├── contribution (Number - SOL amount)
 │   └── joined_at (Date)
 ├── polls (Array)
-│   ├── id, creator_id, type (trade|end_ajo)
+│   ├── id, creator_id, type (trade|end_group)
 │   ├── title, token_address, token_symbol, amount
 │   ├── status (open|executed|cancelled)
 │   ├── votes (Array of {user_id, vote: bool, voted_at})
@@ -585,7 +585,7 @@ Key functions:
 - Bank account info for fiat
 - Cached balance data
 
-**2. AjoGroup**
+**2. Group**
 - Collaborative trading group data
 - Members with roles and contributions
 - Democratic polling system

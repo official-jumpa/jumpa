@@ -1,6 +1,6 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { getGroupByChatId, promoteToTrader, addTraderToGroup } from "@modules/ajo-groups/groupService";
+import { getGroupByChatId, promoteToTrader, addTraderToGroup } from "@modules/groups/groupService";
 import getUser from "@modules/users/getUserInfo";
 
 export class PromoteTraderCommand extends BaseCommand {
@@ -54,14 +54,14 @@ export class PromoteTraderCommand extends BaseCommand {
       const targetUserId = targetUser.telegram_id;
 
       // Get group
-      const ajoGroup = await getGroupByChatId(chatId);
-      if (!ajoGroup) {
+      const group = await getGroupByChatId(chatId);
+      if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is the owner
-      if (ajoGroup.creator_id !== userId) {
+      if (group.creator_id !== userId) {
         await ctx.reply(
           "❌ Only the group owner can promote members to traders.\n\n" +
             "Contact the group owner to change member roles.",
@@ -71,7 +71,7 @@ export class PromoteTraderCommand extends BaseCommand {
       }
 
       // Check if target user is a member
-      const targetMember = ajoGroup.members.find(
+      const targetMember = group.members.find(
         (member) => member.user_id === targetUserId
       );
       if (!targetMember) {
@@ -99,16 +99,16 @@ export class PromoteTraderCommand extends BaseCommand {
       try {
         // Add trader on-chain first
         let onChainResult;
-        if (ajoGroup.onchain_group_address) {
+        if (group.onchain_group_address) {
           onChainResult = await addTraderToGroup(
-            ajoGroup._id.toString(),
+            group._id.toString(),
             targetUserId,
             userId
           );
         }
 
         // Update database
-        await promoteToTrader(ajoGroup._id.toString(), targetUserId);
+        await promoteToTrader(group._id.toString(), targetUserId);
         
         const wasAlreadyOnChain = onChainResult?.signature === 'already_exists';
 
@@ -122,7 +122,7 @@ export class PromoteTraderCommand extends BaseCommand {
         const successMessage = `✅ *Member Promoted to Trader!*
 
 👤 *User:* @${targetUsername}
-🏠 *Group:* ${ajoGroup.name}
+🏠 *Group:* ${group.name}
 🛠️ *New Role:* Trader
 ${wasAlreadyOnChain ? '\n📝 Note: User was already a trader on-chain, database has been synced.\n' : ''}
 *Trader Permissions:*
@@ -141,7 +141,7 @@ ${wasAlreadyOnChain ? '\n📝 Note: User was already a trader on-chain, database
           await ctx.telegram.sendMessage(
             targetUserId,
             `🎉 *Congratulations!*\n\n` +
-            `You've been promoted to *Trader* in the group "${ajoGroup.name}"!\n\n` +
+            `You've been promoted to *Trader* in the group "${group.name}"!\n\n` +
             `You can now:\n` +
             `• Create trade proposals with /propose_trade\n` +
             `• Execute approved polls with /poll_execute\n` +
