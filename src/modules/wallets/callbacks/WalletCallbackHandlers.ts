@@ -541,6 +541,7 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
                 const ethAddress = paymentWidget.data.ethAddress;
                 const depositAmount = paymentWidget.data.depositAmount;
                 const fiatPayoutAmount = paymentWidget.data.fiatPayoutAmount;
+                const paymentStatus = paymentWidget.data.status;
 
                 // Determine recipient address based on chain
                 const recipientAddress = chain === 'SOLANA' ? solAddress : ethAddress;
@@ -550,8 +551,9 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
                   telegram_id: ctx.from?.id,
                   transaction_id: paymentWidget.data.id,
                   fiatPayoutAmount: fiatPayoutAmount,
-                  depositAmount: depositAmount,
-                  yaraWalletAddress: recipientAddress,
+                    depositAmount: depositAmount,
+                    yaraWalletAddress: recipientAddress,
+                  status:paymentStatus,
                 });
                 console.log("withdrawal saved to db: ", saveTxtoDb)
 

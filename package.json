@@ -18,7 +18,9 @@
     "dev": "nodemon -r tsconfig-paths/register src/index.ts",
     "build": "tsc && tsc-alias",
     "watch": "tsc --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "update-withdrawals": "ts-node -r tsconfig-paths/register scripts/updateWithdrawalStatus.ts",
+    "withdrawal-stats": "ts-node -r tsconfig-paths/register scripts/getWithdrawalStats.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
