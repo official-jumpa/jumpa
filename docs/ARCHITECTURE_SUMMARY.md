@@ -212,7 +212,8 @@ WithdrawalState (In-memory Map<userId, WithdrawalState>)
      - transaction_id (unique)
      - fiatPayoutAmount
      - depositAmount
-     - yaraSolAddress
+     - yaraWalletAddress
+     - status
      - timestamps
 
 ### Referral & Rewards (Potential)

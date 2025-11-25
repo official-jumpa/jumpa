@@ -20,10 +20,15 @@ const withdrawalSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    yaraSolAddress:{
+    yaraWalletAddress: {
       type: String,
       required: true,
-    }
+    },
+    status: {
+      type: String,
+      required: true,
+      default: "DEPOSIT_PENDING",
+    },
   },
   {
     timestamps: true,

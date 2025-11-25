@@ -547,12 +547,12 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
                 console.log(`Recipient address (${chain}): ${recipientAddress}`);
 
                 const saveTxtoDb = await Withdrawal.create({
-                    telegram_id: ctx.from?.id,
-                    transaction_id: paymentWidget.data.id,
-                    fiatPayoutAmount: fiatPayoutAmount,
-                    depositAmount: depositAmount,
-                    yaraSolAddress: recipientAddress
-                })
+                  telegram_id: ctx.from?.id,
+                  transaction_id: paymentWidget.data.id,
+                  fiatPayoutAmount: fiatPayoutAmount,
+                  depositAmount: depositAmount,
+                  yaraWalletAddress: recipientAddress,
+                });
                 console.log("withdrawal saved to db: ", saveTxtoDb)
 
                 // Use the appropriate withdrawal function based on currency and chain
