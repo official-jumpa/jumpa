@@ -12,15 +12,16 @@ export class ImageTestCommand extends BaseCommand {
 
       // Sample transaction data with bank details
       const receiptData = {
-        amount: "₦50,000",
+        amount: "50,000",
         currency: "USDT",
         timestamp: new Date(),
         network: "Solana",
-        fee: "0.5",
+        fee: "0.005",
         bankName: "GTBank",
         accountName: "John Doe",
         accountNumber: "0123456789",
-        amountInCrypto: "1200"
+        amountInCrypto: "1200",
+        transactionHash: "0xdefebgbnhtyrgrnmyt"
       };
 
       // Generate the receipt image

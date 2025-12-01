@@ -9,6 +9,7 @@ import { clearWithdrawalState, getWithdrawalState, setWithdrawalState } from "@s
 import { WalletViewHandlers } from "@modules/onboarding/callbacks/WalletViewHandlers";
 import { getUserBalances, formatBalances } from "@modules/onboarding/utils/getUserBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
+import { generateTransactionReceipt } from "@shared/utils/receiptGenerator";
 
 export class WalletCallbackHandlers {
     static async handleDeposit(ctx: Context): Promise<void> {
@@ -593,6 +594,31 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
 
                 if (initTx.success) {
                     await ctx.reply(`✅ Withdrawal of ${depositAmount} ${currency} was successful. ₦${fiatPayoutAmount} will be added to your account shortly.`);
+
+                    // Generate and send receipt
+                    try {
+                        const receiptData = {
+                            amount: fiatPayoutAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+                            amountInCrypto: depositAmount.toString(),
+                            currency: currency,
+                            timestamp: new Date(),
+                            network: chain === 'SOLANA' ? 'Solana' : chain,
+                            bankName: user.bank_details?.bank_name,
+                            accountName: user.bank_details?.account_name,
+                            accountNumber: user.bank_details?.account_number,
+                            transactionHash: initTx.signature
+                        };
+
+                        const receiptBuffer = await generateTransactionReceipt(receiptData);
+                        await ctx.replyWithPhoto(
+                            { source: receiptBuffer },
+                            { caption: '📄 Your withdrawal receipt' }
+                        );
+                    } catch (receiptError) {
+                        console.error("Failed to generate receipt:", receiptError);
+                        // Don't fail the withdrawal if receipt generation fails
+                    }
+
                     return;
                 } else {
                     await ctx.reply(`❌ Withdrawal of ${depositAmount} ${currency} failed. ${initTx.error}`);

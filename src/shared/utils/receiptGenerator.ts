@@ -7,10 +7,10 @@ export interface TransactionReceiptData {
   currency: string;
   timestamp: Date;
   network: string;
-  fee?: string;
   bankName?: string;
   accountName?: string;
   accountNumber?: string;
+  transactionHash?: string;
 }
 
 export async function generateTransactionReceipt(
@@ -18,188 +18,258 @@ export async function generateTransactionReceipt(
 ): Promise<Buffer> {
   // Create canvas at 2x resolution for higher quality
   const scale = 2;
-  const width = 600 * scale;
-  const height = 750 * scale;
+  const width = 725 * scale;
+  const height = 1150 * scale;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
   // Enable high quality rendering
   ctx.imageSmoothingEnabled = true;
 
-  // Background
-  ctx.fillStyle = "#1a1a2e";
+  // Background - white/light gray
+  ctx.fillStyle = "#f5f5f5";
   ctx.fillRect(0, 0, width, height);
 
-  // Header section with gradient
-  const gradient = ctx.createLinearGradient(0, 0, 0, 150 * scale);
-  gradient.addColorStop(0, "#16213e");
-  gradient.addColorStop(1, "#0f3460");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, 150 * scale);
+  // Top padding
+  let yPos = 60 * scale;
 
-  // Load and draw logo as circle
+  // Logo and title section - centered horizontally, side by side
   try {
     const logoPath = path.join(process.cwd(), "src", "images", "logo.png");
     const logo = await loadImage(logoPath);
-    const logoSize = 60 * scale;
-    const logoX = width / 2;
-    const logoY = 50 * scale;
-    const logoRadius = logoSize / 2;
+    const logoSize = 45 * scale;
 
-    // Create circular clipping path
+    // Measure text width
+    ctx.font = `bold ${38 * scale}px Arial`;
+    const textWidth = ctx.measureText("JumpaBot").width;
+    const totalWidth = logoSize + 20 * scale + textWidth; // logo + spacing + text
+
+    // Calculate starting X position to center everything
+    const startX = (width - totalWidth) / 2;
+    const logoX = startX;
+    const logoY = yPos;
+
+    // Draw circular logo
     ctx.save();
     ctx.beginPath();
-    ctx.arc(logoX, logoY, logoRadius, 0, Math.PI * 2);
+    ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-
-    // Draw logo image
-    ctx.drawImage(
-      logo,
-      logoX - logoRadius,
-      logoY - logoRadius,
-      logoSize,
-      logoSize
-    );
+    ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
     ctx.restore();
+
+    // JumpaBot text - positioned to the right of logo, vertically centered
+    ctx.fillStyle = "#1a1a1a";
+    ctx.font = `bold ${38 * scale}px Arial`;
+    ctx.textAlign = "left";
+    ctx.fillText("JumpaBot", logoX + logoSize + 20 * scale, logoY + logoSize / 2 + 12 * scale);
   } catch (error) {
     console.error("Error loading logo:", error);
+    // Fallback: just show text centered
+    ctx.fillStyle = "#1a1a1a";
+    ctx.font = `bold ${38 * scale}px Arial`;
+    ctx.textAlign = "center";
+    ctx.fillText("JumpaBot", width / 2, yPos + 32 * scale);
   }
 
-  // Title
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `bold ${28 * scale}px Arial`;
-  ctx.textAlign = "center";
-  ctx.fillText("TRANSACTION RECEIPT", width / 2, 105 * scale);
+  yPos += 100 * scale;
 
-  // Success indicator
-  ctx.fillStyle = "#4ecca3";
-  ctx.font = `bold ${18 * scale}px Arial`;
-  ctx.fillText("withdrawal successful", width / 2, 130 * scale);
+  // Success card section
+  const cardMargin = 35 * scale;
+  const cardWidth = width - (cardMargin * 2);
+  const cardHeight = 320 * scale;
+  const cardRadius = 25 * scale;
 
-  // Divider line
-  ctx.strokeStyle = "#4ecca3";
-  ctx.lineWidth = 2 * scale;
+  // Draw rounded rectangle for success card
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(50 * scale, 150 * scale);
-  ctx.lineTo(width - 50 * scale, 150 * scale);
+  ctx.moveTo(cardMargin + cardRadius, yPos);
+  ctx.lineTo(cardMargin + cardWidth - cardRadius, yPos);
+  ctx.quadraticCurveTo(cardMargin + cardWidth, yPos, cardMargin + cardWidth, yPos + cardRadius);
+  ctx.lineTo(cardMargin + cardWidth, yPos + cardHeight - cardRadius);
+  ctx.quadraticCurveTo(cardMargin + cardWidth, yPos + cardHeight, cardMargin + cardWidth - cardRadius, yPos + cardHeight);
+  ctx.lineTo(cardMargin + cardRadius, yPos + cardHeight);
+  ctx.quadraticCurveTo(cardMargin, yPos + cardHeight, cardMargin, yPos + cardHeight - cardRadius);
+  ctx.lineTo(cardMargin, yPos + cardRadius);
+  ctx.quadraticCurveTo(cardMargin, yPos, cardMargin + cardRadius, yPos);
+  ctx.closePath();
+
+  // Purple gradient background
+  const purpleGradient = ctx.createLinearGradient(cardMargin, yPos, cardMargin + cardWidth, yPos + cardHeight);
+  purpleGradient.addColorStop(0, "#8b5cf6");
+  purpleGradient.addColorStop(1, "#7c3aed");
+  ctx.fillStyle = purpleGradient;
+  ctx.fill();
+  ctx.restore();
+
+  // Checkmark circle
+  const checkY = yPos + 110 * scale;
+  ctx.fillStyle = "#2d1b4e";
+  ctx.beginPath();
+  ctx.arc(width / 2, checkY, 70 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw checkmark
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 10 * scale;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(width / 2 - 30 * scale, checkY);
+  ctx.lineTo(width / 2 - 10 * scale, checkY + 20 * scale);
+  ctx.lineTo(width / 2 + 30 * scale, checkY - 25 * scale);
   ctx.stroke();
 
-  // Amount section (very prominent and bold)
+  // Amount with strikethrough on Naira symbol (centered)
+  const amountY = yPos + 250 * scale;
   ctx.fillStyle = "#ffffff";
-  ctx.font = `900 ${60 * scale}px Arial`;
-  ctx.fillText(data.amount, width / 2, 230 * scale);
+  ctx.font = `bold ${70 * scale}px Arial`;
+  ctx.textAlign = "center";
 
-  // Details section
-  const leftMargin = 80 * scale;
-  const rightMargin = 80 * scale;
-  let yPosition = 290 * scale;
-  const lineHeight = 35 * scale;
+  // Measure text widths
+  const nairaWidth = ctx.measureText("₦").width;
+  const amountWidth = ctx.measureText(data.amount).width;
+  const totalWidth = nairaWidth + amountWidth;
 
+  // Calculate starting X to center everything
+  const amountStartX = (width - totalWidth) / 2;
+  const amountX = amountStartX;
+
+  // Draw strikethrough Naira symbol
   ctx.textAlign = "left";
+  ctx.fillText("₦", amountX, amountY);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 6 * scale;
+  ctx.beginPath();
+  ctx.moveTo(amountX + 5 * scale, amountY - 22 * scale);
+  ctx.lineTo(amountX + nairaWidth - 5 * scale, amountY - 22 * scale);
+  ctx.stroke();
 
-  // Helper function to draw detail row (label and value on same line, left-aligned)
-  const drawDetailRow = (label: string, value: string, y: number) => {
-    // Truncate long values
-    const maxValueWidth = 400 * scale;
-    let displayValue = value;
-    ctx.font = `bold ${16 * scale}px Arial`;
-    if (ctx.measureText(value).width > maxValueWidth) {
-      displayValue =
-        value.substring(0, 15) + "..." + value.substring(value.length - 6);
-    }
+  // Draw amount
+  ctx.fillText(data.amount, amountX + nairaWidth, amountY);
 
-    // Draw label and value together (left-aligned)
-    ctx.fillStyle = "#a8a8a8";
-    ctx.font = `${16 * scale}px Arial`;
-    const labelText = label + ": ";
+  yPos += cardHeight + 30 * scale;
 
-    // Measure the label width
-    const labelWidth = ctx.measureText(labelText).width;
-
-    // Draw label (gray)
-    ctx.fillStyle = "#a8a8a8";
-    ctx.fillText(labelText, leftMargin, y);
-
-    // Draw value (white, bold)
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${16 * scale}px Arial`;
-    ctx.fillText(displayValue, leftMargin + labelWidth, y);
+  // Helper function to draw rounded card
+  const drawRoundedCard = (y: number, cardH: number) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cardMargin + cardRadius, y);
+    ctx.lineTo(cardMargin + cardWidth - cardRadius, y);
+    ctx.quadraticCurveTo(cardMargin + cardWidth, y, cardMargin + cardWidth, y + cardRadius);
+    ctx.lineTo(cardMargin + cardWidth, y + cardH - cardRadius);
+    ctx.quadraticCurveTo(cardMargin + cardWidth, y + cardH, cardMargin + cardWidth - cardRadius, y + cardH);
+    ctx.lineTo(cardMargin + cardRadius, y + cardH);
+    ctx.quadraticCurveTo(cardMargin, y + cardH, cardMargin, y + cardH - cardRadius);
+    ctx.lineTo(cardMargin, y + cardRadius);
+    ctx.quadraticCurveTo(cardMargin, y, cardMargin + cardRadius, y);
+    ctx.closePath();
+    ctx.fillStyle = "#2d1b4e";
+    ctx.fill();
+    ctx.restore();
   };
 
-  // Bank Account Details Section (if provided)
-  if (data.bankName || data.accountName || data.accountNumber) {
-    ctx.fillStyle = "#4ecca3";
-    ctx.font = `bold ${20 * scale}px Arial`;
-    ctx.fillText("RECIPIENT ACCOUNT DETAILS", leftMargin, yPosition);
-    yPosition += 15 * scale;
+  // Helper function to draw detail row
+  const drawDetailRow = (label: string, value: string, y: number, leftPad: number) => {
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `${18 * scale}px Arial`;
+    ctx.fillText(label + ":", leftPad, y);
 
-    // Draw a line under the section header
-    ctx.strokeStyle = "#4ecca3";
-    ctx.lineWidth = 1 * scale;
-    ctx.beginPath();
-    ctx.moveTo(leftMargin, yPosition);
-    ctx.lineTo(width - rightMargin, yPosition);
-    ctx.stroke();
-    yPosition += 30 * scale;
+    ctx.textAlign = "right";
+    ctx.font = `${18 * scale}px Arial`;
+    ctx.fillText(value, width - cardMargin - 60 * scale, y);
+  };
 
-    if (data.bankName) {
-      drawDetailRow("Bank Name", data.bankName, yPosition);
-      yPosition += lineHeight;
-    }
+  // Recipient Account Details Card
+  const accountCardHeight = 200 * scale;
+  drawRoundedCard(yPos, accountCardHeight);
 
-    if (data.accountName) {
-      drawDetailRow("Account Name", data.accountName, yPosition);
-      yPosition += lineHeight;
-    }
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold ${22 * scale}px Arial`;
+  ctx.fillText("RECIPIENT ACCOUNT DETAILS", width / 2, yPos + 40 * scale);
 
-    if (data.accountNumber) {
-      drawDetailRow("Account Number", data.accountNumber, yPosition);
-      yPosition += lineHeight;
-    }
+  const accountDetailsY = yPos + 80 * scale;
+  const detailPadding = cardMargin + 60 * scale;
 
-    yPosition += 20 * scale; // Extra spacing before transaction details
-  }
+  drawDetailRow("Bank Name", data.bankName || "N/A", accountDetailsY, detailPadding);
+  drawDetailRow("Account Name", data.accountName || "N/A", accountDetailsY + 40 * scale, detailPadding);
+  drawDetailRow("Account Number", data.accountNumber || "N/A", accountDetailsY + 80 * scale, detailPadding);
 
-  // Transaction Details Section
-  ctx.fillStyle = "#4ecca3";
-  ctx.font = `bold ${20 * scale}px Arial`;
-  ctx.fillText("TRANSACTION DETAILS", leftMargin, yPosition);
-  yPosition += 15 * scale;
+  yPos += accountCardHeight + 25 * scale;
 
-  // Draw a line under the section header
-  ctx.strokeStyle = "#4ecca3";
-  ctx.lineWidth = 1 * scale;
-  ctx.beginPath();
-  ctx.moveTo(leftMargin, yPosition);
-  ctx.lineTo(width - rightMargin, yPosition);
-  ctx.stroke();
-  yPosition += 30 * scale;
+  // Transaction Details Card
+  const txCardHeight = 260 * scale;
+  drawRoundedCard(yPos, txCardHeight);
 
-  // Draw transaction details
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold ${22 * scale}px Arial`;
+  ctx.fillText("TRANSACTION DETAILS", width / 2, yPos + 40 * scale);
 
-  drawDetailRow("Network", data.network, yPosition);
-  yPosition += lineHeight;
+  const txDetailsY = yPos + 80 * scale;
 
-  drawDetailRow("Date", data.timestamp.toLocaleString(), yPosition);
-  yPosition += lineHeight;
+  drawDetailRow("Network", data.network, txDetailsY, detailPadding);
+  drawDetailRow(
+    "Date",
+    data.timestamp.toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true
+    }),
+    txDetailsY + 40 * scale,
+    detailPadding
+  );
   drawDetailRow(
     "Amount in " + data.currency,
     `${data.amountInCrypto} ${data.currency}`,
-    yPosition
+    txDetailsY + 80 * scale,
+    detailPadding
   );
-  yPosition += lineHeight;
 
-  if (data.fee) {
-    drawDetailRow("Fee", `${data.fee} ${data.currency}`, yPosition);
-    yPosition += lineHeight;
-  }
+  // Always show transaction hash
+  const displayHash = data.transactionHash
+    ? (data.transactionHash.length > 15
+        ? data.transactionHash.substring(0, 8) + "..." + data.transactionHash.substring(data.transactionHash.length - 5)
+        : data.transactionHash)
+    : "N/A";
+
+  drawDetailRow("Tnx Hash", displayHash, txDetailsY + 120 * scale, detailPadding);
+
+  yPos += txCardHeight + 50 * scale;
 
   // Footer
   ctx.textAlign = "center";
-  ctx.fillStyle = "#4ecca3";
-  ctx.font = `${14 * scale}px Arial`;
-  ctx.fillText("Powered by Jumpa", width / 2, height - 30 * scale);
+  ctx.fillStyle = "#9ca3af";
+  ctx.font = `bold ${18 * scale}px Arial`;
+  ctx.fillText("Powered by  |  ", width / 2 - 40 * scale, yPos);
+
+  // Draw small logo next to "Powered by"
+  try {
+    const logoPath = path.join(process.cwd(), "src", "images", "logo.png");
+    const logo = await loadImage(logoPath);
+    const footerLogoSize = 24 * scale;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(width / 2 + 42 * scale, yPos - 8 * scale, footerLogoSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(logo, width / 2 + 42 * scale - footerLogoSize / 2, yPos - 8 * scale - footerLogoSize / 2, footerLogoSize, footerLogoSize);
+    ctx.restore();
+
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = `bold ${18 * scale}px Arial`;
+    ctx.fillText("JumpaBot", width / 2 + 120 * scale, yPos);
+  } catch (error) {
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = `bold ${18 * scale}px Arial`;
+    ctx.fillText("JumpaBot", width / 2 + 60 * scale, yPos);
+  }
 
   // Convert to buffer
   return canvas.toBuffer("image/png");
