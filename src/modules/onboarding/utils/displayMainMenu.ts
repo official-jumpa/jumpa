@@ -22,32 +22,38 @@ export async function displayMainMenu(
   const user = await getUser(telegramId, username);
 
   if (!user) {
-    await ctx.reply(
-      "❌ User not found. Please use /start to register first."
-    );
+    await ctx.reply("❌ User not found. Please use /start to register first.");
     return;
   }
-
-  // Check if user has a Solana wallet
+  console.log("Displaying main menu for user:", username);
+  // Check if user has a Solana wallet or evm wallet
   const hasSolanaWallet =
     user.solanaWallets &&
     user.solanaWallets.length > 0 &&
     user.solanaWallets[0].address;
+  console.log("Has Solana Wallet:", hasSolanaWallet);
+  const hasEvmWallet =
+    user.evmWallets && user.evmWallets.length > 0 && user.evmWallets[0].address;
+  console.log("Has EVM Wallet:", hasEvmWallet);
 
-  if (!hasSolanaWallet) {
+  if (!hasSolanaWallet && !hasEvmWallet) {
     // Show wallet setup options
     const firstName = ctx.from?.first_name || username;
     const setupMessage = `Welcome to Jumpa Bot, ${firstName}!
 
-🔐 **Wallet Setup Required**
+You need to set up a wallet to trade and perform P2P transactions.
 
-You need to set up a Solana wallet to continue.
-
-Choose an option:`;
+Choose an option below to get started:`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("🔑 Generate New Solana Wallet", "generate_wallet")],
-      [Markup.button.callback("📥 Import Existing Solana Wallet", "import_wallet")],
+      [
+        Markup.button.callback(" Generate Solana Wallet", "generate_wallet"),
+        Markup.button.callback(" Import Solana Wallet", "import_wallet"),
+      ],
+      [
+        Markup.button.callback("Generate EVM Wallet", "generate_evm_wallet"),
+        Markup.button.callback("Import EVM Wallet", "add_wallet_evm"),
+      ],
     ]);
 
     if (shouldEdit && ctx.callbackQuery) {
@@ -75,14 +81,15 @@ Choose an option:`;
   // User has wallet, show normal menu
   const firstName = ctx.from?.first_name || username;
 
-  // Fetch USDT and USDC balance for Solana
-  const tokenBalances = await getAllTokenBalances(user.solanaWallets[0].address);
+  // Fetch USDT and USDC balance for Solana only if user has Solana wallet
+  let tokenBalances = null;
+  if (hasSolanaWallet) {
+    tokenBalances = await getAllTokenBalances(user.solanaWallets[0].address);
+  }
 
   // Check if user has EVM wallet
-  const hasEvmWallet =
-    user.evmWallets &&
-    user.evmWallets.length > 0 &&
-    user.evmWallets[0].address;
+  // const hasEvmWallet =
+  //   user.evmWallets && user.evmWallets.length > 0 && user.evmWallets[0].address;
 
   let evmBalances = null;
   if (hasEvmWallet) {
@@ -92,13 +99,22 @@ Choose an option:`;
 
   // Build welcome message
   let welcomeMessage = `Welcome to Jumpa Bot, ${firstName}!
+`;
 
+  // Add Solana wallet section only if user has one
+  if (hasSolanaWallet && tokenBalances) {
+    welcomeMessage += `
 *--- Your Solana Wallet ---*
 
 \`${user.solanaWallets[0].address}\`
 
-SOL: ${user.solanaWallets[0].balance.toFixed(4)}   • USDC: ${tokenBalances.usdc.toFixed(1)}   • USDT: ${tokenBalances.usdt.toFixed(1)}
+SOL: ${user.solanaWallets[0].balance.toFixed(
+      4
+    )}   • USDC: ${tokenBalances.usdc.toFixed(
+      1
+    )}   • USDT: ${tokenBalances.usdt.toFixed(1)}
 `;
+  }
 
   // Add EVM wallet section only if user has one
   if (hasEvmWallet && evmBalances) {
@@ -108,10 +124,18 @@ SOL: ${user.solanaWallets[0].balance.toFixed(4)}   • USDC: ${tokenBalances.usd
 \`${user.evmWallets[0].address}\`
 
 *Celo:*
-ETH: ${evmBalances.CELO.eth.toFixed(4)}   • USDC: ${evmBalances.CELO.usdc.toFixed(2)}   • USDT: ${evmBalances.CELO.usdt.toFixed(2)}
+ETH: ${evmBalances.CELO.eth.toFixed(
+      4
+    )}   • USDC: ${evmBalances.CELO.usdc.toFixed(
+      2
+    )}   • USDT: ${evmBalances.CELO.usdt.toFixed(2)}
 
 *Base:*
-ETH: ${evmBalances.BASE.eth.toFixed(4)}   • USDC: ${evmBalances.BASE.usdc.toFixed(2)}   • USDT: ${evmBalances.BASE.usdt.toFixed(2)}
+ETH: ${evmBalances.BASE.eth.toFixed(
+      4
+    )}   • USDC: ${evmBalances.BASE.usdc.toFixed(
+      2
+    )}   • USDT: ${evmBalances.BASE.usdt.toFixed(2)}
 `;
   }
 
@@ -128,9 +152,7 @@ ETH: ${evmBalances.BASE.eth.toFixed(4)}   • USDC: ${evmBalances.BASE.usdc.toFi
       Markup.button.callback(" Create Group", "create_group"),
       Markup.button.callback(" Join  Group", "join"),
     ],
-    [
-      Markup.button.callback(" Group Info", "group_info"),
-    ],
+    [Markup.button.callback(" Group Info", "group_info")],
     [
       Markup.button.callback("Deposit", "deposit_sol"),
       Markup.button.callback("Withdraw", "withdraw_sol"),
@@ -140,7 +162,7 @@ ETH: ${evmBalances.BASE.eth.toFixed(4)}   • USDC: ${evmBalances.BASE.usdc.toFi
       Markup.button.callback(" About Jumpa", "show_about"),
     ],
     [Markup.button.callback("Referral", "referral")],
-    [Markup.button.callback("🔄 Refresh", "back_to_menu")]
+    [Markup.button.callback("🔄 Refresh", "back_to_menu")],
   ]);
 
   if (shouldEdit && ctx.callbackQuery) {

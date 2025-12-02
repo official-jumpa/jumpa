@@ -4,8 +4,12 @@ import { Markup } from "telegraf";
 import createNewSolanaWallet from "@shared/utils/createWallet";
 import { encryptPrivateKey } from "@shared/utils/encryption";
 import { Keypair } from "@solana/web3.js";
-import { setUserActionState, clearUserActionState } from "@shared/state/userActionState";
+import {
+  setUserActionState,
+  clearUserActionState,
+} from "@shared/state/userActionState";
 import bs58 from "bs58";
+import { sendOrEdit } from "@shared/utils/messageHelper";
 
 export class WalletSetupHandlers {
   // Handle generate wallet callback
@@ -24,7 +28,9 @@ export class WalletSetupHandlers {
       // Get user to check if they already have a wallet
       const user = await getUser(telegramId, username);
       if (!user) {
-        await ctx.reply("❌ User not found. Please use /start to register first.");
+        await ctx.reply(
+          "❌ User not found. Please use /start to register first."
+        );
         return;
       }
 
@@ -69,14 +75,17 @@ Ready to start trading!`;
         [Markup.button.callback("🏠 Back to Main Menu", "back_to_menu")],
       ]);
 
-      await ctx.reply(successMessage, {
+      await sendOrEdit(ctx, successMessage, {
         parse_mode: "Markdown",
         ...keyboard,
       });
     } catch (error) {
       console.error("Generate wallet error:", error);
       await ctx.answerCbQuery("❌ Failed to generate wallet.");
-      await ctx.reply("❌ An error occurred while generating your wallet. Please try again.");
+      await sendOrEdit(
+        ctx,
+        "❌ An error occurred while generating your wallet. Please try again."
+      );
     }
   }
 
@@ -98,7 +107,9 @@ Ready to start trading!`;
         ctx.from?.username || ctx.from?.first_name || "Unknown"
       );
       if (!user) {
-        await ctx.reply("❌ User not found. Please use /start to register first.");
+        await ctx.reply(
+          "❌ User not found. Please use /start to register first."
+        );
         return;
       }
 
@@ -125,11 +136,14 @@ Paste your Solana private key (base58 or hex format).
 ⚠️ **Note:**
 - Your private key will be encrypted and stored securely.
 - Never share your private key with anyone
+`;
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback("🏠 Go Back", "back_to_menu")],
+      ]);
 
-Type /cancel to cancel this operation.`;
-
-      await ctx.reply(importMessage, {
+      await sendOrEdit(ctx, importMessage, {
         parse_mode: "Markdown",
+        ...keyboard,
       });
     } catch (error) {
       console.error("Import wallet error:", error);
@@ -168,7 +182,9 @@ Type /cancel to cancel this operation.`;
           const buffer = Buffer.from(privateKeyInputClean, "hex");
           secretKey = new Uint8Array(buffer);
         } else {
-          throw new Error("Invalid format. Expected base58 or hexadecimal string.");
+          throw new Error(
+            "Invalid format. Expected base58 or hexadecimal string."
+          );
         }
 
         // Solana private keys can be:
@@ -180,7 +196,8 @@ Type /cancel to cancel this operation.`;
           );
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         await ctx.reply(
           `❌ Invalid private key format. ${errorMessage} Please provide a valid base58 or hex encoded private key.`
         );
@@ -193,9 +210,7 @@ Type /cancel to cancel this operation.`;
         // Keypair.fromSecretKey accepts both 32-byte (private key only) and 64-byte (secret key) formats
         keypair = Keypair.fromSecretKey(secretKey);
       } catch (error) {
-        await ctx.reply(
-          "❌ Invalid private key. Please check and try again."
-        );
+        await ctx.reply("❌ Invalid private key. Please check and try again.");
         return;
       }
 
@@ -243,7 +258,7 @@ Ready to start trading!`;
         [Markup.button.callback("🏠 Back to Main Menu", "back_to_menu")],
       ]);
 
-      await ctx.reply(successMessage, {
+      await sendOrEdit(ctx, successMessage, {
         parse_mode: "Markdown",
         ...keyboard,
       });

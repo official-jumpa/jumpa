@@ -1,11 +1,18 @@
 import { Context } from "telegraf";
-import getUser, { addSolanaWalletToUser, addEVMWalletToUser } from "@modules/users/getUserInfo";
+import getUser, {
+  addSolanaWalletToUser,
+  addEVMWalletToUser,
+} from "@modules/users/getUserInfo";
 import { Markup } from "telegraf";
 import { encryptPrivateKey } from "@shared/utils/encryption";
 import { Keypair } from "@solana/web3.js";
 import { Wallet } from "ethers";
-import { setUserActionState, clearUserActionState } from "@shared/state/userActionState";
+import {
+  setUserActionState,
+  clearUserActionState,
+} from "@shared/state/userActionState";
 import bs58 from "bs58";
+import { sendOrEdit } from "@shared/utils/messageHelper";
 
 export class AddWalletHandlers {
   // Handle add wallet callback
@@ -30,10 +37,12 @@ Choose the wallet type you want to add. Choose EVM if you want to import a walle
           Markup.button.callback("🔵 Import EVM", "add_wallet_evm"),
         ],
         [
-          Markup.button.callback("🔵 Generate EVM Wallet", "generate_evm_wallet"),
-        ], [
-          Markup.button.callback("🔙 Back", "view_wallet"),
+          Markup.button.callback(
+            "🔵 Generate EVM Wallet",
+            "generate_evm_wallet"
+          ),
         ],
+        [Markup.button.callback("🔙 Back", "view_wallet")],
       ]);
 
       await ctx.reply(message, {
@@ -65,13 +74,17 @@ Choose the wallet type you want to add. Choose EVM if you want to import a walle
         ctx.from?.username || ctx.from?.first_name || "Unknown"
       );
       if (!user) {
-        await ctx.reply("❌ User not found. Please use /start to register first.");
+        await ctx.reply(
+          "❌ User not found. Please use /start to register first."
+        );
         return;
       }
 
       // Check wallet limit
       if (user.solanaWallets.length >= 3) {
-        await ctx.reply("❌ You have reached the maximum limit of 3 Solana wallets.");
+        await ctx.reply(
+          "❌ You have reached the maximum limit of 3 Solana wallets."
+        );
         return;
       }
 
@@ -88,11 +101,13 @@ Paste your Solana private key (base58 or hex format).
 - Your private key will be stored securely.
 - Never share your private key with anyone
 - This wallet will be added to your existing wallets
-
-Use /cancel to cancel this operation.`;
-
-      await ctx.reply(importMessage, {
+`;
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback("🏠 Go Back", "back_to_menu")],
+      ]);
+      await sendOrEdit(ctx, importMessage, {
         parse_mode: "Markdown",
+        ...keyboard,
       });
     } catch (error) {
       console.error("Add Solana wallet error:", error);
@@ -119,13 +134,17 @@ Use /cancel to cancel this operation.`;
         ctx.from?.username || ctx.from?.first_name || "Unknown"
       );
       if (!user) {
-        await ctx.reply("❌ User not found. Please use /start to register first.");
+        await ctx.reply(
+          "❌ User not found. Please use /start to register first."
+        );
         return;
       }
 
       // Check wallet limit
       if (user.evmWallets.length >= 3) {
-        await ctx.reply("❌ You have reached the maximum limit of 3 EVM wallets.");
+        await ctx.reply(
+          "❌ You have reached the maximum limit of 3 EVM wallets."
+        );
         return;
       }
 
@@ -143,11 +162,14 @@ Paste your EVM private key (hex format, with or without 0x prefix).
 - Never share your private key with anyone
 - This wallet will be added to your existing wallets
 - Works with Base, Celo, Lisk, and any other EVM-compatible chains
+`;
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback("🏠 Go Back", "back_to_menu")],
+      ]);
 
-Use /cancel to cancel this operation.`;
-
-      await ctx.reply(importMessage, {
+      await sendOrEdit(ctx, importMessage, {
         parse_mode: "Markdown",
+        ...keyboard,
       });
     } catch (error) {
       console.error("Add EVM wallet error:", error);
@@ -175,7 +197,10 @@ Use /cancel to cancel this operation.`;
       let privateKeyInputClean = privateKeyInput.trim();
 
       // Remove 0x prefix if present
-      if (privateKeyInputClean.startsWith("0x") || privateKeyInputClean.startsWith("0X")) {
+      if (
+        privateKeyInputClean.startsWith("0x") ||
+        privateKeyInputClean.startsWith("0X")
+      ) {
         privateKeyInputClean = privateKeyInputClean.slice(2);
       }
 
@@ -194,9 +219,7 @@ Use /cancel to cancel this operation.`;
         const privateKeyWithPrefix = "0x" + privateKeyInputClean;
         wallet = new Wallet(privateKeyWithPrefix);
       } catch (error) {
-        await ctx.reply(
-          "❌ Invalid private key. Please check and try again."
-        );
+        await ctx.reply("❌ Invalid private key. Please check and try again.");
         return;
       }
 
@@ -224,11 +247,7 @@ Use /cancel to cancel this operation.`;
       const encryptedPrivateKey = encryptPrivateKey(privateKeyInputClean);
 
       // Add wallet to user
-      await addEVMWalletToUser(
-        telegramId,
-        walletAddress,
-        encryptedPrivateKey
-      );
+      await addEVMWalletToUser(telegramId, walletAddress, encryptedPrivateKey);
 
       const successMessage = `✅ **EVM Wallet Added Successfully!**
 
@@ -298,7 +317,9 @@ This wallet works on all EVM-compatible chains:
           const buffer = Buffer.from(privateKeyInputClean, "hex");
           secretKey = new Uint8Array(buffer);
         } else {
-          throw new Error("Invalid format. Expected base58 or hexadecimal string.");
+          throw new Error(
+            "Invalid format. Expected base58 or hexadecimal string."
+          );
         }
 
         // Solana private keys can be:
@@ -310,7 +331,8 @@ This wallet works on all EVM-compatible chains:
           );
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         await ctx.reply(
           `❌ Invalid private key format. ${errorMessage} Please provide a valid base58 or hex encoded private key.`
         );
@@ -323,9 +345,7 @@ This wallet works on all EVM-compatible chains:
         // Keypair.fromSecretKey accepts both 32-byte (private key only) and 64-byte (secret key) formats
         keypair = Keypair.fromSecretKey(secretKey);
       } catch (error) {
-        await ctx.reply(
-          "❌ Invalid private key. Please check and try again."
-        );
+        await ctx.reply("❌ Invalid private key. Please check and try again.");
         return;
       }
 
@@ -410,13 +430,17 @@ Your wallet has been added to your account!`;
       );
 
       if (!user) {
-        await ctx.reply("❌ User not found. Please use /start to register first.");
+        await ctx.reply(
+          "❌ User not found. Please use /start to register first."
+        );
         return;
       }
 
       // Check wallet limit
       if (user.evmWallets.length >= 3) {
-        await ctx.reply("❌ You have reached the maximum limit of 3 EVM wallets.");
+        await ctx.reply(
+          "❌ You have reached the maximum limit of 3 EVM wallets."
+        );
         return;
       }
 
@@ -425,7 +449,7 @@ Your wallet has been added to your account!`;
 
       if (newWallet && newWallet.success) {
         // Encrypt and save
-        console.log("new wallet", newWallet)
+        console.log("new wallet", newWallet);
 
         // Remove 0x prefix if present (ethers.js always returns private keys with 0x prefix)
         const pKeyWithout0x = newWallet.newPrivateKey.startsWith("0x")
@@ -433,7 +457,7 @@ Your wallet has been added to your account!`;
           : newWallet.newPrivateKey;
 
         const encryptedPrivateKey = encryptPrivateKey(pKeyWithout0x);
-        console.log("encrypted pkey: ", encryptedPrivateKey)
+        console.log("encrypted pkey: ", encryptedPrivateKey);
         await addEVMWalletToUser(
           telegramId,
           newWallet.newAddress,
@@ -457,11 +481,15 @@ Your wallet has been added to your account!`;
         });
       } else {
         // Wallet generation failed
-        await ctx.reply("❌ Failed to generate a new EVM wallet. Please try again later.");
+        await ctx.reply(
+          "❌ Failed to generate a new EVM wallet. Please try again later."
+        );
       }
     } catch (error) {
       console.error("Wallet generation error:", error);
-      await ctx.reply("⚠️ An unexpected error occurred while generating your wallet. Please try again.");
+      await ctx.reply(
+        "⚠️ An unexpected error occurred while generating your wallet. Please try again."
+      );
     }
   }
 }
@@ -476,10 +504,9 @@ const createRandomEvmWallet = () => {
 
     const newAddress = wallet.address;
     const newPrivateKey = wallet.privateKey;
-    return { success: true, newAddress, newPrivateKey }
-
+    return { success: true, newAddress, newPrivateKey };
   } catch (error) {
-    console.log("failed to generate wallet", error)
-    return { success: false }
+    console.log("failed to generate wallet", error);
+    return { success: false };
   }
-}
+};

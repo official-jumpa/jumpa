@@ -457,8 +457,17 @@ You will get ₦${amtToReceive} once your withdrawal is confirmed.`;
 
         // Verify pin matches
         if (user.bank_details.withdrawalPin !== parseInt(enteredPin, 10)) {
+            // Delete the incorrect PIN message for security
+            if (ctx.message?.message_id) {
+                await safeDeleteMessage(ctx, ctx.message.message_id, 0);
+            }
             await ctx.reply("❌ Incorrect withdrawal pin. Please try again:");
             return; // Keep state active for retry
+        }
+
+        // Delete the PIN message for security
+        if (ctx.message?.message_id) {
+            await safeDeleteMessage(ctx, ctx.message.message_id, 0);
         }
 
         // Pin is correct, proceed with withdrawal
