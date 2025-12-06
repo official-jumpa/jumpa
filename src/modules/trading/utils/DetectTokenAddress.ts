@@ -16,8 +16,9 @@ export async function generateTokenInfoMessage(contractAddress: string) {
     throw new Error("Invalid token address. Please enter a valid Solana token contract.");
   }
 
-  const owner = (tokenInfo.value as any).owner?.toString();
-  if (owner !== "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") {
+  // Check if the account has parsed mint data (indicates it's a token mint)
+  const parsedData = (tokenInfo.value.data as any)?.parsed;
+  if (!parsedData || parsedData.type !== "mint") {
     throw new Error("This address is not a token mint account.");
   }
 
