@@ -27,6 +27,9 @@ export async function generateTokenInfoMessage(contractAddress: string) {
   const response = await fetch(jupUrl);
   if (!response.ok) {
     console.log("Jup response:", response);
+    if (response.status === 429) {
+      throw new Error("RATE_LIMIT_ERROR");
+    }
     throw new Error("Failed to fetch token data from Jupiter.");
   }
 
@@ -167,25 +170,144 @@ Select an option below to trade with the group token balance
 }
 
 export async function handleDetectToken(ctx: Context, contractAddress: string) {
+  let loadingMsgId: number | undefined;
+
   try {
-    const { metricsMessage, privateChatOptions } = await generateTokenInfoMessage(contractAddress);
-    await ctx.replyWithHTML(metricsMessage, privateChatOptions);
+    // Send initial loading message
+    const loadingMsg = await ctx.reply("⏳ Fetching token data...");
+    loadingMsgId = loadingMsg.message_id;
+
+    // Try to fetch token data
+    let tokenData;
+    try {
+      tokenData = await generateTokenInfoMessage(contractAddress);
+    } catch (firstError: any) {
+      // Check if it's a rate limit error (429)
+      if (firstError.message === "RATE_LIMIT_ERROR") {
+        // Update message to show we're waiting
+        try {
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            "⏳ Rate limit hit. Waiting 5 seconds before retrying..."
+          );
+        } catch (e) {
+          // Ignore edit errors
+        }
+
+        // Wait 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // Retry the request
+        tokenData = await generateTokenInfoMessage(contractAddress);
+      } else {
+        // Not a rate limit error, rethrow
+        throw firstError;
+      }
+    }
+
+    // Success! Replace loading message with token data
+    await ctx.telegram.editMessageText(
+      ctx.chat!.id,
+      loadingMsgId,
+      undefined,
+      tokenData.metricsMessage,
+      { parse_mode: 'HTML', ...tokenData.privateChatOptions }
+    );
+
   } catch (error: any) {
     console.error("Error in handleDetectToken:", error?.message || error);
-    if (error.error.code === 429) {
-      console.log("Rate limit exceeded:", error);
-      await ctx.reply(`❌ Rate limit exceeded. Please try again after a few seconds.`);
-      return;
+
+    // Clean up loading message if it exists
+    if (loadingMsgId) {
+      try {
+        await ctx.telegram.deleteMessage(ctx.chat!.id, loadingMsgId);
+      } catch (e) {
+        // Ignore delete errors
+      }
     }
-    await ctx.reply(`❌ An error occurred. Try again later`);
+
+    // Show appropriate error message
+    if (error.message?.includes("Invalid token address")) {
+      await ctx.reply(`❌ ${error.message}`);
+    } else if (error.message === "RATE_LIMIT_ERROR") {
+      await ctx.reply(`❌ Jupiter API rate limit exceeded. Please try again in a minute.`);
+    } else if (error.message?.includes("Failed to fetch token data from Jupiter")) {
+      await ctx.reply(`❌ Jupiter API is unavailable. Please try again later.`);
+    } else {
+      await ctx.reply(`❌ ${error.message || "An unrecognized error occurred."}`);
+    }
   }
 }
 
 export async function handleGroupToken(ctx: Context, contractAddress: string) {
+  let loadingMsgId: number | undefined;
+
   try {
-    const { groupMetricsMessage, groupChatOptions } = await generateTokenInfoMessage(contractAddress);
-    await ctx.replyWithHTML(groupMetricsMessage, groupChatOptions);
+    // Send initial loading message (same as private chat)
+    const loadingMsg = await ctx.reply("⏳ Fetching token data...");
+    loadingMsgId = loadingMsg.message_id;
+
+    // Try to fetch token data
+    let tokenData;
+    try {
+      tokenData = await generateTokenInfoMessage(contractAddress);
+    } catch (firstError: any) {
+      // Check if it's a rate limit error
+      if (firstError.message === "RATE_LIMIT_ERROR") {
+        // Update message (same as private chat)
+        try {
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            "⏳ Rate limit hit. Waiting 5 seconds before retrying..."
+          );
+        } catch (e) {
+          // Ignore edit errors
+        }
+
+        // Wait 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // Retry the request
+        tokenData = await generateTokenInfoMessage(contractAddress);
+      } else {
+        throw firstError;
+      }
+    }
+
+    // Success! Replace with token data
+    await ctx.telegram.editMessageText(
+      ctx.chat!.id,
+      loadingMsgId,
+      undefined,
+      tokenData.groupMetricsMessage,
+      { parse_mode: 'HTML', ...tokenData.groupChatOptions }
+    );
+
   } catch (error: any) {
-    console.error("Error in handleGroupToken:", error?.message || error)
+    console.error("Error in handleGroupToken:", error?.message || error);
+
+    // Clean up loading message
+    if (loadingMsgId) {
+      try {
+        await ctx.telegram.deleteMessage(ctx.chat!.id, loadingMsgId);
+      } catch (e) {
+        // Ignore
+      }
+    }
+
+    // Show error (same as private chat)
+    if (error.message?.includes("Invalid token address")) {
+      await ctx.reply(`❌ ${error.message}`);
+    } else if (error.message === "RATE_LIMIT_ERROR") {
+      await ctx.reply(`❌ Jupiter API rate limit exceeded. Please try again in a minute.`);
+    } else if (error.message?.includes("Failed to fetch token data from Jupiter")) {
+      await ctx.reply(`❌ Jupiter API is unavailable. Please try again later.`);
+    } else {
+      await ctx.reply(`❌ ${error.message || "An unrecognized error occurred."}`);
+    }
   }
 }
