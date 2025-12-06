@@ -172,7 +172,12 @@ export async function handleDetectToken(ctx: Context, contractAddress: string) {
     await ctx.replyWithHTML(metricsMessage, privateChatOptions);
   } catch (error: any) {
     console.error("Error in handleDetectToken:", error?.message || error);
-    await ctx.reply(`❌ ${error.message || "An unrecognized error occurred."}`);
+    if (error.error.code === 429) {
+      console.log("Rate limit exceeded:", error);
+      await ctx.reply(`❌ Rate limit exceeded. Please try again after a few seconds.`);
+      return;
+    }
+    await ctx.reply(`❌ An error occurred. Try again later`);
   }
 }
 
