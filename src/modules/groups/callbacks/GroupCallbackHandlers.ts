@@ -1,14 +1,5 @@
 import { Context, Markup } from "telegraf";
-import {
-  createGroup,
-  joinGroup,
-  getGroupInfo,
-  getGroupByChatId,
-  getUserGroups,
-  isUserMember,
-  isUserTrader,
-} from "@modules/groups/groupService";
-
+import { GroupService } from "../services/groupService";
 import {
   updateGroupBalance,
   getGroupFinancialSummary,
@@ -16,6 +7,8 @@ import {
 } from "@modules/wallets/balanceService";
 import getUser from "@modules/users/getUserInfo";
 import { sendOrEdit } from "@shared/utils/messageHelper";
+
+
 
 export class GroupCallbackHandlers {
   // Handle create callback
@@ -56,14 +49,16 @@ With group trading, you and your members can:
       // Create inline keyboard with create options
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback("🏠 Create New Group", "create_group_form")],
-        [Markup.button.callback("👥 Add Members to Group", "add_members_form")],
         [
           Markup.button.callback(
             "🤖 Add Bot to Telegram Group",
             "add_bot_to_group"
           ),
         ],
-        [Markup.button.callback("❓ Learn More", "group_help")],
+        [
+          Markup.button.callback("❓ Learn More", "group_help"),
+          Markup.button.callback(" Back", "back_to_menu"),
+        ],
       ]);
 
       await sendOrEdit(ctx, createGroupMessage, {
@@ -98,7 +93,7 @@ With group trading, you and your members can:
       }
 
       // Get user's groups
-      const userGroups = await getUserGroups(userId);
+      const userGroups = await GroupService.getUserGroups(userId);
 
       let joinGroupMessage = `
 👥 **Join Group**
@@ -116,7 +111,7 @@ With group trading, you and your members can:
         joinGroupMessage += "• You're not a member of any groups yet";
       } else {
         userGroups.forEach((group, index) => {
-          joinGroupMessage += `• **${group.name}** (${group.members.length}/${group.max_members} members)\n`;
+          joinGroupMessage += `• **${group.name}** (${group.members.length} members)\n`;
         });
       }
 
@@ -140,78 +135,6 @@ With group trading, you and your members can:
     }
   }
 
-  // Handle info callback
-  static async handleGroupInfo(ctx: Context): Promise<void> {
-    try {
-      await ctx.answerCbQuery("📊 Group Info");
-
-      const chatId = ctx.chat?.id;
-      if (!chatId) {
-        await ctx.reply("❌ Unable to identify chat.");
-        return;
-      }
-
-      // Get group for this chat
-      const group = await getGroupByChatId(chatId);
-      if (!group) {
-        await ctx.reply(
-          "❌ No group found in this chat.\n\n" +
-            "Use /create_group to create a new group or /join to join an existing one."
-        );
-        return;
-      }
-
-      // Get financial summary
-      const financialSummary = getGroupFinancialSummary(group);
-      const activePolls = group.polls.filter(
-        (poll: any) => poll.status === "open"
-      );
-
-      const infoMessage = `
-📊 **Group: ${group.name}**
-
-💰 **Capital:** ${group.current_balance} SOL
-👥 **Members:** ${group.members.length}/${group.max_members}
-📈 **Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
-
-📊 **Financial Summary:**
-• Total Contributions: $${financialSummary.total_contributions}
-• Average Contribution: $${financialSummary.average_contribution}
-• Largest Contribution: $${financialSummary.largest_contribution}
-
-🗳️ **Active Polls:** ${activePolls.length}
-📈 **Total Trades:** ${group.trades.length}
-
-**Group ID:** \`${group._id}\`
-**Created:** ${new Date(group.created_at).toLocaleDateString()}
-      `;
-
-      // Create inline keyboard for group actions
-      const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback("👥 View Members", "group_members"),
-          Markup.button.callback("🗳️ View Polls", "group_polls"),
-        ],
-        [
-          Markup.button.callback("💰 My Balance", "group_balance"),
-          Markup.button.callback("📊 Group Stats", "group_stats"),
-        ],
-        [
-          Markup.button.callback("🔄 Refresh", "group_info"),
-          Markup.button.callback("🔙 Back to Groups", "back_to_group_menu"),
-        ],
-      ]);
-
-      await sendOrEdit(ctx, infoMessage, {
-        parse_mode: "Markdown",
-        ...keyboard,
-      });
-    } catch (error) {
-      console.error("info error:", error);
-      await ctx.answerCbQuery("❌ Failed to get info.");
-    }
-  }
-
   // Handle members callback
   static async handleGroupMembers(ctx: Context): Promise<void> {
     try {
@@ -224,7 +147,7 @@ With group trading, you and your members can:
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -233,7 +156,7 @@ With group trading, you and your members can:
       // Get financial summary for member details
       const financialSummary = getGroupFinancialSummary(group);
 
-      let membersMessage = `👥 **Members (${group.members.length}/${group.max_members})**\n\n`;
+      let membersMessage = `👥 **Members (${group.members.length})**\n\n`;
 
       // Sort members by contribution (highest first)
       const sortedMembers = [...group.members].sort(
@@ -247,12 +170,11 @@ With group trading, you and your members can:
         const sharePercentage = shareInfo ? shareInfo.share_percentage : 0;
         const role = member.role === "trader" ? "🛠️ Trader" : "👤 Member";
 
-        membersMessage += `${index + 1}. ${role} - $${
-          member.contribution
-        } (${sharePercentage}%)\n`;
+        membersMessage += `${index + 1}. ${role} - $${member.contribution
+          } (${sharePercentage}%)\n`;
       });
 
-      membersMessage += `\n**Total Balance:** ${group.current_balance} SOL`;
+      membersMessage += `\n**Total Balance:** 00 SOL`;
 
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.callback("🔙 Back to Groups", "back_to_group_menu")],
@@ -281,14 +203,14 @@ With group trading, you and your members can:
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is a member
-      const isMember = await isUserMember(group._id.toString(), userId);
+      const isMember = await GroupService.isUserMember(group._id.toString(), userId);
       if (!isMember) {
         await ctx.reply("❌ You are not a member of this group.");
         return;
@@ -309,7 +231,7 @@ With group trading, you and your members can:
 🏆 **Rank:** #${memberSummary.rank}
 💎 **Role:** ${memberSummary.is_trader ? "🛠️ Trader" : "👤 Member"}
 
-💰 **Group Balance:** ${group.current_balance} SOL
+💰 **Group Balance:** 00 SOL
 👥 **Total Members:** ${group.members.length}
 
 💡 **Potential Profit Share:** $${memberSummary.potential_profit_share}
@@ -552,7 +474,7 @@ Public group browsing will be available in a future update.
       }
 
       // Get user's groups
-      const userGroups = await getUserGroups(userId);
+      const userGroups = await GroupService.getUserGroups(userId);
 
       let groupsMessage = `📋 **Your Groups (${userGroups.length})**\n\n`;
 
@@ -565,14 +487,12 @@ Public group browsing will be available in a future update.
         groupsMessage += "• Use the create buttons above";
       } else {
         userGroups.forEach((group, index) => {
-          const isTrader =
-            group.members.find((m: any) => m.user_id === userId)?.role ===
-            "trader";
+          const isTrader = false;
           const role = isTrader ? "🛠️ Trader" : "👤 Member";
 
           groupsMessage += `${index + 1}. **${group.name}**\n`;
-          groupsMessage += `   ${role} | ${group.current_balance} SOL\n`;
-          groupsMessage += `   ${group.members.length}/${group.max_members} members\n`;
+          groupsMessage += `   ${role} | 00 SOL\n`;
+          groupsMessage += `   ${group.members.length} members\n`;
           groupsMessage += `   ID: \`${group._id}\`\n\n`;
         });
       }
@@ -645,7 +565,7 @@ Public group browsing will be available in a future update.
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -665,29 +585,27 @@ Public group browsing will be available in a future update.
 
 **📈 Performance:**
 • Total Trades: ${group.trades.length}
-• Successful Trades: ${
-        executedPolls.filter((p: any) => p.type === "trade").length
-      }
+• Successful Trades: ${executedPolls.filter((p: any) => p.type === "trade").length
+        }
 • Active Polls: ${activePolls.length}
 • Total Polls: ${group.polls.length}
 
 **💰 Financial:**
-• Current Balance: ${group.current_balance} SOL
+• Current Balance: 000 SOL
 • Total Contributions: $${financialSummary.total_contributions}
 • Average Contribution: $${financialSummary.average_contribution}
 • Largest Contribution: $${financialSummary.largest_contribution}
 
 **👥 Members:**
 • Total Members: ${group.members.length}
-• Max Capacity: ${group.max_members}
+• Max Capacity: 000
 • Traders: ${group.members.filter((m: any) => m.role === "trader").length}
-• Regular Members: ${
-        group.members.filter((m: any) => m.role === "member").length
-      }
+• Regular Members: ${group.members.filter((m: any) => m.role === "member").length
+        }
 
 **⚙️ Settings:**
-• Group Status: ${group.status}
-• Created: ${new Date(group.created_at).toLocaleDateString()}
+• Group Status: 
+• Created: ${new Date(group.createdAt).toLocaleDateString()}
       `;
 
       const keyboard = Markup.inlineKeyboard([
@@ -718,7 +636,7 @@ Public group browsing will be available in a future update.
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -737,9 +655,9 @@ Public group browsing will be available in a future update.
 "Join my group '${group.name}' using: /join ${group._id}"
 
 **Current Status:**
-• Members: ${group.members.length}/${group.max_members}
-• Available Slots: ${group.max_members - group.members.length}
-• Status: ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
+• Members: ${group.members.length}
+• Available Slots: ${group.members.length}
+• Status: 
       `;
 
       const keyboard = Markup.inlineKeyboard([
@@ -953,7 +871,7 @@ The bot only needs these permissions to function properly. It won't:
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -963,8 +881,8 @@ The bot only needs these permissions to function properly. It won't:
 **${group.name}**
 
 **Group ID:** \`${group._id}\`
-**Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
-**Balance:** ${group.current_balance || 0} SOL
+**Status:** 
+**Balance:** ${0} SOL
       `;
 
       const keyboard = Markup.inlineKeyboard([
@@ -1006,7 +924,7 @@ The bot only needs these permissions to function properly. It won't:
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -1016,7 +934,7 @@ The bot only needs these permissions to function properly. It won't:
 🎛️ **${group.name} - Admin Actions**
 
 **Group ID:** \`${group._id}\`
-**Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
+**Status:** 
 
 Select an action below:
       `;

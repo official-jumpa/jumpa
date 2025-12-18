@@ -1,7 +1,7 @@
 import { Context } from "telegraf";
 import getUser from "@modules/users/getUserInfo";
 import { Markup } from "telegraf";
-import { getUserGroups } from "@modules/groups/groupService";
+import { GroupService } from "@modules/groups/services/groupService";
 import { sendOrEdit } from "@shared/utils/messageHelper";
 
 export class ProfileHandlers {
@@ -34,7 +34,7 @@ export class ProfileHandlers {
         user.solanaWallets[0].address;
 
       // Get user's groups
-      const userGroups = await getUserGroups(telegramId);
+      const userGroups = await GroupService.getUserGroups(telegramId);
 
       const profileMessage = `
       <b>📊 Your Profile</b>

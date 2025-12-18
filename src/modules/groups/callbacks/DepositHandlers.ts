@@ -1,9 +1,9 @@
 import { Context, Markup } from "telegraf";
-import { getGroupByChatId, isUserMember } from "@modules/groups/groupService";
-import { deposit, deriveGroupPDA, fetchGroupAccount, fetchMemberProfile, deriveMemberProfilePDA } from "@blockchain/solana";
-import { PublicKey } from "@solana/web3.js";
+import { BlockchainServiceFactory } from "@blockchain/core/BlockchainServiceFactory";
+import { BlockchainDetector } from "@blockchain/core/utils";
 import Group from "@database/models/group";
 import User from "@database/models/user";
+import { GroupService } from "../services/groupService";
 
 // Store temporary deposit data
 const depositState = new Map<number, { groupId: string; step: string }>();
@@ -25,14 +25,14 @@ export class DepositHandlers {
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is a member
-      const isMember = await isUserMember(group._id.toString(), userId);
+      const isMember = await GroupService.isUserMember(group._id.toString(), userId);
       if (!isMember) {
         await ctx.reply("❌ You must be a member of this group to deposit funds.");
         return;
@@ -44,9 +44,13 @@ export class DepositHandlers {
         step: "awaiting_amount",
       });
 
+      // Get blockchain service to determine currency
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
+
       const depositMessage = `<b>Add Funds to Group - ${group.name}</b>
 
-<b>Current Group Balance:</b> ${group.current_balance || 0} SOL
+<b>Current Group Balance:</b> ${0} ${currency}
 <b>Your Current Contribution:</b> Check with <code>/balance</code>
 
 Choose an amount or enter a custom amount to increase your contribution in the group
@@ -56,16 +60,16 @@ Choose an amount or enter a custom amount to increase your contribution in the g
       // Create inline keyboard with deposit options
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback("0.01 SOL", "deposit_amount_0.01"),
-          Markup.button.callback("0.05 SOL", "deposit_amount_0.05"),
+          Markup.button.callback(`0.01 ${currency}`, "deposit_amount_0.01"),
+          Markup.button.callback(`0.05 ${currency}`, "deposit_amount_0.05"),
         ],
         [
-          Markup.button.callback("0.1 SOL", "deposit_amount_0.1"),
-          Markup.button.callback("0.5 SOL", "deposit_amount_0.5"),
+          Markup.button.callback(`0.1 ${currency}`, "deposit_amount_0.1"),
+          Markup.button.callback(`0.5 ${currency}`, "deposit_amount_0.5"),
         ],
         [
-          Markup.button.callback("1 SOL", "deposit_amount_1"),
-          Markup.button.callback("5 SOL", "deposit_amount_5"),
+          Markup.button.callback(`1 ${currency}`, "deposit_amount_1"),
+          Markup.button.callback(`5 ${currency}`, "deposit_amount_5"),
         ],
         [Markup.button.callback("💱 Custom Amount", "deposit_custom")],
         [Markup.button.callback("❌ Cancel", "deposit_cancel")],
@@ -86,11 +90,11 @@ Choose an amount or enter a custom amount to increase your contribution in the g
    */
   static async handleDepositAmount(ctx: Context, amount: string): Promise<void> {
     try {
-      await ctx.answerCbQuery(`💰 Depositing ${amount} SOL`);
-
       const userId = ctx.from?.id;
-      if (!userId) {
-        await ctx.reply("❌ Unable to identify user.");
+      const chatId = ctx.chat?.id;
+
+      if (!userId || !chatId) {
+        await ctx.reply("❌ Unable to identify user or chat.");
         return;
       }
 
@@ -101,14 +105,27 @@ Choose an amount or enter a custom amount to increase your contribution in the g
         return;
       }
 
+      // Get group to determine blockchain
+      const group = await GroupService.getGroupByChatId(chatId);
+      if (!group) {
+        await ctx.reply("❌ No group found in this chat.");
+        return;
+      }
+
+      // Get blockchain service to determine currency
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
+
+      await ctx.answerCbQuery(`💰 Depositing ${amount} ${currency}`);
+
       const confirmMessage = `<b>Confirm Deposit</b>
 
-<b>Amount:</b> ${amount} SOL
+<b>Amount:</b> ${amount} ${currency}
 <b>Group:</b> ${state.groupId}
 
-<b>Note:</b> This will transfer <b>${amount} SOL</b> from your wallet and add it to the group balance.
+<b>Note:</b> This will transfer <b>${amount} ${currency}</b> from your wallet and add it to the group balance.
 
-Are you sure you want to deposit <b>${amount} SOL</b>?
+Are you sure you want to deposit <b>${amount} ${currency}</b>?
       `;
 
       const keyboard = Markup.inlineKeyboard([
@@ -136,20 +153,33 @@ Are you sure you want to deposit <b>${amount} SOL</b>?
       await ctx.answerCbQuery("💱 Custom Amount");
 
       const userId = ctx.from?.id;
-      if (!userId) {
-        await ctx.reply("❌ Unable to identify user.");
+      const chatId = ctx.chat?.id;
+
+      if (!userId || !chatId) {
+        await ctx.reply("❌ Unable to identify user or chat.");
         return;
       }
+
+      // Get group to determine blockchain
+      const group = await GroupService.getGroupByChatId(chatId);
+      if (!group) {
+        await ctx.reply("❌ No group found in this chat.");
+        return;
+      }
+
+      // Get blockchain service to determine currency
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
 
       const customMessage = `
 💱 <b>Enter Custom Amount</b>
 
-Please enter the amount of SOL you want to deposit:
+Please enter the amount of ${currency} you want to deposit:
 
 <b>Format:</b> Send a message with just the number
 <b>Example:</b> <code>0.25</code> or <code>1.5</code>
 
-<b>Minimum:</b> 0.01 SOL
+<b>Minimum:</b> 0.01 ${currency}
 <b>Note:</b> The amount will be deducted from your wallet
 
 <b>To cancel:</b> Send <code>cancel</code> or use /group to go back
@@ -191,37 +221,28 @@ Please enter the amount of SOL you want to deposit:
       }
 
       // Get group
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
-      // Get the group creator's Solana wallet to derive the PDA
-      const creator = await User.findOne({ telegram_id: group.creator_id });
-      if (!creator || !creator.solanaWallets || creator.solanaWallets.length === 0) {
-        await ctx.reply(
-          "❌ <b>Group creator's wallet not found.</b>\n\n" +
-          "The group creator needs to have a Solana wallet registered.",
-          { parse_mode: "HTML" }
-        );
-        depositState.delete(userId);
-        return;
-      }
-
-      const creatorPubkey = new PublicKey(creator.solanaWallets[0].address);
-      const [groupPDA] = deriveGroupPDA(group.name, creatorPubkey);
+      // Get blockchain service based on group address
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
+      const chainName = blockchainService.getDisplayName();
 
       const processingMessage = `
 ⏳ <b>Processing Deposit</b>
 
-<b>Amount:</b> ${amount} SOL
+<b>Amount:</b> ${amount} ${currency}
 <b>Group:</b> ${group.name}
+<b>Blockchain:</b> ${chainName}
 <b>Status:</b> Processing...
 
 This will:
-1. Deduct <b>${amount} SOL</b> from your wallet
-2. Add <b>${amount} SOL</b> to the group balance
+1. Deduct <b>${amount} ${currency}</b> from your wallet
+2. Add <b>${amount} ${currency}</b> to the group balance
 3. Update your contribution share
 
 <b>Please wait...</b>
@@ -230,72 +251,48 @@ This will:
       await ctx.reply(processingMessage, { parse_mode: "HTML" });
 
       try {
-        // Call blockchain deposit function
-        const result = await deposit({
-          telegramId: userId,
-          groupPDA: groupPDA.toBase58(),
-          amount: parseFloat(amount)
-        });
-
-        // Fetch actual balance from blockchain
-        const groupAccount = await fetchGroupAccount(groupPDA.toBase58(), userId);
-        const actualBalance = parseFloat(groupAccount.totalContributions) / 1_000_000_000; // Convert lamports to SOL
-
-        // Fetch member's actual contribution from blockchain
-        const userWallet = await User.findOne({ telegram_id: userId });
-        if (!userWallet || !userWallet.solanaWallets || userWallet.solanaWallets.length === 0) {
-          throw new Error("User wallet not found");
-        }
-        const userPubkey = new PublicKey(userWallet.solanaWallets[0].address);
-        const [memberProfilePDA] = deriveMemberProfilePDA(groupPDA, userPubkey);
-        const memberProfile = await fetchMemberProfile(memberProfilePDA.toBase58(), userId);
-        const actualContribution = parseFloat(memberProfile.contributionAmount) / 1_000_000_000; // Convert lamports to SOL
-
-        // Update group balance in database with actual blockchain data
-        await Group.findByIdAndUpdate(group._id, {
-          current_balance: actualBalance
-        });
-
-        // Update member contribution with actual blockchain data
-        const memberIndex = group.members.findIndex(
-          (m: any) => m.user_id === userId
+        // Call blockchain-agnostic deposit function
+        const result = await blockchainService.deposit(
+          ctx,
+          group.group_address,
+          parseFloat(amount)
         );
-        if (memberIndex !== -1) {
-          const updatedMembers = [...group.members];
-          updatedMembers[memberIndex].contribution = actualContribution;
-          await Group.findByIdAndUpdate(group._id, {
-            members: updatedMembers
-          });
-        }
 
-        const successMessage = `
+        if (result.success && result.data) {
+          // Fetch updated group info from blockchain
+          const groupInfo = await blockchainService.fetchGroupInfo(group.group_address);
+
+          const actualBalance = groupInfo.success && groupInfo.data
+            ? groupInfo.data.totalContributions
+            : 0;
+
+          const successMessage = `
 ✅ <b>Deposit Successful!</b>
 
-<b>Amount Deposited:</b> ${amount} SOL
-<b>Your Total Contribution:</b> ${actualContribution.toFixed(2)} SOL
-<b>New Group Balance:</b> ${actualBalance.toFixed(2)} SOL
-<b>Transaction Signature:</b> <code>${result.signature}</code>
+<b>Amount Deposited:</b> ${amount} ${currency}
+<b>New Group Balance:</b> ${actualBalance.toFixed(4)} ${currency}
+<b>Transaction Hash:</b> <code>${result.transactionHash || result.data.hash}</code>
 
 Your contribution has been recorded on-chain and your share in the group has been updated.
 
 Use <code>/balance</code> to see your updated balance.
+          `;
 
-<b>View on Solscan:</b>
-https://solscan.io/tx/${result.signature}
-        `;
+          await ctx.reply(successMessage, { parse_mode: "HTML" });
 
-        await ctx.reply(successMessage, { parse_mode: "HTML" });
-
-        // Clear deposit state
-        depositState.delete(userId);
+          // Clear deposit state
+          depositState.delete(userId);
+        } else {
+          throw new Error(result.error || "Deposit transaction failed");
+        }
 
       } catch (blockchainError: any) {
         console.error("Blockchain deposit error:", blockchainError);
 
         let errorMessage = "❌ <b>Deposit Failed</b>\n\n";
 
-        if (blockchainError.message?.includes("Insufficient SOL")) {
-          errorMessage += "<b>Reason:</b> Insufficient SOL balance in your wallet.\n\n";
+        if (blockchainError.message?.includes("Insufficient")) {
+          errorMessage += `<b>Reason:</b> Insufficient ${currency} balance in your wallet.\n\n`;
           errorMessage += "Please fund your wallet and try again.";
         } else if (blockchainError.message?.includes("below the minimum required")) {
           errorMessage += `<b>Reason:</b> ${blockchainError.message}\n\n`;

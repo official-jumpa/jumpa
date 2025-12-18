@@ -1,24 +1,24 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { createGroup } from "@modules/groups/groupService";
-import {
-  validateGroupCreation,
-  validateAndSanitizeGroupName,
-} from "@modules/groups/groupValidation";
 import getUser from "@modules/users/getUserInfo";
+import {
+  validateAndSanitizeGroupName,
+  validateGroupCreation,
+} from "./functions";
+import { BlockchainServiceFactory } from "@blockchain/core/BlockchainServiceFactory";
+import { BlockchainType } from "@blockchain/core/types/BlockchainType";
 
+/**
+ * Handles the /create command with blockchain parameter
+ * Format: /create blockchain groupName visibility
+ * Example: /create base MyFirstGroup true
+ */
 export class CreateGroupCommand extends BaseCommand {
   name = "create_group";
   description = "Create a new group with custom parameters";
 
   async execute(ctx: Context): Promise<void> {
     try {
-      const args =
-        ctx.message && "text" in ctx.message
-          ? ctx.message.text.split(" ").slice(1)
-          : [];
-      console.log("CreateGroupCommand args:", args);
-      console.log("CreateGroupCommand args length:", args.length);
       const userId = ctx.from?.id;
       const chatId = ctx.chat?.id;
       const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
@@ -27,55 +27,84 @@ export class CreateGroupCommand extends BaseCommand {
         await ctx.reply("❌ Unable to identify user or chat.");
         return;
       }
-      if (!args || args.length === 0) {
-        await ctx.reply(`❌ No arguments provided. Please provide group details.
-
-<b>Usage:</b> /create_group [name] [max_members] [type]
-
-<b>Example:</b> /create_group CryptoCrew 20 public`, { parse_mode: "HTML" });
+      // Check if user is registered
+      try {
+        await getUser(userId, username);
+      } catch (error) {
+        await ctx.reply("❌ Please register first using /start");
         return;
       }
 
-      if (args.length < 2) {
+      // Parse the command text
+      const text = "text" in ctx.message ? ctx.message.text : "";
+      const parts = text.split(" ");
+
+      // Validate command format: /create blockchain groupName visibility
+      if (parts.length !== 4) {
         await ctx.reply(
-          "❌ Usage: `/create_group <name> <max_members> [type]`\n\n" +
-          "**Examples:**\n" +
-          "• `/create_group CryptoCrew 10 public` - Anyone can join\n" +
-          "• `/create_group MoonTraders 25 private` - Requires approval\n" +
-          "• `/create_group DeFiSquad 50` - Defaults to public\n\n" +
-          "**Parameters:**\n" +
-          "• **name**: Group name (max 100 characters)\n" +
-          "• **max_members**: Maximum members (2-100)\n" +
-          "• **type**: `public` or `private` (optional, defaults to public)\n\n" +
-          "**Group Types:**\n" +
-          "• **Public**: Members are auto-approved when they join\n" +
-          "• **Private**: Members need approval from owner/trader after joining",
-          { parse_mode: "Markdown" }
+          `<b>❌ Invalid command format</b>
+
+<b>Usage:</b> <code>/create blockchain groupName visibility</code>
+<b>Examples:</b>
+<code>/create base MyFirstGroup true</code>
+<code>/create solana MyGroup false</code>`,
+          { parse_mode: "HTML" }
         );
         return;
       }
 
-      // Parse arguments
-      const name = args[0];
-      const maxMembers = parseInt(args[1]);
-      const groupType = args[2]?.toLowerCase() || "public";
-      const isPrivate = groupType === "private";
-      // Validate and sanitize input
-      const nameValidation = validateAndSanitizeGroupName(name);
+      const [, blockchain, groupName, visibilityStr] = parts;
+
+      // Validate blockchain parameter
+      const validBlockchains = ["base", "solana"];
+      if (!validBlockchains.includes(blockchain.toLowerCase())) {
+        await ctx.reply(
+          `<b>❌ Invalid blockchain</b>
+
+Supported blockchains: <b>base</b>, <b>solana</b>
+
+<b>Examples:</b>
+<code>/create base MyFirstGroup true</code>
+<code>/create solana MyGroup false</code>`,
+          { parse_mode: "HTML" }
+        );
+        return;
+      }
+
+      // Validate visibility parameter
+      if (visibilityStr !== "true" && visibilityStr !== "false") {
+        await ctx.reply(
+          `<b>❌ Invalid visibility parameter</b>
+
+Visibility must be either <b>true</b> (public) or <b>false</b> (private).
+
+<b>Example:</b> <code>/create ${blockchain} MyFirstGroup true</code>`,
+          { parse_mode: "HTML" }
+        );
+        return;
+      }
+      const isPublic = visibilityStr === "true";
+      const blockchainDisplay =
+        blockchain.charAt(0).toUpperCase() + blockchain.slice(1);
+
+      // Get blockchain service
+      const blockchainType = blockchain.toLowerCase() === "base" ? BlockchainType.BASE : BlockchainType.SOLANA;
+      const blockchainService = BlockchainServiceFactory.getService(blockchainType);
+
+      // Send initial loading message
+      const loadingMsg = await ctx.reply(
+        `⏳ Creating group on ${blockchainDisplay}... This might take up to a minute`
+      );
+      const loadingMsgId = loadingMsg.message_id;
+
+      const nameValidation = validateAndSanitizeGroupName(groupName);
       if (!nameValidation.isValid) {
         await ctx.reply(`❌ ${nameValidation.errors.join(", ")}`);
         return;
       }
 
-      // Validate group type
-      if (groupType !== "public" && groupType !== "private") {
-        await ctx.reply(`❌ Invalid group type. Use 'public' or 'private'.`);
-        return;
-      }
-
       const validation = validateGroupCreation({
         name: nameValidation.sanitized,
-        max_members: maxMembers,
       });
 
       if (!validation.isValid) {
@@ -83,83 +112,81 @@ export class CreateGroupCommand extends BaseCommand {
         return;
       }
 
-      // Auto-register user if not exists (creates wallet automatically)
-      let user;
       try {
-        user = await getUser(userId, username);
+        // Create the group using blockchain-agnostic service
+        const createGrp = await blockchainService.createGroup(ctx, groupName, isPublic);
+        console.log("createGrp", createGrp);
 
-        // If this is a new user, send welcome message
-        if (user && !user.last_seen) {
-          await ctx.reply(
-            `👋 Welcome! I've created a wallet for you.\n\n` +
-            `🔑 **Wallet:** \`${user.wallet_address}\`\n\n` +
-            `⚠️ **Important:** You'll need SOL to create groups. Use \`/fund_wallet\` for instructions.`,
-            { parse_mode: "Markdown" }
+        if (createGrp.success && createGrp.data) {
+          const successMessage = `
+<b>✅ Group Created Successfully!</b>
+
+<b>Group Details:</b>
+• <b>Name:</b> ${groupName}
+• <b>Blockchain:</b> ${blockchainDisplay}
+• <b>Group Type:</b> ${isPublic ? "Public 🌐" : "Private 🔒"}
+• <b>Creator:</b> @${username}
+
+<b>Group Address:</b> <code>${createGrp.data.groupAddress || "N/A"}</code>
+
+<b>Other members can now join using the group address</b>
+
+<b>Transaction Hash:</b> <code>${createGrp.transactionHash || createGrp.data.hash || "Processing..."}</code>
+
+Your group is now active and ready to use! 🚀
+          `;
+          // Replace loading message with success message
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            successMessage,
+            { parse_mode: "HTML" }
+          );
+        } else {
+          const errorMessage = `
+<b>❌ Failed to create group</b>
+
+• <b>Name:</b> ${groupName}
+• <b>Blockchain:</b> ${blockchainDisplay}
+• <b>Visibility:</b> ${isPublic ? "Public 🌐" : "Private 🔒"}
+• <b>Creator:</b> @${username}
+
+<b>Reason:</b> ${createGrp.error || "Unknown error occurred"}
+          `;
+          // Replace loading message with error message
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            errorMessage,
+            { parse_mode: "HTML" }
           );
         }
       } catch (error) {
-        await ctx.reply("❌ Failed to create wallet. Please try /start first.");
-        return;
-      }
-
-      // Send initial message to user
-      const processingMessage = await ctx.reply(
-        "🔄 **Creating group on blockchain...**\n\n" +
-        "⏳ This may take up to 2 minutes. Please wait...",
-        { parse_mode: "Markdown" }
-      );
-
-      try {
-        // Create the group
-        const group = await createGroup({
-          name: nameValidation.sanitized,
-          creator_id: userId,
-          telegram_chat_id: chatId,
-          is_private: isPrivate,
-          max_members: maxMembers,
-        });
-
-        // Delete the processing message
-        try {
-          await ctx.telegram.deleteMessage(ctx.chat!.id, processingMessage.message_id);
-        } catch (deleteError) {
-          console.log("Could not delete processing message:", deleteError);
-        }
-
-        const successMessage = `
-✅ **Group Created Successfully!**
-
-🏠 **Name:** ${group.name}
-👥 **Max Members:** ${group.max_members}
-🔒 **Type:** ${isPrivate ? 'Private (requires approval)' : 'Public (auto-approved)'}
-📊 **Status:** Active
-
-**Group ID:** \`${group._id}\`
-
-**Next Steps:**
-1. Share the Group ID with people you want to invite
-2. They can join using: \`/join ${group._id}\`
-${isPrivate ? '3. Approve new members using: `/approve_member`\n4. Start trading' : '3. Start trading'}
-
-**Quick Actions:**
-• Use \`/info\` to view group details
-• Use \`/members\` to see members
-• Use \`/set_minimum_deposit\` to set minimum deposit amount
-      `;
-
-        await ctx.reply(successMessage, { parse_mode: "Markdown" });
-      } catch (createError) {
-        // Delete the processing message
-        try {
-          await ctx.telegram.deleteMessage(ctx.chat!.id, processingMessage.message_id);
-        } catch (deleteError) {
-          console.log("Could not delete processing message:", deleteError);
-        }
-
-        console.error("Create group error:", createError);
+        console.error("Error creating group:", error);
         const errorMessage =
-          createError instanceof Error ? createError.message : "Unknown error";
-        await ctx.reply(`❌ Failed to create group: ${errorMessage}`);
+          error instanceof Error ? error.message : "Unknown error occurred";
+
+        // Replace loading message with error message
+        try {
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            `<b>❌ An error occurred while creating the group</b>
+
+<b>Error:</b> ${errorMessage}
+
+Please try again later or contact support if the issue persists.`,
+            { parse_mode: "HTML" }
+          );
+        } catch (editError) {
+          // If editing fails, send a new message
+          await ctx.reply(
+            `❌ An error occurred while processing your request: ${errorMessage}`
+          );
+        }
       }
     } catch (error) {
       console.error("Create group error:", error);
@@ -169,4 +196,3 @@ ${isPrivate ? '3. Approve new members using: `/approve_member`\n4. Start trading
     }
   }
 }
-

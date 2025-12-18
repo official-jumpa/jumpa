@@ -1,11 +1,12 @@
 import { Context } from "telegraf";
 import { BaseCommand } from "@bot/commands/BaseCommand";
-import { joinGroup } from "@modules/groups/groupService";
+import Group from "@database/models/group";
 import getUser from "@modules/users/getUserInfo";
+import { BlockchainServiceFactory } from "@blockchain/core/BlockchainServiceFactory";
 
 export class JoinGroupCommand extends BaseCommand {
   name = "join";
-  description = "Join an existing group with a group ID";
+  description = "Join an existing group with a group address";
 
   async execute(ctx: Context): Promise<void> {
     try {
@@ -24,84 +25,151 @@ export class JoinGroupCommand extends BaseCommand {
 
       if (args.length !== 1) {
         await ctx.reply(
-          "❌ Usage: `/join <groupId>`\n\n" +
-            "**Example:**\n" +
-            "• `/join 60d5f1b3e6b3f3b3f3b3f3b3`\n\n" +
-            "**Parameter:**\n" +
-            "• **groupId**: The ID of the group you want to join",
-          { parse_mode: "Markdown" }
+          `<b>❌ Invalid command format</b>
+
+<b>Usage:</b> <code>/join groupAddress</code>
+
+<b>Examples:</b>
+<code>/join 0x1234567890abcdef1234567890abcdef12345678</code>
+
+<b>Parameter:</b>
+• <b>groupAddress:</b> The blockchain address of the group you want to join`,
+          { parse_mode: "HTML" }
         );
         return;
       }
 
-      const groupId = args[0];
+      const groupAddress = args[0];
 
-      // Auto-register user if not exists (creates wallet automatically)
+      // Check if user is registered
       let user;
       try {
         user = await getUser(userId, username);
-        
-        // If this is a new user, send welcome message
-        if (user && !user.last_seen) {
-          await ctx.reply(
-            `👋 Welcome! I've created a wallet for you.\n\n` +
-            `🔑 **Wallet:** 
-${user.wallet_address}
-
-` +
-            `⚠️ **Important:** You'll need SOL to join groups. Use 
-/fund_wallet for instructions.`,
-            { parse_mode: "Markdown" }
-          );
-        }
       } catch (error) {
-        await ctx.reply("❌ Failed to create wallet. Please try /start first.");
+        await ctx.reply("❌ Please register first using /start");
         return;
       }
 
-      const processingMessage = await ctx.reply(
-        "🔄 **Joining group...**\n\n" +
-        "⏳ This may take a moment. Please wait...",
-        { parse_mode: "Markdown" }
+      // Find the group by address
+      const group = await Group.findOne({ group_address: groupAddress });
+      if (!group) {
+        await ctx.reply(
+          `<b>❌ No group found with address:</b> <code>${groupAddress}</code>
+
+Please check the address and try again.`,
+          { parse_mode: "HTML" }
+        );
+        return;
+      }
+
+      // Check if user is already a member
+      const isMember = group.members.some((m: any) => m.user_id === userId);
+      if (isMember) {
+        await ctx.reply(
+          `❌ You are already a member of <b>${group.name}</b>`,
+          { parse_mode: "HTML" }
+        );
+        return;
+      }
+
+      // Get blockchain service based on group address
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(groupAddress);
+      const chainName = blockchainService.getDisplayName();
+      const currency = blockchainService.getNativeCurrency();
+
+      // Send loading message
+      const loadingMsg = await ctx.reply(
+        `⏳ Joining group on ${chainName}... This might take up to a minute`
       );
+      const loadingMsgId = loadingMsg.message_id;
 
       try {
-        const group = await joinGroup({ group_id: groupId, user_id: userId });
+        // Join group using blockchain-agnostic service
+        const joinResult = await blockchainService.joinGroup(ctx, groupAddress);
+        console.log("joinResult", joinResult);
 
-        try {
-          await ctx.telegram.deleteMessage(ctx.chat!.id, processingMessage.message_id);
-        } catch (deleteError) {
-          console.log("Could not delete processing message:", deleteError);
+        if (joinResult.success && joinResult.data) {
+          // Add member to database
+          group.members.push({
+            user_id: userId,
+            joined_at: new Date(),
+          });
+          await group.save();
+
+          // Get contribution from group info
+          const groupInfo = await blockchainService.fetchGroupInfo(groupAddress);
+          const contribution = groupInfo.success && groupInfo.data
+            ? groupInfo.data.minimumDeposit
+            : 0;
+
+          const successMessage = `
+<b>✅ Successfully Joined Group!</b>
+
+<b>Group Name:</b> ${group.name}
+<b>Blockchain:</b> ${chainName}
+
+<b>Group Address:</b> <code>${groupAddress}</code>
+
+<b>💰 Your Contribution:</b> ${contribution.toFixed(4)} ${currency}
+
+<b>👥 Total Members:</b> ${group.members.length}
+
+<b>Transaction Hash:</b> <code>${joinResult.transactionHash || joinResult.data.hash || "N/A"}</code>
+
+You are now a member of this group! 🚀
+          `;
+
+          // Replace loading message with success message
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            successMessage,
+            { parse_mode: "HTML" }
+          );
+        } else {
+          const errorMessage = `
+<b>❌ Failed to join group on ${chainName}</b>
+
+<b>Group:</b> ${group.name}
+<b>Group Address:</b> <code>${groupAddress}</code>
+
+<b>Reason:</b> ${joinResult.error || "Unknown error occurred"}
+
+Please make sure you have enough ${currency} for the minimum deposit and gas fees.
+          `;
+
+          // Replace loading message with error message
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            errorMessage,
+            { parse_mode: "HTML" }
+          );
         }
-
-        const successMessage = `
-✅ **Successfully Joined Group!**
-
-🏠 **Name:** ${group.name}
-👥 **Members:** ${group.members.length}/${group.max_members}
-💰 **Group Type:** ${group.is_private == true ? "Public" : "Private"}
-
-**You are now a member of this group!**
-
-**Quick Actions:**
-• Use 
-/info ${group._id} to view group details
-• Use 
-/members ${group._id} to see members
-      `;
-
-        await ctx.reply(successMessage, { parse_mode: "Markdown" });
-      } catch (joinError) {
-        try {
-          await ctx.telegram.deleteMessage(ctx.chat!.id, processingMessage.message_id);
-        } catch (deleteError) {
-          console.log("Could not delete processing message:", deleteError);
-        }
-
-        console.error("Join group error:", joinError);
+      } catch (error) {
+        console.error(`Error joining ${chainName} group:`, error);
         const errorMessage =
-          joinError instanceof Error ? joinError.message : "Unknown error";
-        await ctx.reply(`❌ Failed to join group: ${errorMessage}`);
+          error instanceof Error ? error.message : "Unknown error occurred";
+
+        try {
+          await ctx.telegram.editMessageText(
+            ctx.chat!.id,
+            loadingMsgId,
+            undefined,
+            `<b>❌ An error occurred while joining the group</b>
+
+<b>Error:</b> ${errorMessage}
+
+Please try again later.`,
+            { parse_mode: "HTML" }
+          );
+        } catch (editError) {
+          await ctx.reply(
+            `❌ An error occurred while joining the group: ${errorMessage}`
+          );
+        }
       }
     } catch (error) {
       console.error("Join group error:", error);

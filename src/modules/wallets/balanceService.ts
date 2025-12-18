@@ -10,17 +10,17 @@ export async function updateGroupBalance(group_id: string) {
       throw new Error("group not found");
     }
 
-    // Calculate total balance from member contributions
-    const totalBalance = group.members.reduce(
-      (total, member) => total + member.contribution,
-      0
-    );
+    // // Calculate total balance from member contributions
+    // const totalBalance = group.members.reduce(
+    //   (total, member) => total + member.contribution,
+    //   0
+    // );
 
-    group.current_balance = totalBalance;
-    await group.save();
+    // group.current_balance = totalBalance;
+    // await group.save();
 
-    console.log(`Group balance updated: ${totalBalance} SOL`);
-    return totalBalance;
+    // console.log(`Group balance updated: ${totalBalance} SOL`);
+    return 0;
   } catch (error) {
     console.error("Error updating group balance:", error);
     throw error;
@@ -213,7 +213,7 @@ export async function trackMemberContribution(
     }
 
     // Update member contribution
-    group.members[memberIndex].contribution = contribution;
+    // group.members[memberIndex].contribution = contribution;
 
     // Update group balance
     await updateGroupBalance(group_id);

@@ -1,7 +1,7 @@
 import { Context, Markup } from "telegraf";
-import { getGroupByChatId, isUserMember } from "@modules/groups/groupService";
-import { exitGroup, deriveGroupPDA, fetchGroupAccount, fetchMemberProfile, deriveMemberProfilePDA } from "@blockchain/solana";
-import { PublicKey } from "@solana/web3.js";
+import { GroupService } from "../services/groupService";
+import { BlockchainServiceFactory } from "@blockchain/core/BlockchainServiceFactory";
+import { BlockchainDetector } from "@blockchain/core/utils";
 import Group from "@database/models/group";
 import User from "@database/models/user";
 
@@ -22,22 +22,26 @@ export class ExitGroupHandlers {
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Check if user is a member
-      const isMember = await isUserMember(group._id.toString(), userId);
+      const isMember = await GroupService.isUserMember(group._id.toString(), userId);
       if (!isMember) {
         await ctx.reply("❌ You are not a member of this group.");
         return;
       }
 
+      // Get blockchain service to determine currency
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
+
       // Get member's contribution
       const member = group.members.find((m: any) => m.user_id === userId);
-      const memberContribution = member?.contribution || 0;
+      const memberContribution = 0;
 
       const warningMessage = `
 🚪 <b>Exit Group - ${group.name}</b>
@@ -51,8 +55,8 @@ Exiting the group will:
 • You cannot rejoin without an invitation
 
 <b>Your Details:</b>
-• <b>Your Contribution:</b> ${memberContribution.toFixed(4)} SOL
-• <b>Role:</b> ${member?.role || "Member"}
+• <b>Your Contribution:</b> ${memberContribution.toFixed(4)} ${currency}
+• <b>Role:</b>
 
 <b>Note:</b> Exit penalties may apply. Check group settings for details.
 
@@ -92,36 +96,29 @@ Are you sure you want to exit this group?
       }
 
       // Get group
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
       }
 
       // Verify user is a member
-      const isMember = await isUserMember(group._id.toString(), userId);
+      const isMember = await GroupService.isUserMember(group._id.toString(), userId);
       if (!isMember) {
         await ctx.reply("❌ You are not a member of this group.");
         return;
       }
 
-      // Get the group creator's Solana wallet to derive the PDA
-      const creator = await User.findOne({ telegram_id: group.creator_id });
-      if (!creator || !creator.solanaWallets || creator.solanaWallets.length === 0) {
-        await ctx.reply(
-          "❌ <b>Group creator's wallet not found.</b>\n\n" +
-          "The group creator needs to have a Solana wallet registered.",
-          { parse_mode: "HTML" }
-        );
-        return;
-      }
-
-      const creatorPubkey = new PublicKey(creator.solanaWallets[0].address);
+      // Get blockchain service
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
+      const chainName = blockchainService.getDisplayName();
 
       const processingMessage = `
 ⏳ <b>Exiting Group</b>
 
 <b>Group:</b> ${group.name}
+<b>Blockchain:</b> ${chainName}
 
 <b>Status:</b> Processing...
 <b>Please wait...</b>
@@ -130,53 +127,52 @@ Are you sure you want to exit this group?
       await ctx.reply(processingMessage, { parse_mode: "HTML" });
 
       try {
-        // Call blockchain exit group function
-        const result = await exitGroup({
-          telegramId: userId,
-          groupName: group.name,
-          ownerPubkey: creatorPubkey.toBase58(),
-        });
+        // Call blockchain-agnostic leave group function
+        const result = await blockchainService.leaveGroup(ctx, group.group_address);
 
-        // Fetch updated group balance from blockchain
-        const [groupPDA] = deriveGroupPDA(group.name, creatorPubkey);
-        const groupAccount = await fetchGroupAccount(groupPDA.toBase58(), userId);
-        const actualBalance = parseFloat(groupAccount.totalContributions) / 1_000_000_000;
+        if (result.success && result.data) {
+          // Fetch updated group info from blockchain
+          const groupInfo = await blockchainService.fetchGroupInfo(group.group_address);
+          const actualBalance = groupInfo.success && groupInfo.data
+            ? groupInfo.data.totalContributions
+            : 0;
 
-        // Remove member from database
-        const updatedMembers = group.members.filter((m: any) => m.user_id !== userId);
-        await Group.findByIdAndUpdate(group._id, {
-          members: updatedMembers,
-          current_balance: actualBalance,
-        });
+          // Remove member from database
+          const updatedMembers = group.members.filter((m: any) => m.user_id !== userId);
+          await Group.findByIdAndUpdate(group._id, {
+            members: updatedMembers,
+            current_balance: actualBalance,
+          });
 
-        const successMessage = `
+          const successMessage = `
 ✅ <b>Successfully Exited Group!</b>
 
 <b>Group:</b> ${group.name}
+<b>Blockchain:</b> ${chainName}
 <b>Status:</b> You have been removed from the group
-<b>Transaction Signature:</b> <code>${result.signature}</code>
+<b>Transaction Hash:</b> <code>${result.transactionHash || result.data.hash}</code>
 
 Your contribution has been withdrawn and sent back to your wallet.
 
 Use <code>/wallet</code> to check your updated balance.
+          `;
 
-<b>View on Solscan:</b>
-https://solscan.io/tx/${result.signature}
-        `;
-
-        await ctx.reply(successMessage, { parse_mode: "HTML" });
+          await ctx.reply(successMessage, { parse_mode: "HTML" });
+        } else {
+          throw new Error(result.error || "Leave group transaction failed");
+        }
 
       } catch (blockchainError: any) {
         console.error("Blockchain exit group error:", blockchainError);
 
         let errorMessage = "❌ <b>Failed to Exit Group</b>\n\n";
 
-        // Check for Anchor error code first (most specific)
+        // Check for lock period error (Solana Anchor error code)
         if (blockchainError.error?.errorCode?.number === 6013) {
           errorMessage += "<b>Reason:</b> Lock period is still active\n\n";
-          errorMessage += "You must wait for <b>7 days</b> after joining before you can exit the group.\n\n";
-        } else if (blockchainError.message?.includes("Insufficient SOL")) {
-          errorMessage += "<b>Reason:</b> Insufficient SOL balance for transaction fees.\n\n";
+          errorMessage += "You must wait for the required lock period after joining before you can exit the group.\n\n";
+        } else if (blockchainError.message?.includes("Insufficient")) {
+          errorMessage += `<b>Reason:</b> Insufficient ${currency} balance for transaction fees.\n\n`;
           errorMessage += "Please fund your wallet and try again.";
         } else if (blockchainError.message?.includes("User not found")) {
           errorMessage += "<b>Reason:</b> User account not found.\n\n";

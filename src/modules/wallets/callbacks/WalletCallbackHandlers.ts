@@ -13,26 +13,35 @@ import { generateTransactionReceipt } from "@shared/utils/receiptGenerator";
 
 export class WalletCallbackHandlers {
     static async handleDeposit(ctx: Context): Promise<void> {
-        const telegramId = ctx.from?.id;
-        const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+      const telegramId = ctx.from?.id;
+      const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
 
-        if (!telegramId) {
-            await ctx.answerCbQuery("❌ Unable to identify your account.");
-            return;
-        }
+      if (!telegramId) {
+        await ctx.answerCbQuery("❌ Unable to identify your account.");
+        return;
+      }
 
-        const user = await getUser(telegramId, username);
+      const user = await getUser(telegramId, username);
 
-        if (!user) {
-            await ctx.reply(
-                "❌ User not found. Please use /start to register first."
-            );
-            return;
-        }
+      if (!user) {
+        await ctx.reply(
+          "❌ User not found. Please use /start to register first."
+        );
+        return;
+      }
 
-        const message = `Fund your wallet by sending SOL to your wallet address:\n\n\`${user.solanaWallets[0].address}\``;
+      const message = `The deposit feature is still in progress
+        
+        `;
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback("Wallet1", "coming_soon_001"),
+          Markup.button.callback("Set Withdrawal Pin", "set_withdrawal_pin"),
+        ],
+        [Markup.button.callback("🔙 Back", "back_to_menu")],
+      ]);
 
-        await ctx.reply(message, { parse_mode: "Markdown" });
+      await sendOrEdit(ctx, message, { parse_mode: "HTML", ...keyboard });
     }
 
     static async handleWithdraw(ctx: Context): Promise<void> {
@@ -41,7 +50,7 @@ export class WalletCallbackHandlers {
                 Markup.button.callback("🏧To NGN Bank Account", "withdraw_to_bank"),
                 Markup.button.callback("Set Withdrawal Pin", "set_withdrawal_pin"),
             ], [
-                Markup.button.callback("🔙 Back to Main Menu", "back_to_menu"),
+                Markup.button.callback("🔙 Back", "back_to_menu"),
             ],]
         );
 

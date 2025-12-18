@@ -1,12 +1,16 @@
 import { Context } from "telegraf";
-import { Markup } from "telegraf";
 import getUser from "@modules/users/getUserInfo";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
+import {
+  buildPrivateChatKeyboard,
+  buildGroupChatKeyboard,
+  buildWalletSetupKeyboard,
+} from "./keyboardBuilders";
 
 /**
- * Display the main menu with user's wallet balances
+ * Display the main menu with user's wallet balances.
  * Used by both StartCommand and MenuHandlers for consistency
  * @param ctx - Telegram context
  * @param telegramId - User's Telegram ID
@@ -43,16 +47,7 @@ You need to set up a wallet to trade and perform P2P transactions.
 
 Choose an option below to get started:`;
 
-    const keyboard = Markup.inlineKeyboard([
-      [
-        Markup.button.callback(" Generate Solana Wallet", "generate_wallet"),
-        Markup.button.callback(" Import Solana Wallet", "import_wallet"),
-      ],
-      [
-        Markup.button.callback("Generate EVM Wallet", "generate_evm_wallet"),
-        Markup.button.callback("Import EVM Wallet", "add_wallet_evm"),
-      ],
-    ]);
+    const keyboard = buildWalletSetupKeyboard();
 
     try {
       await sendOrEdit(ctx, setupMessage, {
@@ -134,27 +129,14 @@ ETH: ${evmBalances.BASE.eth.toFixed(
   welcomeMessage += `
 `;
 
-  // Create inline keyboard for quick actions
-  const keyboard = Markup.inlineKeyboard([
-    [
-      Markup.button.callback(" View Wallet", "view_wallet"),
-      Markup.button.callback(" My Profile", "view_profile"),
-    ],
-    [
-      Markup.button.callback(" Create Group", "create_group"),
-      Markup.button.callback(" Join  Group", "join"),
-    ],
-    [Markup.button.callback(" Group Info", "group_info")],
-    [
-      Markup.button.callback("Withdraw", "withdraw_sol"),
-      Markup.button.callback("Referral", "referral"),
-    ],
-    [
-      Markup.button.callback(" Help & Commands", "show_help"),
-      Markup.button.callback(" About Jumpa", "show_about"),
-    ],
-    [Markup.button.callback("🔄 Refresh", "back_to_menu")],
-  ]);
+  // Detect chat type and build appropriate keyboard
+  const chatType = ctx.chat?.type;
+  const isGroupChat = chatType === "group" || chatType === "supergroup";
+
+  // Create inline keyboard based on chat type
+  const keyboard = isGroupChat
+    ? buildGroupChatKeyboard()
+    : buildPrivateChatKeyboard();
 
   try {
     await sendOrEdit(ctx, welcomeMessage, {

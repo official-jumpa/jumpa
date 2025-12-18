@@ -1,7 +1,7 @@
 import { Context, Markup } from "telegraf";
 import { displayMainMenu } from "@modules/onboarding/utils/displayMainMenu";
 import { sendOrEdit } from "@shared/utils/messageHelper";
-import { getGroupByChatId } from "@modules/groups/groupService";
+import { GroupService } from "@modules/groups/services/groupService";
 
 export class MenuHandlers {
   // Handle back to main menu callback
@@ -42,7 +42,7 @@ export class MenuHandlers {
       }
 
       // Check if this chat has a group
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
 
       if (!group) {
         // No group in this chat - show create/join options
@@ -78,8 +78,8 @@ export class MenuHandlers {
 
 **Group ID:** \`${group._id}\`
 **Type:** ${group.is_private ? "🔒 Private (requires approval)" : "🌐 Public (auto-approved)"}
-**Status:** ${group.status === "active" ? "🟢 Active" : "🔴 Ended"}
-**Balance:** ${group.current_balance || 0} SOL
+**Status:** ${(group as any).status === "active" ? "🟢 Active" : "🔴 Ended"}
+**Balance:** ${(group as any).current_balance || 0} SOL
       `;
 
       const keyboard = Markup.inlineKeyboard([

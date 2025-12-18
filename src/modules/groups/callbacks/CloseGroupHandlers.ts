@@ -1,7 +1,7 @@
 import { Context, Markup } from "telegraf";
-import { getGroupByChatId, isUserTrader } from "@modules/groups/groupService";
-import { closeGroup, deriveGroupPDA } from "@blockchain/solana";
-import { PublicKey } from "@solana/web3.js";
+import { GroupService } from "../services/groupService";
+import { BlockchainServiceFactory } from "@blockchain/core/BlockchainServiceFactory";
+import { BlockchainDetector } from "@blockchain/core/utils";
 import Group from "@database/models/group";
 import User from "@database/models/user";
 
@@ -22,7 +22,7 @@ export class CloseGroupHandlers {
       }
 
       // Get group for this chat
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -38,15 +38,9 @@ export class CloseGroupHandlers {
         return;
       }
 
-      // Check if group is already ended
-      if (group.status === "ended") {
-        await ctx.reply(
-          "❌ <b>Group Already Closed</b>\n\n" +
-          "This group has already been closed.",
-          { parse_mode: "HTML" }
-        );
-        return;
-      }
+      // Get blockchain service to determine currency
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
 
       const warningMessage = `
 🔴 <b>Close Group - ${group.name}</b>
@@ -61,8 +55,8 @@ Closing the group will:
 
 <b>Group Details:</b>
 • <b>Name:</b> ${group.name}
-• <b>Members:</b> ${group.members.length}/${group.max_members}
-• <b>Balance:</b> ${group.current_balance || 0} SOL
+• <b>Members:</b>
+• <b>Balance:</b> ${0} ${currency}
 
 Are you sure you want to close this group?
       `;
@@ -100,7 +94,7 @@ Are you sure you want to close this group?
       }
 
       // Get group
-      const group = await getGroupByChatId(chatId);
+      const group = await GroupService.getGroupByChatId(chatId);
       if (!group) {
         await ctx.reply("❌ No group found in this chat.");
         return;
@@ -112,30 +106,16 @@ Are you sure you want to close this group?
         return;
       }
 
-      // Check if already closed
-      if (group.status === "ended") {
-        await ctx.reply("❌ This group has already been closed.");
-        return;
-      }
-
-      // Get the group creator's Solana wallet to derive the PDA
-      const creator = await User.findOne({ telegram_id: group.creator_id });
-      if (!creator || !creator.solanaWallets || creator.solanaWallets.length === 0) {
-        await ctx.reply(
-          "❌ <b>Group creator's wallet not found.</b>\n\n" +
-          "The group creator needs to have a Solana wallet registered.",
-          { parse_mode: "HTML" }
-        );
-        return;
-      }
-
-      const creatorPubkey = new PublicKey(creator.solanaWallets[0].address);
-      const [groupPDA] = deriveGroupPDA(group.name, creatorPubkey);
+      // Get blockchain service
+      const blockchainService = BlockchainServiceFactory.detectAndGetService(group.group_address);
+      const currency = blockchainService.getNativeCurrency();
+      const chainName = blockchainService.getDisplayName();
 
       const processingMessage = `
 ⏳ <b>Closing Group</b>
 
 <b>Group:</b> ${group.name}
+<b>Blockchain:</b> ${chainName}
 <b>Status:</b> Processing...
 
 <b>Please wait...</b>
@@ -144,44 +124,43 @@ Are you sure you want to close this group?
       await ctx.reply(processingMessage, { parse_mode: "HTML" });
 
       try {
-        // Call blockchain close group function
-        const result = await closeGroup({
-          telegramId: userId,
-          groupPDA: groupPDA.toBase58(),
-        });
+        // Call blockchain-agnostic close group function
+        const result = await blockchainService.closeGroup(ctx, group.group_address);
 
-        // Update group status in database
-        await Group.findByIdAndUpdate(group._id, {
-          status: "ended"
-        });
+        if (result.success && result.data) {
+          // Update group status in database
+          await Group.findByIdAndUpdate(group._id, {
+            status: "ended"
+          });
 
-        const successMessage = `
+          const successMessage = `
 ✅ <b>Group Closed Successfully!</b>
 
 <b>Group:</b> ${group.name}
+<b>Blockchain:</b> ${chainName}
 <b>Status:</b> Ended
-<b>Final Balance:</b> ${group.current_balance || 0} SOL
-<b>Transaction Signature:</b> <code>${result.signature}</code>
+<b>Final Balance:</b> ${0} ${currency}
+<b>Transaction Hash:</b> <code>${result.transactionHash || result.data.hash}</code>
 
 The group has been permanently closed on the blockchain.
 
 <b>Next Steps for Members:</b>
 • Members should use <code>/exit</code> to withdraw their funds
 • No further deposits or transactions are allowed
+          `;
 
-<b>View on Solscan:</b>
-https://solscan.io/tx/${result.signature}
-        `;
-
-        await ctx.reply(successMessage, { parse_mode: "HTML" });
+          await ctx.reply(successMessage, { parse_mode: "HTML" });
+        } else {
+          throw new Error(result.error || "Close group transaction failed");
+        }
 
       } catch (blockchainError: any) {
         console.error("Blockchain close group error:", blockchainError);
 
         let errorMessage = "❌ <b>Failed to Close Group</b>\n\n";
 
-        if (blockchainError.message?.includes("Insufficient SOL")) {
-          errorMessage += "<b>Reason:</b> Insufficient SOL balance for transaction fees.\n\n";
+        if (blockchainError.message?.includes("Insufficient")) {
+          errorMessage += `<b>Reason:</b> Insufficient ${currency} balance for transaction fees.\n\n`;
           errorMessage += "Please fund your wallet and try again.";
         } else if (blockchainError.message?.includes("User not found")) {
           errorMessage += "<b>Reason:</b> User account not found.\n\n";

@@ -22,32 +22,12 @@ const groupSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    max_members: {
-      type: Number,
-      required: true,
-      min: 2,
-      max: 100,
-    },
-    status: {
-      type: String,
-      enum: ["active", "ended"],
-      default: "active",
-    },
     // Embedded members array - simplified!
     members: [
       {
         user_id: {
           type: Number, // telegram_id
           required: true,
-        },
-        role: {
-          type: String,
-          enum: ["member", "trader"],
-          default: "member",
-        },
-        contribution: {
-          type: Number,
-          default: 0,
         },
         joined_at: {
           type: Date,
@@ -140,22 +120,20 @@ const groupSchema = new mongoose.Schema(
         },
       },
     ],
-    current_balance: {
-      type: Number,
-      default: 0,
-    },
     // On-chain data
-    onchain_group_address: {
+    blockchain_type: {
       type: String,
-      required: false,
+      enum: ["base", "solana"],
+      required: true,
+      index: true,
+    },
+    group_address: {
+      type: String,
+      required: true,
     },
     onchain_tx_signature: {
       type: String,
       required: false,
-    },
-    created_at: {
-      type: Date,
-      default: Date.now,
     },
   },
   {
@@ -167,6 +145,8 @@ const groupSchema = new mongoose.Schema(
 groupSchema.index({ creator_id: 1 });
 groupSchema.index({ status: 1 });
 groupSchema.index({ "members.user_id": 1 });
+groupSchema.index({ blockchain_type: 1, telegram_chat_id: 1 });
+groupSchema.index({ blockchain_type: 1, group_address: 1 }, { unique: true });
 
 const Group = mongoose.model("Group", groupSchema);
 export default Group;

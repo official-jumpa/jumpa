@@ -5,6 +5,9 @@
  * All functions are properly typed and can be imported individually or as a group.
  */
 
+// ===== SERVICE =====
+export { SolanaBlockchainService } from "./SolanaBlockchainService";
+
 // ===== UTILITIES =====
 export {
   getProviderForUser,
