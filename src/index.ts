@@ -1,6 +1,6 @@
 import { Telegraf, Context } from "telegraf";
-import { CommandManager } from "@bot/commands/CommandManager";
-import { config } from "@core/config/config";
+import { CommandManager } from "@telegram/commands/CommandManager";
+import { config } from "@core/config/environment";
 import connectToDatabase from "@core/config/database";
 
 // Initialize the bot with token from environment variables

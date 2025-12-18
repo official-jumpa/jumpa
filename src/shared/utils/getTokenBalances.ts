@@ -1,5 +1,5 @@
-import { config } from "@core/config/config";
-import User from "@database/models/user";
+import { config } from "@core/config/environment";
+import User from "@core/database/models/user";
 
 // Use Alchemy RPC endpoint (fallback to solMainnet if not set)
 const RPC_ENDPOINT = config.alchemyMainnetRpc;

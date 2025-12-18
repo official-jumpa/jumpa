@@ -4,8 +4,8 @@
  */
 
 import { Context } from "telegraf";
-import { IBlockchainService } from "../core/interfaces/IBlockchainService";
-import { BlockchainType } from "../core/types/BlockchainType";
+import { IBlockchainService } from "../shared/interfaces/IBlockchainService";
+import { BlockchainType } from "../shared/types/BlockchainType";
 import {
   BlockchainResponse,
   GroupData,
@@ -14,8 +14,8 @@ import {
   LeaveData,
   DepositData,
   CloseData
-} from "../core/types/CommonTypes";
-import { BlockchainDetector, ResponseMapper, BlockchainErrorHandler } from "../core/utils";
+} from "../shared/types/CommonTypes";
+import { BlockchainDetector, ResponseMapper, BlockchainErrorHandler } from "../shared/utils";
 
 // Import existing Base blockchain functions
 import { createBaseGroup } from "./createGroup";

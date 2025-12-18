@@ -2,11 +2,11 @@
 import { Contract, ethers, Wallet } from "ethers";
 import { jumpaFactoryProxyAbi } from "./JumpaFactoryProxyAbi";
 import { jumpaFactoryAbi } from "./JumpaFactoryAbi";
-import getUser from "@modules/users/getUserInfo";
+import getUser from "@features/users/getUserInfo";
 import { Context } from "telegraf";
 import { decryptPrivateKey } from "@shared/utils/encryption";
-import { config } from "@core/config/config";
-import Group from "@database/models/group";
+import { config } from "@core/config/environment";
+import Group from "@core/database/models/group";
 // ‼️ use proxy address but factory abi to read data
 
 const provider = new ethers.JsonRpcProvider(config.evmRpcUrl);

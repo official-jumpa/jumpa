@@ -4,8 +4,8 @@
  */
 
 import { Context } from "telegraf";
-import { IBlockchainService } from "../core/interfaces/IBlockchainService";
-import { BlockchainType } from "../core/types/BlockchainType";
+import { IBlockchainService } from "../shared/interfaces/IBlockchainService";
+import { BlockchainType } from "../shared/types/BlockchainType";
 import {
   BlockchainResponse,
   GroupData,
@@ -14,9 +14,9 @@ import {
   LeaveData,
   DepositData,
   CloseData
-} from "../core/types/CommonTypes";
-import { BlockchainDetector, ResponseMapper, BlockchainErrorHandler } from "../core/utils";
-import User from "@database/models/user";
+} from "../shared/types/CommonTypes";
+import { BlockchainDetector, ResponseMapper, BlockchainErrorHandler } from "../shared/utils";
+import User from "@core/database/models/user";
 
 // Import existing Solana blockchain functions
 import { createGroup, CreateGroupParams } from "./createGroup";

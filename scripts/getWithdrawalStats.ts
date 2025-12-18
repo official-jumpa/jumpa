@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import Withdrawal from "../src/database/models/withdrawal";
-import { config } from "../src/core/config/config";
+import Withdrawal from "../src/core/database/models/withdrawal";
+import { config } from "../src/core/config/environment";
 
 /**
  * Calculate and display withdrawal statistics
@@ -119,7 +119,7 @@ async function getWithdrawalStats() {
       console.log("-".repeat(70));
       statusBreakdown.forEach((item) => {
         console.log(`\n   Status: ${item._id || "Unknown"}`);
-        console.log(`      Count: ${item.count}`);        console.log(`      Fiat Payout: ₦${item.totalFiatPayoutAmount.toFixed(2)}`);
+        console.log(`      Count: ${item.count}`); console.log(`      Fiat Payout: ₦${item.totalFiatPayoutAmount.toFixed(2)}`);
       });
       console.log("");
     }

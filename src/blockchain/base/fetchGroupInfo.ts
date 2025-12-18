@@ -1,6 +1,6 @@
 //read the group data from the JumpaGroup contract
 import { Contract, ethers } from "ethers";import { jumpaGroupAbi } from "./JumpaGroupAbi";
-import { config } from "@core/config/config";
+import { config } from "@core/config/environment";
 
 const provider = new ethers.JsonRpcProvider(config.evmRpcUrl);
 

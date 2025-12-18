@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import Withdrawal from "../src/database/models/withdrawal";
-import { config } from "../src/core/config/config";
+import Withdrawal from "../src/core/database/models/withdrawal";
+import { config } from "../src/core/config/environment";
 
 // Configuration
 const YARA_API_BASE_URL = "https://api.yara.cash/widget";

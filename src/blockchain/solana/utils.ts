@@ -3,7 +3,7 @@ import { AnchorProvider, Program, Wallet, Idl } from "@coral-xyz/anchor";
 import { getSolanaConnection } from "@shared/utils/rpcConfig";
 import { decryptPrivateKey } from "@shared/utils/encryption";
 import idlJson from "./idl.json";
-import User from "@database/models/user";
+import User from "@core/database/models/user";
 
 // Program ID from IDL
 export const PROGRAM_ID = new PublicKey(idlJson.address);

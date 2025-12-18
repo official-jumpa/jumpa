@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { config } from "@core/config/config";  
+import { config } from "@core/config/environment";  
 
 const ENCRYPTION_KEY = config.encryptionKey;
 const ALGORITHM = "aes-256-gcm";

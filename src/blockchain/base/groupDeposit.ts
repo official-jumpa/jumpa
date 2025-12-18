@@ -1,8 +1,8 @@
 //Deposit to a JumpaGroup contract
 import { Contract, ethers, Wallet } from "ethers";
 import { jumpaGroupAbi } from "./JumpaGroupAbi";
-import { config } from "@core/config/config";
-import getUser from "@modules/users/getUserInfo";
+import { config } from "@core/config/environment";
+import getUser from "@features/users/getUserInfo";
 import { Context } from "telegraf";
 import { decryptPrivateKey } from "@shared/utils/encryption";
 import { getMinimumDeposit } from "./getGroupConstants";
