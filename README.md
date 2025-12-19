@@ -1,6 +1,6 @@
 # Jumpa - Collaborative Crypto Trading Bot
 
-A Telegram-based collaborative trading bot that enables users to create groups for collective cryptocurrency trading on Solana and EVM blockchains.
+Jumpa is a Telegram-based collaborative trading bot that enables users to create groups for collective cryptocurrency trading on Solana and EVM blockchains.
 
 ## 🌟 Features
 
@@ -15,14 +15,16 @@ A Telegram-based collaborative trading bot that enables users to create groups f
 ## 🛠️ Tech Stack
 
 ### Backend
+
 - **Runtime**: Node.js with TypeScript
 - **Bot Framework**: Telegraf (Telegram Bot API)
 - **Database**: MongoDB with Mongoose ODM
-- **Blockchain**: 
+- **Blockchain**:
   - Solana (web3.js, Anchor, SPL Token)
   - EVM (ethers.js)
 
 ### Key Libraries
+
 - `@solana/web3.js` - Solana blockchain interaction
 - `@coral-xyz/anchor` - Solana smart contract framework
 - `telegraf` - Telegram bot development
@@ -35,29 +37,67 @@ A Telegram-based collaborative trading bot that enables users to create groups f
 jumpa/
 ├── src/                          # Source code
 │   ├── index.ts                  # Application entry point
-│   ├── core/                     # Core configuration
-│   │   └── config/               # Environment & database config
+│   ├── core/                     # Core configuration & infrastructure
+│   │   ├── config/               # Environment configuration
+│   │   └── database/             # Database connection & models
+│   │       └── models/           # Mongoose schemas (User, Group, Wallet, etc.)
 │   ├── blockchain/               # Blockchain integrations
-│   │   └── solana/               # Solana & Anchor services
-│   ├── database/                 # Data layer
-│   │   └── models/               # Mongoose schemas
-│   ├── modules/                  # Feature modules
-│   │   ├── onboarding/           # User onboarding
+│   │   ├── solana/               # Solana & Anchor services
+│   │   ├── base/                 # Base chain integration
+│   │   └── shared/               # Shared blockchain utilities
+│   │       ├── interfaces/       # Common interfaces
+│   │       ├── types/            # Type definitions
+│   │       └── utils/            # Shared blockchain helpers
+│   ├── features/                 # Feature modules (Domain-Driven Design)
+│   │   ├── onboarding/           # User registration & onboarding
+│   │   │   ├── commands/         # /start command
+│   │   │   ├── callbacks/        # Callback query handlers
+│   │   │   ├── handlers/         # Message handlers
+│   │   │   ├── services/         # Business logic
+│   │   │   └── utils/            # Helper functions
 │   │   ├── wallets/              # Wallet management
+│   │   │   ├── commands/         # /wallet, /import commands
+│   │   │   ├── callbacks/        # Wallet action handlers
+│   │   │   ├── services/         # Balance, creation services
+│   │   │   └── utils/            # Wallet utilities
 │   │   ├── groups/               # Group operations
-│   │   ├── governance/           # Polls & voting
+│   │   │   ├── commands/         # /create_group, /join, /leave commands
+│   │   │   ├── callbacks/        # Group action handlers
+│   │   │   ├── services/         # Group management logic
+│   │   │   └── utils/            # Group helpers
 │   │   ├── trading/              # Token trading
-│   │   ├── payments/             # Fiat withdrawals
-│   │   └── users/                # User services
-│   ├── bot/                      # Bot infrastructure
-│   │   ├── commands/             # Command handling
-│   │   └── callbacks/            # Callback handlers
-│   └── shared/                   # Shared utilities
-│       ├── utils/                # Helper functions
-│       └── state/                # State management
+│   │   │   ├── commands/         # /buy, /sell commands
+│   │   │   ├── callbacks/        # Trade confirmation handlers
+│   │   │   ├── services/         # Trading logic & execution
+│   │   │   └── utils/            # Trade utilities
+│   │   ├── payments/             # Fiat on/off ramp
+│   │   │   ├── commands/         # /withdraw command
+│   │   │   ├── callbacks/        # Payment flow handlers
+│   │   │   ├── services/         # Payment gateway integration
+│   │   │   └── utils/            # Payment helpers & conversions
+│   │   ├── users/                # User management
+│   │   │   ├── commands/         # User-related commands
+│   │   │   ├── callbacks/        # User action handlers
+│   │   │   ├── services/         # User services
+│   │   │   └── utils/            # User utilities
+│   │   └── referrals/            # Referral system
+│   │       ├── commands/         # Referral commands
+│   │       ├── callbacks/        # Referral handlers
+│   │       ├── services/         # Referral logic
+│   │       └── utils/            # Referral utilities
+│   ├── telegram/                 # Telegram bot infrastructure
+│   │   ├── commands/             # Command manager & registration
+│   │   └── callbacks/            # Callback query router
+│   ├── shared/                   # Shared utilities
+│   │   ├── utils/                # Helper functions (encryption, formatting)
+│   │   └── state/                # In-memory state management
+│   └── images/                   # Static assets
 ├── docs/                         # Documentation
-├── dist/                         # Compiled output (gitignored)
-└── node_modules/                 # Dependencies (gitignored)
+│   ├── ARCHITECTURE_SUMMARY.md   # Architecture overview
+│   ├── ON_CHAIN_COMMANDS_GUIDE.md # On-chain integration guide
+│   ├── TESTING_GUIDE.md          # Testing instructions
+│   └── debug/                    # Debug logs & artifacts
+├── scripts/                      # Utility scripts
 ```
 
 ## 🚀 Installation
@@ -74,19 +114,22 @@ jumpa/
 ### Setup
 
 1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/arkade-01/jumpa.git
+   git clone https://github.com/official-jumpa/jumpa.git
    cd jumpa
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment variables**
-   
+
    Create a `.env` file in the root directory:
+
    ```env
    # Bot Configuration
    BOT_TOKEN=your_telegram_bot_token
@@ -109,6 +152,8 @@ jumpa/
 
    # Security
    ENCRYPTION_KEY=your_256_bit_hex_key
+   GEMINI_API_KEY="xxxx"
+   PAYSTACK_BEARER_KEY="xxxxx"
    ```
 
 4. **Generate encryption key**
@@ -120,46 +165,49 @@ jumpa/
 ## 💻 Development
 
 ### Run in development mode
+
 ```bash
 npm run dev
 ```
 
 ### Build the project
+
 ```bash
 npm run build
 ```
 
 ### Run in production mode
+
 ```bash
 npm run build
 npm start
 ```
 
-### Watch mode (auto-compile)
-```bash
-npm run watch
-```
-
 ## 🏗️ Architecture
 
 ### Path Aliases
+
 The project uses TypeScript path aliases for clean imports:
 
 ```typescript
-import { config } from '@core/config/config';
-import { User } from '@database/models/user';
-import { WalletService } from '@modules/wallets/balanceService';
-import { encryption } from '@shared/utils/encryption';
+import { config } from "@core/config/config";
+import { User } from "@database/models/user";
+import { WalletService } from "@modules/wallets/balanceService";
+import { encryption } from "@shared/utils/encryption";
 ```
 
-### Module Organization
+### Feature Organization
+
 Features are organized by domain (Domain-Driven Design):
-- Each module contains its commands, callbacks, and services
+
+- Each feature contains its commands, callbacks, and utils
 - Clear separation of concerns
 - Easy to test and maintain
 
 ### State Management
+
 In-memory state management for multi-step user flows:
+
 - User actions (wallet import, PIN setup)
 - Withdrawal flows
 - Trade confirmations
@@ -173,6 +221,7 @@ In-memory state management for multi-step user flows:
 ## 🚢 Deployment
 
 ### Deploy to Railway
+
 ```bash
 # Railway will automatically:
 # 1. Run npm install
@@ -181,12 +230,15 @@ In-memory state management for multi-step user flows:
 ```
 
 ### Deploy to Render/Heroku
+
 Set the following:
+
 - **Build Command**: `npm run build`
 - **Start Command**: `npm start`
 - **Environment Variables**: Add all variables from `.env`
 
 ### Environment Variables Required
+
 - `BOT_TOKEN` - Telegram bot token
 - `DB_URL` - MongoDB connection string
 - `RPC_URL` - Solana RPC endpoint
@@ -210,6 +262,7 @@ See [Testing Guide](docs/TESTING_GUIDE.md) for detailed testing instructions.
 ## 📋 Available Commands
 
 ### User Commands
+
 - `/start` - Register and create wallet
 - `/wallet` - Manage wallets
 - `/create_group` - Create/manage groups
@@ -219,6 +272,7 @@ See [Testing Guide](docs/TESTING_GUIDE.md) for detailed testing instructions.
 - `/help` - Show help message
 
 ### Group Commands
+
 - `/create_group` - Create new group
 - `/join` - Join existing group
 - `/leave_group` - Leave group
@@ -237,18 +291,15 @@ See [Testing Guide](docs/TESTING_GUIDE.md) for detailed testing instructions.
 
 ISC License
 
-## 👥 Author
+## 👥 Meet the Team
 
-**arkade**
+Fullstack Developer - [Damian Olebuezie](https://github.com/czDamian)
+CEO - Anita Ndukwe
+
+**Ndukwe Anita**
 
 ## 🐛 Issues
 
-Report issues at: https://github.com/arkade-01/jumpa/issues
-
-## 🙏 Acknowledgments
-
-- Solana Foundation for blockchain infrastructure
-- Anchor framework for smart contract development
-- Telegraf community for bot framework support
+Report issues at: https://github.com/official-jumpa/jumpa/issues
 
 ---
