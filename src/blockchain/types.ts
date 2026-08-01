@@ -5,6 +5,7 @@
 export enum BlockchainType {
   BASE = "base",
   SOLANA = "solana",
+  STELLAR = "stellar"
 }
 
 export interface BlockchainConfig {
@@ -31,6 +32,13 @@ export const BLOCKCHAIN_CONFIGS: Record<BlockchainType, BlockchainConfig> = {
     nativeCurrency: "SOL",
     explorerUrl: "https://solscan.io",
     testnetExplorerUrl: "https://explorer.solana.com",
+  },
+  [BlockchainType.STELLAR]: {
+    type: BlockchainType.STELLAR,
+    displayName: "Stellar",
+    nativeCurrency: "XLM",
+    explorerUrl: "https://stellar.expert/explorer/public/",
+    testnetExplorerUrl: "https://horizon.stellar.org",
   },
 };
 
