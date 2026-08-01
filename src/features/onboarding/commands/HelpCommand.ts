@@ -1,13 +1,12 @@
 import { Context } from "telegraf";
-import { BaseCommand } from "@telegram/commands/BaseCommand";
 import { getHelpContent } from "@features/onboarding/utils/helpContent";
 
-export class HelpCommand extends BaseCommand {
-  name = "help";
-  description = "Show help message with available commands";
+export const helpCommandConfig = {
+  name: "help",
+  description: "Show help message with available commands",
+};
 
-  async execute(ctx: Context): Promise<void> {
-    const { message, options } = getHelpContent(false);
-    await ctx.reply(message, options);
-  }
+export async function handleHelpCommand(ctx: Context): Promise<void> {
+  const { message, options } = getHelpContent(false);
+  await ctx.reply(message, options);
 }

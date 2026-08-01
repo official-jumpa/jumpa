@@ -1,9 +1,9 @@
-export { BaseCommand } from "./BaseCommand";
-export { StartCommand } from "@features/onboarding/commands/StartCommand";
-export { HelpCommand } from "@features/onboarding/commands/HelpCommand";
-export { WalletCommand } from "@features/wallets/commands/WalletCommand";
-export { WalletCallbackHandlers } from "@features/wallets/callbacks/WalletCallbackHandlers";
-export { StartCallbackHandlers } from "@features/onboarding/callbacks/StartCallbackHandlers";
-export { DepositCommand } from "@features/payments/commands/DepositCommand";
-export { ProfitAndLossTestCommand } from "@features/onboarding/commands/ProfitAndLossTestCommand";
-export { CommandManager } from "./CommandManager";
+export * from "@features/onboarding/commands/StartCommand";
+export * from "@features/onboarding/commands/HelpCommand";
+export * from "@features/onboarding/commands/ImageTestCommand";
+export * from "@features/onboarding/commands/ProfitAndLossTestCommand";
+export * from "@features/wallets/commands/WalletCommand";
+export * from "@features/wallets/callbacks/WalletCallbackHandlers";
+export * from "@features/onboarding/callbacks/StartCallbackHandlers";
+export * from "@features/payments/commands/DepositCommand";
+export * from "./CommandManager";

@@ -1,8 +1,7 @@
 import { Context, Markup } from "telegraf";
 import { getBuyOrder } from "./getBuyOrder";
 import User from "@core/database/models/user";
-import { setOrderState } from "@shared/state/orderState";
-import { getTradeState, clearTradeState } from "@shared/state/tradeState";
+import { getTradeState, clearTradeState, setOrderState } from "@shared/state";
 
 export async function createBuyOrder(ctx: Context, tradeId: string, amount: number) {
     try {

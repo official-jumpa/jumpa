@@ -1,54 +1,46 @@
 import { Context, Markup } from "telegraf";
-import { BaseCommand } from "@telegram/commands/BaseCommand";
 import User from "@core/database/models/user";
 import { encodeBase62 } from "@shared/utils/base62";
 import { sendOrEdit } from "@shared/utils/messageHelper";
-export class ReferralCommand extends BaseCommand {
-  name = "referral";
-  description = "View referral stats and get referral link";
 
-  async execute(ctx: Context): Promise<void> {
-    try {
-      const telegramId = ctx.from?.id;
+export const referralCommandConfig = {
+  name: "referral",
+  description: "View referral stats and get referral link",
+};
 
-      if (!telegramId) {
-        await this.sendMessage(
-          ctx,
-          "❌ Unable to identify your Telegram account."
-        );
-        return;
-      }
+export async function handleReferralCommand(ctx: Context): Promise<void> {
+  try {
+    const telegramId = ctx.from?.id;
 
-      // Fetch user from database
-      const user = await User.findOne({ telegram_id: telegramId });
+    if (!telegramId) {
+      await ctx.reply("❌ Unable to identify your Telegram account.");
+      return;
+    }
 
-      if (!user) {
-        await this.sendMessage(
-          ctx,
-          "❌ User not found. Please use /start first."
-        );
-        return;
-      }
+    const user = await User.findOne({ telegram_id: telegramId });
 
-      // Generate referral code if user doesn't have one
-      if (!user.referrals?.referralCode) {
-        const referralCode = encodeBase62(telegramId);
-        user.referrals = {
-          ...user.referrals,
-          referralCode,
-        };
-        await user.save();
-      }
+    if (!user) {
+      await ctx.reply("❌ User not found. Please use /start first.");
+      return;
+    }
 
-      const referralCode = user.referrals.referralCode;
-      const totalReferrals = user.referrals?.totalReferrals || 0;
-      const referralPoints = user.referrals?.referralPoints || 0;
+    if (!user.referrals?.referralCode) {
+      const referralCode = encodeBase62(telegramId);
+      user.referrals = {
+        ...user.referrals,
+        referralCode,
+      };
+      await user.save();
+    }
 
-      // Get bot username from context (fallback to generic if not available)
-      const botUsername = ctx.botInfo?.username || "jumpa_bot";
-      const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
+    const referralCode = user.referrals.referralCode;
+    const totalReferrals = user.referrals?.totalReferrals || 0;
+    const referralPoints = user.referrals?.referralPoints || 0;
 
-      const message = `
+    const botUsername = ctx.botInfo?.username || "jumpa_bot";
+    const referralLink = `https://t.me/${botUsername}?start=ref_${referralCode}`;
+
+    const message = `
 • Total Referrals: ${totalReferrals}
 • Referral Points: ${referralPoints}
 
@@ -59,16 +51,14 @@ Share your referral link with your friends and earn points for each friend who j
 
 Click the link above to copy and share it.`;
 
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback("🔙 Back to Main Menu", "back_to_menu")],
-      ]);
-      await sendOrEdit(ctx, message, { parse_mode: "Markdown", ...keyboard });
-    } catch (error) {
-      console.error("Referral command error:", error);
-      await this.sendMessage(
-        ctx,
-        "❌ An error occurred while fetching your referral information."
-      );
-    }
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("🔙 Back to Main Menu", "back_to_menu")],
+    ]);
+    await sendOrEdit(ctx, message, { parse_mode: "Markdown", ...keyboard });
+  } catch (error) {
+    console.error("Referral command error:", error);
+    await ctx.reply(
+      "❌ An error occurred while fetching your referral information."
+    );
   }
 }

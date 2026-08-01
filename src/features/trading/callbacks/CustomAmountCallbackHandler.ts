@@ -1,20 +1,21 @@
 import { Context } from 'telegraf';
-import { setUserActionState } from '@shared/state/userActionState';
+import { setUserActionState } from '@shared/state';
 
-export async function handleBuyCustomAmountRequest(ctx: Context) {
+export async function handleBuyCustomAmountRequest(ctx: Context): Promise<void> {
   try {
     if (!ctx.from) {
-      return ctx.reply('User not identified.');
+      await ctx.reply('User not identified.');
+      return;
     }
 
     const callbackData = (ctx.callbackQuery as any).data;
     const tradeId = callbackData.split(':')[1];
 
     if (!tradeId) {
-      return ctx.answerCbQuery('Error: Invalid trade session.');
+      await ctx.answerCbQuery('Error: Invalid trade session.');
+      return;
     }
 
-    // Set the state for the user to indicate we are awaiting their custom amount
     setUserActionState(ctx.from.id, {
       action: 'awaiting_custom_buy_amount',
       tradeId: tradeId,

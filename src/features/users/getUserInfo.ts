@@ -1,7 +1,7 @@
 import User from "@core/database/models/user";
 import getBalance from "@shared/utils/getBalance";
 
-async function getUser(telegram_id: Number, username: string) {
+async function getUser(telegram_id: number, username: string) {
   let user = await User.findOne({ telegram_id });
   if (user) {
     return user;
@@ -20,7 +20,7 @@ async function getUser(telegram_id: Number, username: string) {
 }
 
 // Separate function for balance updates. Only call this when user requests for his balance or before making any transaction.
-export async function updateUserBalance(telegram_id: Number, forceUpdate = false) {
+export async function updateUserBalance(telegram_id: number, forceUpdate = false) {
   console.log("updateUserBalance triggered");
   const user = await User.findOne({ telegram_id });
   if (!user || !user.solanaWallets || user.solanaWallets.length === 0 || !user.solanaWallets[0].address) {
@@ -54,7 +54,7 @@ export async function updateUserBalance(telegram_id: Number, forceUpdate = false
 }
 // Helper function to add a solana wallet to user
 export async function addSolanaWalletToUser(
-  telegram_id: Number,
+  telegram_id: number,
   address: string,
   encryptedPrivateKey: string
 ) {
@@ -85,7 +85,7 @@ export async function addSolanaWalletToUser(
 
 // Helper function to add an EVM wallet to user
 export async function addEVMWalletToUser(
-  telegram_id: Number,
+  telegram_id: number,
   address: string,
   encryptedPrivateKey: string
 ) {

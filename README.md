@@ -259,8 +259,6 @@ Set the following:
 npm test
 ```
 
-See [Testing Guide](docs/TESTING_GUIDE.md) for detailed testing instructions.
-
 ## 📋 Available Commands
 
 ### User Commands

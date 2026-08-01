@@ -29,6 +29,10 @@ const withdrawalSchema = new mongoose.Schema(
       required: true,
       default: "DEPOSIT_PENDING",
     },
+    batch_id: {
+      type: String,
+      required: false,
+    },
   },
   {
     timestamps: true,

@@ -1,7 +1,7 @@
 
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
-import { MCPRegistry } from "@core/mcp/MCPRegistry";
+import { tools as localTools } from "@src/ai-agent/tools";
 
 const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -92,8 +92,12 @@ export async function processUserQuery(
   }
 
   try {
-    // Dynamic Tool Loading
-    const tools = await MCPRegistry.getInstance().getAllTools();
+    // Dynamic Tool Loading from local tools
+    const tools = localTools.map(t => ({
+      name: t.name,
+      description: t.description,
+      input_schema: t.input_schema
+    }));
 
     // Start with previous history and append the new user message
     let messages: any[] = [...previousHistory];
@@ -154,9 +158,13 @@ export async function processUserQuery(
               };
             }
 
-            // 3. Execute Generic/MCP Tool
+            // 3. Execute Local Tool
             try {
-              const result = await MCPRegistry.getInstance().executeTool(toolName, toolInput);
+              const localTool = localTools.find(t => t.name === toolName);
+              if (!localTool) {
+                throw new Error(`Tool '${toolName}' not found.`);
+              }
+              const result = await localTool.handler(toolInput);
 
               toolResults.push({
                 type: "tool_result",

@@ -1,6 +1,10 @@
 import { Context, Markup } from "telegraf";
 import { getUserTokenHoldings } from "@features/trading/utils/getUserTokenHoldings";
-import { setCarouselState, getCarouselState, navigateCarousel } from "@shared/state/tokenCarouselState";
+import {
+  setCarouselState,
+  getCarouselState,
+  navigateCarousel,
+} from "@shared/state";
 import { generateTokenInfoMessage } from "@features/trading/utils/DetectTokenAddress";
 
 /**

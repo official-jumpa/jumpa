@@ -6,7 +6,7 @@ import getUser from '@features/users/getUserInfo';
 import { decryptPrivateKey } from '@shared/utils/encryption';
 import { config } from '@core/config/environment';
 import Trade, { ITrade } from "@core/database/models/Trade";
-import { getOrderState } from "@shared/state/orderState";
+import { getOrderState, clearOrderState } from "@shared/state";
 
 const connection = new Connection(config.solMainnet, 'confirmed');
 

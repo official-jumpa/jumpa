@@ -244,106 +244,104 @@ function buildWalletKeyboard(user: any) {
   return Markup.inlineKeyboard(keyboardButtons);
 }
 
-export class WalletViewHandlers {
-  // Handle view wallet callback
-  static async handleViewWallet(ctx: Context): Promise<void> {
-    try {
-      const telegramId = ctx.from?.id;
-      const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
+// Handle view wallet callback
+export async function handleViewWallet(ctx: Context): Promise<void> {
+  try {
+    const telegramId = ctx.from?.id;
+    const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
 
-      if (!telegramId) {
-        await ctx.answerCbQuery?.("❌ Unable to identify your account.");
-        return;
-      }
-
-      const user = await getUser(telegramId, username);
-
-      if (!user) {
-        await ctx.reply(
-          "❌ User not found. Please use /start to register first."
-        );
-        return;
-      }
-
-      const solanaWallets = user.solanaWallets || [];
-      const evmWallets = user.evmWallets || [];
-      const totalWallets = solanaWallets.length + evmWallets.length;
-
-      if (totalWallets === 0) {
-        const noWalletMessage = `*Your Wallets*\n\nYou don't have any wallets yet.\n\nSet up a wallet to start trading!`;
-
-        const keyboard = Markup.inlineKeyboard([
-          [
-            Markup.button.callback("� Generate New Solana Wallet", "generate_wallet"),
-          ],
-          [
-            Markup.button.callback("📥 Import Existing Solana Wallet", "import_wallet"),
-          ],
-          [
-            Markup.button.callback("🔙 Back to Menu", "back_to_menu"),
-          ],
-        ]);
-
-        // Handle message sending/editing
-        if (ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message) {
-          await ctx.editMessageText(noWalletMessage, {
-            parse_mode: "Markdown",
-            ...keyboard,
-          });
-          await ctx.answerCbQuery?.("No wallets found");
-        } else {
-          await ctx.reply(noWalletMessage, {
-            parse_mode: "Markdown",
-            ...keyboard,
-          });
-        }
-        return;
-      }
-
-      // Build skeleton message
-      const skeletonMessage = buildWalletSkeleton(user);
-      const keyboard = buildWalletKeyboard(user);
-
-      // Send or edit message
-      let chatId: number;
-      let messageId: number;
-
-      if (ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message) {
-        // Edit existing message for callbacks
-        await ctx.editMessageText(skeletonMessage, {
-          parse_mode: "Markdown",
-          ...keyboard,
-        });
-        chatId = ctx.callbackQuery.message.chat.id;
-        messageId = ctx.callbackQuery.message.message_id;
-        await ctx.answerCbQuery?.("🔑 Loading wallets...");
-        console.log("✅ Wallet skeleton edited (callback)");
-      } else {
-        // Send new message for commands
-        const sent = await ctx.reply(skeletonMessage, {
-          parse_mode: "Markdown",
-          ...keyboard,
-        });
-        chatId = sent.chat.id;
-        messageId = sent.message_id;
-        console.log("✅ Wallet skeleton sent (command)");
-      }
-
-      // Fetch balances in background (fire-and-forget)
-      fetchAndUpdateWalletBalances(
-        ctx,
-        chatId,
-        messageId,
-        user,
-        false // forceRefresh
-      ).catch(error => {
-        console.error("Background wallet fetch error:", error);
-      });
-
-    } catch (error) {
-      console.error("View wallet error:", error);
-      await ctx.answerCbQuery?.("❌ Failed to load wallets.");
-      await ctx.reply("❌ An error occurred while loading your wallets.");
+    if (!telegramId) {
+      await ctx.answerCbQuery?.("❌ Unable to identify your account.");
+      return;
     }
+
+    const user = await getUser(telegramId, username);
+
+    if (!user) {
+      await ctx.reply(
+        "❌ User not found. Please use /start to register first."
+      );
+      return;
+    }
+
+    const solanaWallets = user.solanaWallets || [];
+    const evmWallets = user.evmWallets || [];
+    const totalWallets = solanaWallets.length + evmWallets.length;
+
+    if (totalWallets === 0) {
+      const noWalletMessage = `*Your Wallets*\n\nYou don't have any wallets yet.\n\nSet up a wallet to start trading!`;
+
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback("🔑 Generate New Solana Wallet", "generate_wallet"),
+        ],
+        [
+          Markup.button.callback("📥 Import Existing Solana Wallet", "import_wallet"),
+        ],
+        [
+          Markup.button.callback("🔙 Back to Menu", "back_to_menu"),
+        ],
+      ]);
+
+      // Handle message sending/editing
+      if (ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message) {
+        await ctx.editMessageText(noWalletMessage, {
+          parse_mode: "Markdown",
+          ...keyboard,
+        });
+        await ctx.answerCbQuery?.("No wallets found");
+      } else {
+        await ctx.reply(noWalletMessage, {
+          parse_mode: "Markdown",
+          ...keyboard,
+        });
+      }
+      return;
+    }
+
+    // Build skeleton message
+    const skeletonMessage = buildWalletSkeleton(user);
+    const keyboard = buildWalletKeyboard(user);
+
+    // Send or edit message
+    let chatId: number;
+    let messageId: number;
+
+    if (ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message) {
+      // Edit existing message for callbacks
+      await ctx.editMessageText(skeletonMessage, {
+        parse_mode: "Markdown",
+        ...keyboard,
+      });
+      chatId = ctx.callbackQuery.message.chat.id;
+      messageId = ctx.callbackQuery.message.message_id;
+      await ctx.answerCbQuery?.("🔑 Loading wallets...");
+      console.log("✅ Wallet skeleton edited (callback)");
+    } else {
+      // Send new message for commands
+      const sent = await ctx.reply(skeletonMessage, {
+        parse_mode: "Markdown",
+        ...keyboard,
+      });
+      chatId = sent.chat.id;
+      messageId = sent.message_id;
+      console.log("✅ Wallet skeleton sent (command)");
+    }
+
+    // Fetch balances in background (fire-and-forget)
+    fetchAndUpdateWalletBalances(
+      ctx,
+      chatId,
+      messageId,
+      user,
+      false // forceRefresh
+    ).catch(error => {
+      console.error("Background wallet fetch error:", error);
+    });
+
+  } catch (error) {
+    console.error("View wallet error:", error);
+    await ctx.answerCbQuery?.("❌ Failed to load wallets.");
+    await ctx.reply("❌ An error occurred while loading your wallets.");
   }
 }

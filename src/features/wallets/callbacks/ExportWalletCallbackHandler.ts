@@ -4,7 +4,7 @@ import {
   getUserActionState,
   setUserActionState,
   clearUserActionState,
-} from "@shared/state/userActionState";
+} from "@shared/state";
 import getUser from "@features/users/getUserInfo";
 
 export const handleExportPrivateKey = async (ctx) => {

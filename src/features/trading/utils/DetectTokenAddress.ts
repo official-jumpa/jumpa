@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { Context, Markup } from "telegraf";
 import { config } from "@core/config/environment";
-import { setTradeState } from "@shared/state/tradeState";
+import { setTradeState } from "@shared/state";
 import { randomBytes } from "crypto";
 
 export async function generateTokenInfoMessage(contractAddress: string) {

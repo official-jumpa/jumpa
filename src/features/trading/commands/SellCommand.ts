@@ -1,10 +1,9 @@
 import { Context, Markup } from "telegraf";
 import User from "@core/database/models/user";
-import { setOrderState } from "@shared/state/orderState";
 import { Connection, PublicKey } from '@solana/web3.js';
 import { config } from "@core/config/environment";
 import { getSellOrder } from "@features/trading/utils/getSellOrder";
-import { getTradeState, clearTradeState } from "@shared/state/tradeState";
+import { getTradeState, clearTradeState, setOrderState } from "@shared/state";
 
 //make sure to get the user's token balance or else it will trigger insufficient funds error
 export async function handleSell(ctx: Context) {

@@ -1,5 +1,5 @@
 import { Telegraf, Context } from "telegraf";
-import { CommandManager } from "@telegram/commands/CommandManager";
+import { setupCommandManager } from "@telegram/commands/CommandManager";
 import { config } from "@core/config/environment";
 import connectToDatabase from "@core/config/database";
 
@@ -15,8 +15,8 @@ bot.use((ctx, next) => {
   });
 });
 
-// Initialize command manager
-const commandManager = new CommandManager(bot);
+// Initialize command manager & listeners
+setupCommandManager(bot);
 
 
 
@@ -24,7 +24,6 @@ const commandManager = new CommandManager(bot);
 bot.catch((err: any, ctx: Context) => {
   console.error("Bot error:", err);
   //gracefully ignore bot errors
-  // ctx.reply("Sorry, something went wrong! Please try again later.");
 
 });
 
