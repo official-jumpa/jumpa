@@ -57,49 +57,10 @@ SUPPORTED MODES:
    - Destination: Wallet Address.
    - Source: Crypto Chain + Currency.
    - Amount: Naira (NGN).
-
-3. **AMADEUS ACTIONS**: General blockchain actions (send tokens, read state, claim testnet tokens) on Amadeus chain.
-   - Use provided MCP tools.
-   
-   - **CRITICAL PROTOCOL FOR TRANSACTIONS**:
-     A. Call tool to CREATE transaction (e.g. 'create_transaction').
-     B. This tool will return a 'signing_payload' and 'blob'.
-     C. STOP. Do NOT try to sign it yourself.
-     D. Return the payload to the user by explicitly stating: "Transaction created. Please sign."
-     E. Wait for user to provide signature.
-     F. Once you receive signature + blob, call 'submit_transaction'.
-
-   - **CRITICAL RULES FOR AMA TRANSFERS**:
-     To transfer AMA tokens, use 'create_transaction' with these EXACT parameters:
-     1. signer: the sender's address
-     2. contract: "Coin" (exactly this string, NOT a hex address)
-     3. function: "transfer"
-     4. args: an array with exactly 3 elements:
-        - [0]: {"b58": "RECIPIENT_ADDRESS"} (object with b58 key)
-        - [1]: "AMOUNT_IN_BASE_UNITS" (string, e.g., "10000000000" for 10 AMA. 1 AMA = 1,000,000,000 base units)
-        - [2]: "AMA" (the token symbol)
-        
-     Example: {"signer": "...", "contract": "Coin", "function": "transfer", "args": [{"b58":"RECIPIENT"},"10000000000","AMA"]}
-
-     DO NOT set attached_symbol or attached_amount for standard transfers.
-
-INTERACTION FLOWS:
-
-[Amadeus Transfer]
-User: "Send 10 AMA to [Address]"
--> Agent: Calls 'create_transaction' with EXACT parameters above (Coin, transfer, args)
--> Tool: Returns { signing_payload: "...", blob: "..." }
--> Agent: "Transaction ready. Please sign." (Stops)
--> User: (Signs via UI) -> Returns Signature
--> Agent: Calls 'submit_transaction'
--> Agent: Calls 'submit_transaction'
--> Tool: Returns TxHash
--> Agent: "✅ Transaction Successful: \n\n [TxHash] \n\n [View in Explorer](https://testnet.explorer.ama.one/network/tx/[TxHash])"
-   (ALWAYS include the explorer link for Amadeus transactions. Default to testnet explorer unless mainnet specified).
 `;
 
 export interface AgentResponse {
-  type: "text" | "confirmation" | "bulk_confirmation" | "error" | "signature_request";
+  type: "text" | "confirmation" | "bulk_confirmation" | "error";
   message?: string;
   data?: any;
   updatedHistory?: any[];
@@ -196,50 +157,6 @@ export async function processUserQuery(
             // 3. Execute Generic/MCP Tool
             try {
               const result = await MCPRegistry.getInstance().executeTool(toolName, toolInput);
-
-              // 3. Handle Signature Request Interception
-              // Check if result is standard MCP format with content list
-              let signingData = result;
-
-              // If result has content array, try to parse the first text block
-              if (result && result.content && Array.isArray(result.content)) {
-                const textBlock = result.content.find((c: any) => c.type === 'text');
-                if (textBlock && textBlock.text) {
-                  try {
-                    const parsed = JSON.parse(textBlock.text);
-                    if (parsed && parsed.signing_payload && parsed.blob) {
-                      signingData = parsed;
-                    }
-                  } catch (e) {
-                    // Not JSON, ignore
-                  }
-                }
-              }
-
-              // If the tool returns a signing payload (direct or parsed), we must pause and ask user to sign.
-              if (signingData && signingData.signing_payload && signingData.blob) {
-                // IMPORTANT: append the tool result to history so the conversation is valid (Tool Use -> Tool Result)
-                messages.push({
-                  role: "user",
-                  content: [{
-                    type: "tool_result",
-                    tool_use_id: toolId,
-                    content: JSON.stringify(result)
-                  }]
-                });
-
-                return {
-                  type: "signature_request",
-                  data: {
-                    toolName,
-                    payload: signingData.signing_payload,
-                    blob: signingData.blob,
-                    rawResult: result
-                  },
-                  message: "Please sign this transaction to proceed.",
-                  updatedHistory: messages
-                };
-              }
 
               toolResults.push({
                 type: "tool_result",

@@ -3,7 +3,6 @@ import getUser from "@features/users/getUserInfo";
 import { Markup } from "telegraf";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
-import { getAmadeusBalance } from "@src/blockchain/amadeus/amadeusFunctions";
 
 /**
  * Build skeleton wallet view with loading indicators
@@ -40,20 +39,6 @@ function buildWalletSkeleton(user: any): string {
     message += `\n`;
   }
 
-  // Amadeus wallets
-  const amadeusWallets = user.amadeusWallets || [];
-  if (amadeusWallets.length > 0) {
-    message += `*🟡 Amadeus Wallets (${amadeusWallets.length}/3)*\n`;
-
-    for (let index = 0; index < amadeusWallets.length; index++) {
-      const wallet = amadeusWallets[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
-      message += `\n\`${wallet.publicKey}\`${defaultBadge}\n`;
-      message += `AMA: ...\n`;
-    }
-    message += `\n`;
-  }
-
   return message;
 }
 
@@ -63,8 +48,7 @@ function buildWalletSkeleton(user: any): string {
 function buildWalletComplete(
   user: any,
   solBalancesArray: any[],
-  evmBalancesArray: any[],
-  amaBalancesArray: (number | null)[]
+  evmBalancesArray: any[]
 ): string {
   let message = "*Your Wallets*\n\n";
 
@@ -114,22 +98,6 @@ function buildWalletComplete(
     message += `\n`;
   }
 
-  // Amadeus wallets
-  const amadeusWallets = user.amadeusWallets || [];
-  if (amadeusWallets.length > 0) {
-    message += `*🟡 Amadeus Wallets (${amadeusWallets.length}/3)*\n`;
-
-    for (let index = 0; index < amadeusWallets.length; index++) {
-      const wallet = amadeusWallets[index];
-      const balance = amaBalancesArray[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
-
-      message += `\n\`${wallet.publicKey}\`${defaultBadge}\n`;
-      message += `AMA: ${balance ? Number(balance).toFixed(2) : "0.00"}\n`;
-    }
-    message += `\n`;
-  }
-
   return message;
 }
 
@@ -148,10 +116,9 @@ async function fetchAndUpdateWalletBalances(
 
     const solanaWallets = user.solanaWallets || [];
     const evmWallets = user.evmWallets || [];
-    const amadeusWallets = user.amadeusWallets || [];
 
     // Fetch all balances in parallel
-    const [solBalancesArray, evmBalancesArray, amaBalancesArray] = await Promise.all([
+    const [solBalancesArray, evmBalancesArray] = await Promise.all([
       // Fetch all Solana wallet balances
       Promise.all(
         solanaWallets.map((wallet: any) =>
@@ -163,12 +130,6 @@ async function fetchAndUpdateWalletBalances(
         evmWallets.map((wallet: any) =>
           getAllEvmBalances(wallet.address, forceRefresh)
         )
-      ),
-      // Fetch all Amadeus wallet balances
-      Promise.all(
-        amadeusWallets.map((wallet: any) =>
-          getAmadeusBalance(wallet.publicKey)
-        )
       )
     ]);
 
@@ -178,8 +139,7 @@ async function fetchAndUpdateWalletBalances(
     const completeMessage = buildWalletComplete(
       user,
       solBalancesArray,
-      evmBalancesArray,
-      amaBalancesArray
+      evmBalancesArray
     );
 
     // Build keyboard
@@ -216,7 +176,6 @@ async function fetchAndUpdateWalletBalances(
 function buildWalletKeyboard(user: any) {
   const solanaWallets = user.solanaWallets || [];
   const evmWallets = user.evmWallets || [];
-  const amadeusWallets = user.amadeusWallets || [];
 
   const keyboardButtons = [
     [
@@ -277,32 +236,6 @@ function buildWalletKeyboard(user: any) {
     }
   }
 
-  // Add "Set as Default" buttons for Amadeus wallets
-  if (amadeusWallets.length > 1) {
-    const amaButtons = [];
-    for (let i = 1; i < amadeusWallets.length; i++) {
-      amaButtons.push(
-        Markup.button.callback(`Set AMA ${i + 1} as Main`, `set_default_ama:${i}`)
-      );
-    }
-    for (let i = 0; i < amaButtons.length; i += 2) {
-      keyboardButtons.push(amaButtons.slice(i, i + 2));
-    }
-  }
-
-  // Add delete buttons for Amadeus wallets
-  if (amadeusWallets.length > 0) {
-    const deleteButtons = [];
-    for (let i = 0; i < amadeusWallets.length; i++) {
-      deleteButtons.push(
-        Markup.button.callback(`🗑️ Delete AMA ${i + 1}`, `delete_ama_wallet:${i}`)
-      );
-    }
-    for (let i = 0; i < deleteButtons.length; i += 2) {
-      keyboardButtons.push(deleteButtons.slice(i, i + 2));
-    }
-  }
-
   keyboardButtons.push([
     Markup.button.callback("📊 My Profile", "view_profile"),
     Markup.button.callback("🔙 Back to Menu", "back_to_menu"),
@@ -334,8 +267,7 @@ export class WalletViewHandlers {
 
       const solanaWallets = user.solanaWallets || [];
       const evmWallets = user.evmWallets || [];
-      const amadeusWallets = user.amadeusWallets || [];
-      const totalWallets = solanaWallets.length + evmWallets.length + amadeusWallets.length;
+      const totalWallets = solanaWallets.length + evmWallets.length;
 
       if (totalWallets === 0) {
         const noWalletMessage = `*Your Wallets*\n\nYou don't have any wallets yet.\n\nSet up a wallet to start trading!`;

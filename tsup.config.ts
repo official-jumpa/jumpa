@@ -9,5 +9,5 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   clean: true,
-  noExternal: ['@amadeus-protocol/sdk', '@noble/curves'],
+  noExternal: ['@noble/curves'],
 });

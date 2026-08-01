@@ -27,7 +27,6 @@ import { generateTransactionReceipt } from "@shared/utils/receiptGenerator";
 import { findYaraBankCode } from "@features/payments/utils/yaraBankCodes";
 import { processUserQuery } from "@src/ai-agent/agent.config";
 import { sendOrEdit } from "@src/shared/utils/messageHelper";
-import { signTransaction } from "@src/blockchain/amadeus/amadeusFunctions";
 import { decryptPrivateKey } from "@src/shared/utils/encryption";
 import { MCPRegistry } from "@core/mcp/MCPRegistry";
 
@@ -113,20 +112,8 @@ export class AICallbackHandler {
         history = currentState.data.history;
       }
 
-      // Fetch user info to get Amadeus address provided they have one
       const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
       const user = await getUser(userId, username);
-
-      let systemInjection = "";
-      if (user && user.amadeusWallets && user.amadeusWallets.length > 0) {
-        const userAddress = user.amadeusWallets[0].publicKey;
-        systemInjection = `OFFICIAL SIGNER ADDRESS: ${userAddress}. Use this address for 'signer' in create_transaction.`;
-      }
-
-      // If this is a new session, inject the signer info
-      if (!history.length && systemInjection) {
-        history.push({ role: "user", content: systemInjection });
-      }
 
       // Call the AI Agent
       let finalMessage: string | any[] = userMessage;
@@ -172,9 +159,6 @@ export class AICallbackHandler {
           console.error("[AI Image Handler] Error processing photo:", err);
           return;
         }
-      } else if (systemInjection && !history.length) {
-        // If text only and system injection needed
-        finalMessage = `${systemInjection}\n\n${userMessage}`;
       }
 
       console.log("[AI Image Handler] Calling processUserQuery with message type:", Array.isArray(finalMessage) ? 'multimodal' : 'text');
@@ -233,48 +217,9 @@ export class AICallbackHandler {
         });
       }
 
-      if (aiResponse.type === "signature_request") {
-        const data = aiResponse.data;
-        // Pass the updated history which now contains the tool result
-        await AICallbackHandler.initiateAmadeusSignatureFlow(ctx, data, aiResponse.updatedHistory);
-      }
-
     } catch (error: any) {
       console.error("[AI Withdrawal] Error in handleAIQuery:", error);
     }
-  }
-
-  /**
-   * Sets up state for Amadeus Transaction Signature
-   */
-  private static async initiateAmadeusSignatureFlow(ctx: Context, data: any, history: any[] = []): Promise<void> {
-    const userId = ctx.from?.id;
-    if (!userId) return;
-
-    // Store state
-    // Store state with history
-    setAIWithdrawalState(userId, "awaiting_amadeus_confirmation", {
-      transactionBlob: data.blob,
-      signingPayload: data.payload,
-      toolName: data.toolName,
-      rawResult: data.rawResult,
-      history: history, // Persist history
-      pinAttempts: 0
-    });
-
-    const confirmationMessage =
-      `🔐 **Confirm Transaction**\n\n` +
-      `Click **Confirm** to approve the transaction.`;
-
-    await ctx.reply(confirmationMessage, {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        [
-          Markup.button.callback("❌ Reject", "ai_withdraw_cancel"),
-          Markup.button.callback("✅ Confirm", "confirm_amadeus_tx")
-        ]
-      ])
-    });
   }
 
   /**
@@ -425,46 +370,6 @@ export class AICallbackHandler {
   }
 
   /**
-   * Handle Amadeus Confirmation Button Logic
-   */
-  static async handleAmadeusConfirmation(ctx: Context): Promise<void> {
-    const userId = ctx.from?.id;
-    const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
-
-    if (!userId) return;
-
-    try {
-      const state = getAIWithdrawalState(userId);
-      if (!state || state.step !== "awaiting_amadeus_confirmation") {
-        await ctx.answerCbQuery("❌ Session expired.");
-        return;
-      }
-
-      const user = await getUser(userId, username);
-      if (!user) {
-        await ctx.answerCbQuery("❌ User not found.");
-        return;
-      }
-
-      // Delete the confirmation message
-      try {
-        await ctx.deleteMessage();
-      } catch (e) {
-        // Ignore
-      }
-
-      await ctx.answerCbQuery("✅ Processing...");
-
-      // Execute directly
-      await AICallbackHandler.executeAmadeusTransaction(ctx, state.data, user);
-
-    } catch (error: any) {
-      console.error("Amadeus Confirmation Error:", error);
-      await ctx.answerCbQuery("❌ Error processing request");
-    }
-  }
-
-  /**
    * Handle PIN input and execute withdrawal
    */
   static async handlePINInput(ctx: Context): Promise<void> {
@@ -549,76 +454,6 @@ export class AICallbackHandler {
       await AICallbackHandler.executeBulkWithdrawal(ctx, state.data, user);
     } else {
       await AICallbackHandler.executeWithdrawal(ctx, state.data, user);
-    }
-  }
-
-  /**
-   * Execute Amadeus Transaction
-   */
-  public static async executeAmadeusTransaction(
-    ctx: Context,
-    data: any,
-    user: any
-  ): Promise<void> {
-    const userId = ctx.from?.id;
-    if (!userId) return;
-
-    try {
-      await ctx.sendChatAction("typing");
-
-      // 1. Get User's Amadeus Private Key
-      // Use default (first) wallet
-      if (!user.amadeusWallets || user.amadeusWallets.length === 0) {
-        throw new Error("No Amadeus wallet found for this user.");
-      }
-
-      const encryptedKey = user.amadeusWallets[0].encryptedPrivateKey;
-      const decryptedHexKey = decryptPrivateKey(encryptedKey);
-
-      // Amadeus keys are stored as Hex-encoded UTF8 strings of the Base58 key
-      // Convert back to original Base58 string
-      const privateKey = Buffer.from(decryptedHexKey, 'hex').toString('utf8');
-
-      // 2. Sign Transaction
-      const signature = signTransaction(data.signingPayload, privateKey);
-
-      // 3. Submit Transaction
-      // We use the generic executeTool from registry
-      // 'submit_transaction' params: { transaction, signature, network: 'testnet' }
-
-      // 3. AI-Driven Submission
-      // The AI (via processUserQuery loop) will:
-      // a) Call 'submit_transaction' tool
-      // b) Parse the result
-      // c) Generate the final response
-
-      const history = data.history || [];
-      const userFollowUp = `Transaction signed. 
-Signature: ${signature}
-Transaction Blob: ${data.transactionBlob}
-Please submit the transaction now.`;
-
-
-      // await sendOrEdit(ctx, "🔄 Submitting transaction via Agent...");
-
-      const aiResponse = await processUserQuery(userId, userFollowUp, history);
-
-      if (aiResponse.type === 'text') {
-        const responseText = aiResponse.message || "Transaction processed.";
-        await sendOrEdit(ctx, responseText, { parse_mode: "Markdown" });
-      } else if (aiResponse.type === 'error') {
-        throw new Error(aiResponse.message);
-      } else {
-        console.warn("[AI Agent] Unexpected response type during submission:", aiResponse.type);
-        await sendOrEdit(ctx, "⚠️ Transaction processed, but response was unexpected.");
-      }
-
-      clearAIWithdrawalState(userId);
-
-    } catch (error: any) {
-      console.error("[AI Agent] Amadeus Execution Error:", error);
-      await ctx.reply(`❌ Transaction Failed: ${error.message} `);
-      clearAIWithdrawalState(userId);
     }
   }
 

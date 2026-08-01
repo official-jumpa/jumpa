@@ -8,12 +8,9 @@ import {
   buildGroupChatKeyboard,
   buildWalletSetupKeyboard,
 } from "./keyboardBuilders";
-import { getAmadeusBalance } from "@src/blockchain/amadeus/amadeusFunctions";
 import { getUserTokenHoldings } from "@features/trading/utils/getUserTokenHoldings";
 
-// ============================================================================
 // HELPER FUNCTIONS
-// ============================================================================
 
 /**
  * Build skeleton message with loading indicators
@@ -26,7 +23,6 @@ function buildSkeletonMessage(
   hasTokenHoldings: boolean,
   tokenHoldings: any[] | null,
   hasSolanaWallet: boolean,
-  hasAmadeusWallet: boolean,
   hasEvmWallet: boolean
 ): string {
   let message = `Welcome to Jumpa Bot, ${firstName}!\n`;
@@ -61,16 +57,6 @@ SOL: ...   • USDC: ...   • USDT: ...
 `;
   }
 
-  if (hasAmadeusWallet) {
-    message += `
-*--- Your Amadeus Wallet ---*
-
-\`${user.amadeusWallets[0].publicKey}\`
-
-AMA: ...
-`;
-  }
-
   if (hasEvmWallet) {
     message += `
 *--- Your EVM Wallet ---*
@@ -100,10 +86,8 @@ function buildCompleteMessage(
   hasTokenHoldings: boolean,
   tokenHoldings: any[] | null,
   hasSolanaWallet: boolean,
-  hasAmadeusWallet: boolean,
   hasEvmWallet: boolean,
   tokenBalances: any,
-  amadeusBalances: any,
   evmBalances: any
 ): string {
   let message = `Welcome to Jumpa Bot, ${firstName}!\n`;
@@ -158,16 +142,6 @@ SOL: ${user.solanaWallets[0].balance.toFixed(4)}   • USDC: ${tokenBalances.usd
 `;
   }
 
-  if (hasAmadeusWallet && amadeusBalances) {
-    message += `
-*--- Your Amadeus Wallet ---*
-
-\`${user.amadeusWallets[0].publicKey}\`
-
-AMA: ${amadeusBalances}
-`;
-  }
-
   if (hasEvmWallet && evmBalances) {
     message += `
 *--- Your EVM Wallet ---*
@@ -200,7 +174,6 @@ async function fetchAndUpdateBalances(
   isPrivateChat: boolean,
   isGroupChat: boolean,
   hasSolanaWallet: boolean,
-  hasAmadeusWallet: boolean,
   hasEvmWallet: boolean,
   forceRefresh: boolean = false
 ): Promise<void> {
@@ -212,15 +185,12 @@ async function fetchAndUpdateBalances(
     const hasTokenHoldings = tokenHoldings && tokenHoldings.length > 0;
 
     // Fetch balances in parallel with force refresh flag
-    const [tokenBalances, evmBalances, amadeusBalances] = await Promise.all([
+    const [tokenBalances, evmBalances] = await Promise.all([
       hasSolanaWallet
         ? getAllTokenBalances(user.solanaWallets[0].address, forceRefresh)
         : Promise.resolve(null),
       hasEvmWallet
         ? getAllEvmBalances(user.evmWallets[0].address, forceRefresh)
-        : Promise.resolve(null),
-      hasAmadeusWallet
-        ? getAmadeusBalance(user.amadeusWallets[0].publicKey)
         : Promise.resolve(null)
     ]);
 
@@ -235,10 +205,8 @@ async function fetchAndUpdateBalances(
       hasTokenHoldings,
       tokenHoldings,
       hasSolanaWallet,
-      hasAmadeusWallet,
       hasEvmWallet,
       tokenBalances,
-      amadeusBalances,
       evmBalances
     );
 
@@ -288,9 +256,8 @@ async function fetchAndUpdateBalances(
   }
 }
 
-// ============================================================================
+
 // MAIN FUNCTION
-// ============================================================================
 
 /**
  * Display the main menu with user's wallet balances.
@@ -323,17 +290,11 @@ export async function displayMainMenu(
     user.solanaWallets.length > 0 &&
     user.solanaWallets[0].address
   );
-  const hasAmadeusWallet = !!(
-    user.amadeusWallets &&
-    user.amadeusWallets.length > 0 &&
-    user.amadeusWallets[0].publicKey
-  );
   const hasEvmWallet = !!(
     user.evmWallets && user.evmWallets.length > 0 && user.evmWallets[0].address
   );
 
   console.log("Has Solana Wallet:", hasSolanaWallet);
-  console.log("Has Amadeus Wallet:", hasAmadeusWallet);
   console.log("Has EVM Wallet:", hasEvmWallet);
 
   // Scenario 1: No wallet - show setup options (instant, no changes needed)
@@ -374,7 +335,6 @@ Choose an option below to get started:`;
     hasTokenHoldings,
     basicTokenHoldings,
     hasSolanaWallet,
-    hasAmadeusWallet,
     hasEvmWallet
   );
 
@@ -428,7 +388,6 @@ Choose an option below to get started:`;
     isPrivateChat,
     isGroupChat,
     hasSolanaWallet,
-    hasAmadeusWallet,
     hasEvmWallet,
     forceRefresh
   ).catch(error => {

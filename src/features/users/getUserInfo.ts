@@ -1,25 +1,9 @@
 import User from "@core/database/models/user";
 import getBalance from "@shared/utils/getBalance";
-import { generateAmadeusWallet } from "@src/blockchain/amadeus/amadeusFunctions";
-import { encryptPrivateKey } from "@src/shared/utils/encryption";
 
 async function getUser(telegram_id: Number, username: string) {
   let user = await User.findOne({ telegram_id });
   if (user) {
-    // Don't auto-update balance on every getUser call
-    // Balance fetching is now handled by getBalance() with caching
-    if (user.amadeusWallets.length === 0) {
-      const amadeusWallet = await generateAmadeusWallet();
-      user.amadeusWallets.push({
-        publicKey: amadeusWallet.pubKey,
-        // Convert Base58 string to Hex string for storage
-        encryptedPrivateKey: encryptPrivateKey(Buffer.from(amadeusWallet.privKey, 'utf8').toString('hex')),
-        balance: amadeusWallet.balance,
-        last_updated_balance: new Date(),
-      });
-      console.log("[getUserInfo.ts] Amadeus wallet generated for user");
-      await user.save();
-    }
     return user;
   }
 
@@ -28,7 +12,6 @@ async function getUser(telegram_id: Number, username: string) {
     telegram_id: telegram_id,
     username: username,
     solanaWallets: [],
-    amadeusWallets: [],
   });
 
   await newUser.save();
@@ -122,37 +105,6 @@ export async function addEVMWalletToUser(
   // Add new wallet
   user.evmWallets.push({
     address: address.toLowerCase(), // Store in lowercase for consistency
-    encryptedPrivateKey,
-    balance: 0,
-    last_updated_balance: new Date(0),
-  });
-
-  await user.save();
-  return user;
-}
-
-// Helper function to add an Amadeus wallet to user
-export async function addAmadeusWalletToUser(
-  telegram_id: Number,
-  publicKey: string,
-  encryptedPrivateKey: string
-) {
-  const user = await User.findOne({ telegram_id });
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  // Check if wallet already exists
-  const existingWallet = user.amadeusWallets.find(
-    (wallet) => wallet.publicKey === publicKey
-  );
-  if (existingWallet) {
-    throw new Error("Wallet already exists");
-  }
-
-  // Add new wallet
-  user.amadeusWallets.push({
-    publicKey,
     encryptedPrivateKey,
     balance: 0,
     last_updated_balance: new Date(0),

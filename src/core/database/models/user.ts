@@ -82,24 +82,6 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
-    amadeusWallets: [
-      {
-        publicKey: {
-          type: String,
-          index: true,
-        },
-        encryptedPrivateKey: {
-          type: String,
-        },
-        balance: {
-          type: Number,
-          default: 0,
-        },
-        last_updated_balance: {
-          type: Date,
-          default: Date.now,
-        },
-      }],
     referrals: {
       referralCode: {
         type: String,

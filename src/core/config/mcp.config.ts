@@ -5,10 +5,6 @@ export interface MCPServerConfig {
 
 export const mcpConfig: { servers: MCPServerConfig[] } = {
   servers: [
-    {
-      name: "amadeus",
-      baseUrl: "https://mcp.ama.one",
-    },
     //  MongoDB config can be added here
     // {
     //   name: "mongodb",
