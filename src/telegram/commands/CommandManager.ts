@@ -3,14 +3,9 @@ import { BaseCommand } from "./BaseCommand";
 import { StartCommand } from "@features/onboarding/commands/StartCommand";
 import { HelpCommand } from "@features/onboarding/commands/HelpCommand";
 import { WalletCommand } from "@features/wallets/commands/WalletCommand";
-import { JoinGroupCommand } from "@features/groups/commands/JoinGroupCommand";
 import { getBankUpdateState } from "@shared/state/bankState";
 import { WalletCallbackHandlers } from "@features/wallets/callbacks/WalletCallbackHandlers";
 import { StartCallbackHandlers } from "@features/onboarding/callbacks/StartCallbackHandlers";
-import { GroupCallbackHandlers } from "@features/groups/callbacks/GroupCallbackHandlers";
-import { DepositHandlers } from "@features/groups/callbacks/DepositHandlers";
-import { CloseGroupHandlers } from "@features/groups/callbacks/CloseGroupHandlers";
-import { ExitGroupHandlers } from "@features/groups/callbacks/ExitGroupHandlers";
 import { DepositCommand } from "@features/payments/commands/DepositCommand";
 import { DepositCallbacks } from "@features/payments/callbacks/DepositCallbacks";
 import { BankHandler } from "@features/payments/commands/BankHandler";
@@ -20,14 +15,8 @@ import {
 } from "@shared/state/withdrawalState";
 import { getAIWithdrawalState } from "@shared/state/aiWithdrawalState";
 import { getDepositState } from "@shared/state/depositState";
-import {
-  handleDetectToken,
-  handleGroupToken,
-} from "@features/trading/utils/DetectTokenAddress";
-import {
-  handleBuy,
-  handleGroupBuy,
-} from "@features/trading/commands/BuyCommand";
+import { handleDetectToken } from "@features/trading/utils/DetectTokenAddress";
+import { handleBuy } from "@features/trading/commands/BuyCommand";
 import { BuyCallbackHandlers } from "@features/trading/callbacks/BuyCallbackHandlers";
 import { handleSell } from "@features/trading/commands/SellCommand";
 import { SellCallbackHandlers } from "@features/trading/callbacks/SellCallbackHandlers";
@@ -50,10 +39,6 @@ import {
 } from "@features/wallets/callbacks/ExportWalletCallbackHandler";
 import { ReferralCommand } from "@features/referrals/commands/ReferralCommand";
 import { ImageTestCommand } from "@features/onboarding/commands/ImageTestCommand";
-import { CreateGroupCommand } from "@features/groups/commands/CreateGroupCommand";
-import { GroupCommand } from "@features/groups/commands/GroupCommand";
-import { GroupInfoCommand } from "@features/groups/commands/GroupInfoCommand";
-import { LeaveGroupCommand } from "@features/groups/commands/LeaveGroupCommand";
 import { AICallbackHandler } from "@features/payments/callbacks/AIAgentCallback";
 import { ProfitAndLossTestCommand } from "@features/onboarding/commands/ProfitAndLossTestCommand";
 
@@ -73,11 +58,6 @@ export class CommandManager {
       new StartCommand(),
       new HelpCommand(),
       new WalletCommand(),
-      new CreateGroupCommand(),
-      new GroupCommand(),
-      new GroupInfoCommand(),
-      new LeaveGroupCommand(),
-      new JoinGroupCommand(),
       new ReferralCommand(),
       new ImageTestCommand(),
       new ProfitAndLossTestCommand(),
@@ -105,16 +85,10 @@ export class CommandManager {
     // Register callback handlers for start command
     this.bot.action("view_wallet", StartCallbackHandlers.handleViewWallet);
     this.bot.action("view_profile", StartCallbackHandlers.handleViewProfile);
-    this.bot.action("create_group", StartCallbackHandlers.handleCreateGroup);
-    this.bot.action("join", StartCallbackHandlers.handleJoinGroup);
     this.bot.action("show_help", StartCallbackHandlers.handleShowHelp);
     this.bot.action("show_about", StartCallbackHandlers.handleShowAbout);
     this.bot.action("back_to_menu", StartCallbackHandlers.handleBackToMenu);
     this.bot.action("refresh_balances", StartCallbackHandlers.handleRefreshBalances);
-    this.bot.action(
-      "back_to_group_menu",
-      StartCallbackHandlers.handleBackToGroupMenu
-    );
     this.bot.action(
       "generate_wallet",
       StartCallbackHandlers.handleGenerateWallet
@@ -217,15 +191,6 @@ export class CommandManager {
       WalletCallbackHandlers.handleWithdrawOnChainAmountSelection
     );
 
-    // Register AI withdrawal callback handlers
-    // this.bot.action(
-    //   /^ai_withdraw_chain:/,
-    //   AICallbackHandler.handleChainSelection
-    // );
-    // this.bot.action(
-    //   /^ai_withdraw_currency:/,
-    //   AICallbackHandler.handleCurrencySelection
-    // );
     this.bot.action(
       "ai_withdraw_cancel",
       AICallbackHandler.handleWithdrawalCancellation
@@ -266,9 +231,6 @@ export class CommandManager {
     this.bot.action(/^sell:.+/, handleSell);
     this.bot.action(/^approve_sell:.+/, SellCallbackHandlers.handleApprove);
     this.bot.action("decline_sell", SellCallbackHandlers.handleDecline);
-
-    //register buy and sell commands for groups
-    this.bot.action(/^groupBuy:.+/, handleGroupBuy);
 
     // Register token carousel handlers
     this.bot.action("manage_tokens", handleManageTokens);
@@ -370,7 +332,6 @@ export class CommandManager {
 
       const state = getBankUpdateState(userId);
       const withdrawalState = getWithdrawalState(userId);
-      // if (!state && !withdrawalState) return;
       if (withdrawalState) {
         if (withdrawalState.step === "awaiting_custom_amount") {
           await WalletCallbackHandlers.handleCustomAmountInput(ctx);
@@ -406,35 +367,13 @@ export class CommandManager {
       }
 
       // Detect if a solana address is sent
-      // Solana address pattern
       const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-      // Check if it looks like a contract address
       if (solanaAddressRegex.test(text)) {
         console.log("Detected potential Solana contract address:", text);
-        // Check if message came from a group and call the group function
-        if (ctx.chat.type === "group" || ctx.chat.type === "supergroup") {
-          // Call your group-specific function here
-          await handleGroupToken(ctx, text);
-        } else {
-          // Call this for private chats
-          await handleDetectToken(ctx, text);
-        }
+        await handleDetectToken(ctx, text);
         return;
       }
-
-      // Handle AI withdrawal bank name input
-      // const aiWithdrawalState = getAIWithdrawalState(userId);
-      // if (aiWithdrawalState?.step === "awaiting_bank_name") {
-      //   await AICallbackHandler.handleBankNameInput(ctx);
-      //   return;
-      // }
-
-      // Handle AI withdrawal PIN input
-      // if (aiWithdrawalState?.step === "awaiting_pin") {
-      //   await AICallbackHandler.handlePINInput(ctx);
-      //   return;
-      // }
 
       // Handle Deposit amount input
       const depositState = getDepositState(userId);
@@ -443,9 +382,6 @@ export class CommandManager {
         return;
       }
 
-      // AI-powered withdrawal detection - detect natural language withdrawal requests
-      // Examples: "send 2k to 8058509303 GT bank", "send 5 usdt to 0x000000000"
-      // Only responds to withdrawal intents, ignores other messages
       console.log("Checking for withdrawal intent:", text);
       await AICallbackHandler.handleAIQuery(ctx);
     });
@@ -454,113 +390,6 @@ export class CommandManager {
     this.bot.on("photo", async (ctx) => {
       console.log("Received photo message");
       await AICallbackHandler.handleAIQuery(ctx);
-    });
-
-    // Register callback handlers for group command
-    this.bot.action("group_members", GroupCallbackHandlers.handleGroupMembers);
-    this.bot.action("group_balance", GroupCallbackHandlers.handleGroupBalance);
-
-    // Register new group callback handlers
-    this.bot.action(
-      "create_group_form",
-      GroupCallbackHandlers.handleCreateGroupForm
-    );
-    this.bot.action("copy_group_id", GroupCallbackHandlers.handleCopyGroupId);
-
-    this.bot.action("custom_create", GroupCallbackHandlers.handleCustomCreate);
-    this.bot.action("group_help", GroupCallbackHandlers.handleGroupHelp);
-    this.bot.action("browse_groups", GroupCallbackHandlers.handleBrowseGroups);
-    this.bot.action("join_with_id", GroupCallbackHandlers.handleJoinWithId);
-    this.bot.action("my_groups", GroupCallbackHandlers.handleMyGroups);
-    this.bot.action("group_stats", GroupCallbackHandlers.handleGroupStats);
-
-    // Register deposit callback handlers
-    this.bot.action("group_deposit", DepositHandlers.handleDepositFunds);
-    this.bot.action("deposit_custom", DepositHandlers.handleDepositCustom);
-    this.bot.action("deposit_cancel", DepositHandlers.handleDepositCancel);
-    this.bot.action(
-      "group_manage_refresh",
-      GroupCallbackHandlers.handleGroupManageRefresh
-    );
-    this.bot.action(
-      "group_more_actions",
-      GroupCallbackHandlers.handleMoreActions
-    );
-
-    // Register close group callback handlers
-    this.bot.action("group_close", CloseGroupHandlers.handleCloseGroup);
-    this.bot.action(
-      "close_group_confirm",
-      CloseGroupHandlers.handleCloseGroupConfirm
-    );
-    this.bot.action(
-      "close_group_cancel",
-      CloseGroupHandlers.handleCloseGroupCancel
-    );
-
-    // Register exit group callback handlers
-    this.bot.action("group_exit", ExitGroupHandlers.handleExitGroup);
-    this.bot.action(
-      "exit_group_confirm",
-      ExitGroupHandlers.handleExitGroupConfirm
-    );
-    this.bot.action(
-      "exit_group_cancel",
-      ExitGroupHandlers.handleExitGroupCancel
-    );
-
-    // // Register distribute profit callback handlers
-    // this.bot.action(
-    //   "group_distribute",
-    //   DistributeProfitHandlers.handleDistributeProfit
-    // );
-    // this.bot.action(
-    //   "distribute_custom",
-    //   DistributeProfitHandlers.handleCustomAmount
-    // );
-    // this.bot.action(
-    //   "distribute_cancel",
-    //   DistributeProfitHandlers.handleDistributeCancel
-    // );
-
-    // // Register distribute profit member selection callbacks
-    // this.bot.action(/^distribute_select_member_(.+)$/, async (ctx) => {
-    //   const match = ctx.match;
-    //   if (match && match[1]) {
-    //     await DistributeProfitHandlers.handleMemberSelection(ctx, match[1]);
-    //   }
-    // });
-
-    // // Register distribute profit amount callbacks
-    // this.bot.action(/^distribute_amount_(.+)$/, async (ctx) => {
-    //   const match = ctx.match;
-    //   if (match && match[1]) {
-    //     await DistributeProfitHandlers.handleAmountSelection(ctx, match[1]);
-    //   }
-    // });
-
-    // // Register distribute profit confirm callbacks
-    // this.bot.action(/^distribute_confirm_(.+)$/, async (ctx) => {
-    //   const match = ctx.match;
-    //   if (match && match[1]) {
-    //     await DistributeProfitHandlers.handleDistributeConfirm(ctx, match[1]);
-    //   }
-    // });
-
-    // Register deposit amount callbacks
-    this.bot.action(/^deposit_amount_(.+)$/, async (ctx) => {
-      const match = ctx.match;
-      if (match && match[1]) {
-        await DepositHandlers.handleDepositAmount(ctx, match[1]);
-      }
-    });
-
-    // Register deposit confirm callbacks
-    this.bot.action(/^deposit_confirm_(.+)$/, async (ctx) => {
-      const match = ctx.match;
-      if (match && match[1]) {
-        await DepositHandlers.handleDepositConfirm(ctx, match[1]);
-      }
     });
   }
 
@@ -573,54 +402,15 @@ export class CommandManager {
         { command: "wallet", description: "Manage your wallet" },
         { command: "referral", description: "View referral info" },
         { command: "deposit", description: "Deposit funds" },
-        // { command: "image", description: "Test image features" },
       ];
 
-      // Define commands for group chats (group management)
-      const groupCommands = [
-        { command: "start", description: "Start the bot" },
-        { command: "help", description: "Get help" },
-        { command: "group", description: "View group details" },
-        { command: "create_group", description: "Create a new trading group" },
-        { command: "join", description: "Join a trading group" },
-        { command: "info", description: "Show group information" },
-        { command: "members", description: "List group members" },
-        { command: "group_balance", description: "Check group balance" },
-        { command: "check_group", description: "Check group status" },
-        { command: "recover_group", description: "Recover group access" },
-        { command: "leave_group", description: "Leave the group" },
-        { command: "create", description: "Create a new group on EVM" }, //delete later
-      ];
-
-      // Define additional commands for group administrators
-      const groupAdminCommands = [
-        { command: "promotetrader", description: "Promote a member to trader" },
-        { command: "demotetrader", description: "Demote a trader" },
-      ];
-
-      // Set commands for private chats only
+      // Set commands for private chats
       await this.bot.telegram.setMyCommands(privateCommands, {
         scope: { type: "all_private_chats" },
       });
 
-      // Set commands for all group chats
-      await this.bot.telegram.setMyCommands(groupCommands, {
-        scope: { type: "all_group_chats" },
-      });
-
-      // Set commands for group administrators (includes all group commands + admin commands)
-      await this.bot.telegram.setMyCommands(
-        [...groupCommands, ...groupAdminCommands],
-        { scope: { type: "all_chat_administrators" } }
-      );
-
-      console.log("✅ Bot commands updated successfully for all scopes:");
+      console.log("✅ Bot commands updated for all scopes:");
       console.log(`  - Private chats: ${privateCommands.length} commands`);
-      console.log(`  - Group chats: ${groupCommands.length} commands`);
-      console.log(
-        `  - Group admins: ${groupCommands.length + groupAdminCommands.length
-        } commands`
-      );
     } catch (error) {
       console.error("❌ Failed to update bot commands:", error);
     }

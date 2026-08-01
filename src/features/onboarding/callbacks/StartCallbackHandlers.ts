@@ -1,5 +1,4 @@
 import { Context } from "telegraf";
-import { GroupCallbackHandlers } from "@features/groups/callbacks/GroupCallbackHandlers";
 import { WalletViewHandlers } from "./WalletViewHandlers";
 import { ProfileHandlers } from "./ProfileHandlers";
 import { HelpAboutHandlers } from "./HelpAboutHandlers";
@@ -17,16 +16,6 @@ export class StartCallbackHandlers {
   // Handle view profile callback
   static async handleViewProfile(ctx: Context): Promise<void> {
     return ProfileHandlers.handleViewProfile(ctx);
-  }
-
-  // Handle create callback
-  static async handleCreateGroup(ctx: Context): Promise<void> {
-    return GroupCallbackHandlers.handleCreateGroup(ctx);
-  }
-
-  // Handle join callback
-  static async handleJoinGroup(ctx: Context): Promise<void> {
-    return GroupCallbackHandlers.handleJoinGroup(ctx);
   }
 
   // Handle show help callback
@@ -120,10 +109,5 @@ export class StartCallbackHandlers {
   // Handle refresh balances callback (refreshes tokens / wallet balances)
   static async handleRefreshBalances(ctx: Context): Promise<void> {
     return MenuHandlers.handleRefreshBalances(ctx);
-  }
-
-  // Handle back to group menu callback
-  static async handleBackToGroupMenu(ctx: Context): Promise<void> {
-    return MenuHandlers.handleBackToGroupMenu(ctx);
   }
 }

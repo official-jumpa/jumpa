@@ -10,15 +10,9 @@ export const HELP_MESSAGE = `<b>🤖 Jumpa Bot Commands:</b>
 /start - Start the bot and register
 /wallet - View your wallet information
 /profile - View your profile details
+/referral - View referral rewards
+/deposit - Deposit funds
 /help - Show this help message
-/ping - Check if bot is alive
-/info - Get bot information
-
-<b>Group Commands:</b>
-/create_group - Create a group
-/join group_id - Join a group
-/vote poll_id yes/no - Vote on polls
-/history - View trading history
 
 <b>Need Support?</b>
 Contact @official_jumpa_bot for help!`;
@@ -29,20 +23,14 @@ Contact @official_jumpa_bot for help!`;
 export const ABOUT_MESSAGE = `ℹ️ <b>About Jumpa Bot</b>
 
 <b>What is Jumpa?</b>
-Jumpa is a Telegram bot that enables collaborative trading through groups - traditional savings groups reimagined for the digital age.
+Jumpa is a Telegram trading bot for multi-chain crypto trading, wallet management, and P2P fiat withdrawals.
 
 <b>Key Features:</b>
-  <b>Auto-generated wallets</b> for each user
-  <b>Collective fund pooling</b> with SOL or USDT
-  <b>Democratic voting</b> on trading decisions
-  <b>Transparent profit sharing</b> based on contributions
-  <b>Secure smart contract integration</b>
-
-<b>How It Works:</b>
-  1. Create or join an group
-  2. Contribute SOL or USDT to the group pool
-  3. Vote on trading proposals
-  4. Share profits based on your contribution
+  <b>Multi-Chain Wallets</b> (Solana & EVM)
+  <b>Token Trading</b> (Jupiter / DEX swaps)
+  <b>Instant Fiat Withdrawals</b> (off-ramp)
+  <b>AI Assistant</b> for natural language withdrawals
+  <b>Referral System</b> for community rewards
 `;
 
 /**

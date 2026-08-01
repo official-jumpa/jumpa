@@ -1,9 +1,9 @@
 # Jumpa Bot - Architecture Summary
 
 ## Project Overview
-**Jumpa** is a Telegram-based collaborative cryptocurrency trading bot that enables users to create groups for collective trading on Solana and EVM blockchains. It integrates wallet management, smart contracts, and fiat on/off-ramps.
+**Jumpa** is a Telegram-based cryptocurrency trading bot that enables multi-chain trading on Solana and EVM blockchains, multi-wallet management, and P2P fiat withdrawals.
 
-**Tech Stack**: Node.js + TypeScript, Telegraf (Telegram Bot), MongoDB, Solana/Anchor, ethers.js
+**Tech Stack**: Node.js + TypeScript, Telegraf (Telegram Bot), MongoDB, Solana web3.js, ethers.js
 
 ---
 
@@ -221,8 +221,6 @@ WithdrawalState (In-memory Map<userId, WithdrawalState>)
 - referredBy: tracks who referred the user
 - myReferrals: array of users you referred
 - totalReferrals: count of referred users
-- **Reward calculation**: Not explicitly implemented in current codebase
-- **Potential**: Could distribute profits to referrers from group trading gains
 
 ---
 
@@ -246,31 +244,18 @@ abstract class BaseCommand {
 - Manages callback query handlers
 - Updates bot command menu
 
-### Registered Commands (17 total)
+### Registered Commands
 1. `start` - User registration & main menu
 2. `help` - Help documentation
 3. `wallet` - Wallet info & management
-4. `group` - Group overview/navigation
-5. `create_group` - Create collaborative trading group
-6. `group` - Group details
-7. `group_info` - Group info
-8. `group_members` - Group member list
-9. `group_polls` - Group voting polls
-10. `group_balance` - Group financial summary
-11. `check_group` - Verify group on-chain
-12. `recover_group` - Recover out-of-sync group
-13. `fund_wallet` - Deposit instructions
-14. `promote_trader` - Grant trading privileges
-15. `leave_group` - Exit group
-16. `demote_trader` - Remove trading privileges
-17. `join` - Join existing group
+4. `deposit` - Deposit funds
+5. `referral` - Referral system info
 
 ### Callback Handler System
-**Inline Buttons** (107+ callback routes):
+**Inline Buttons**:
 
 **Onboarding Callbacks**:
 - `view_wallet`, `view_profile` - Profile/wallet display
-- `create_group`, `join` - Group actions
 - `generate_wallet`, `import_wallet` - Wallet setup
 - `add_wallet`, `add_wallet_solana`, `add_wallet_evm` - Multi-wallet
 - `set_default_solana:`, `set_default_evm:` - Default wallet selection
@@ -288,14 +273,6 @@ abstract class BaseCommand {
 - `refresh_balance` - Update cached balance
 - `withdraw_currency:`, `withdraw_custom_amount:` - Withdrawal steps
 - `export_private_key`, `proceed_export`, `cancel_export` - Key export
-
-**Group Callbacks**:
-- `group_info`, `group_members`, `group_balance` - Group data
-- `group_deposit`, `deposit_custom` - Add funds to group
-- `group_close`, `group_exit` - Group lifecycle
-- `group_distribute` - Profit distribution
-- `/^deposit_amount_(.+)$/` - Dynamic amount selection
-- `/^distribute_select_member_(.+)$/` - Member selection
 
 **Text Message Handlers**:
 - Awaiting custom amount input
@@ -354,16 +331,6 @@ Bot sends confirmation with Solscan link
 ## 5. WALLET & BALANCE MANAGEMENT
 
 ### Wallet Service Architecture
-
-**Balance Service** (`balanceService.ts`)
-Functions for group financial management:
-- `updateGroupBalance()` - Calculate total from member contributions
-- `calculateProfitShares()` - Determine each member's percentage
-- `calculateProfitDistribution()` - Calculate profit payouts
-- `getMemberShareInfo()` - Get member rank and percentage
-- `trackMemberContribution()` - Record member deposits
-- `getGroupFinancialSummary()` - Complete financial overview
-- `calculateGroupPerformance()` - ROI, trade volume metrics
 
 **Balance Retrieval** (`getBalance.ts`)
 ```typescript
@@ -444,102 +411,7 @@ evmWallets: [
 
 ---
 
-## 6. GROUP (COLLABORATIVE TRADING) SYSTEM
-
-### Group Database Model
-**Location**: `/src/database/models/group.ts`
-
-```
-Group Document
-├── name (String)
-├── creator_id (Number - telegram_id)
-├── telegram_chat_id (Number, unique)
-├── is_private (Boolean)
-├── max_members (Number, 2-100)
-├── status (Enum: "active" | "ended")
-├── members (Array)
-│   ├── user_id (Number)
-│   ├── role (Enum: "member" | "trader")
-│   ├── contribution (Number - SOL amount)
-│   └── joined_at (Date)
-├── polls (Array)
-│   ├── id, creator_id, type (trade|end_group)
-│   ├── title, token_address, token_symbol, amount
-│   ├── status (open|executed|cancelled)
-│   ├── votes (Array of {user_id, vote: bool, voted_at})
-│   ├── created_at, expires_at
-├── trades (Array)
-│   ├── poll_id, token_symbol, amount
-│   ├── price_per_token
-│   └── executed_at
-├── current_balance (Number)
-├── onchain_group_address (String)
-├── onchain_tx_signature (String)
-└── created_at (Date)
-```
-
-**Indexes**: creator_id, telegram_chat_id, status, members.user_id
-
-### Group Lifecycle
-
-1. **Creation**
-   - Creator initiates `/create_group`
-   - Validates: max members 2-100, unique chat ID
-   - **On-Chain**: Calls `createGroupOnChain()` via Anchor program
-     - Creates group PDA (Program Derived Account)
-     - Stores group name, admin, privacy settings
-     - Returns transaction signature
-   - **Off-Chain**: Stores in MongoDB with on-chain references
-   - Creator automatically becomes first member
-
-2. **Membership**
-   - Members join via `/join` with group ID
-   - Member added to `members` array with "member" role
-   - Contribution initially 0
-   - Can be promoted to "trader" role (can execute trades)
-
-3. **Deposits**
-   - Members deposit SOL into group pool
-   - System transfers SOL to group wallet (on-chain)
-   - Updates member.contribution in database
-   - Recalculates group.current_balance
-
-4. **Trading** (Governance-based)
-   - Trader creates poll for proposed trade
-   - Poll type: "trade" with token address and amount
-   - Voting period (expires_at) - members vote
-   - If approved (>50% votes), trade executed:
-     - Calls `executeTrade()` on-chain via Anchor
-     - Swaps group's SOL for target token via Jupiter CPI
-     - Records trade in trades array
-   - Profit tracking via current_balance
-
-5. **Profit Distribution**
-   - Admin/designated member initiates distribution
-   - System calculates profit shares based on contributions:
-     - Formula: (member_contribution / total_balance) * profit
-   - Distributes SOL to member wallets
-   - Updates group balance
-
-6. **Closure**
-   - Group marked status: "ended"
-   - Final distribution to members
-   - On-chain group marked inactive
-
-### Group Service (`groupService.ts`)
-Key functions:
-- `createGroup()` - Create on-chain + database
-- `joinGroup()` - Add member
-- `exitGroup()` - Remove member
-- `addTrader()` - Promote to trader
-- `removeTrader()` - Demote trader
-- Recovery/sync functions for out-of-sync groups
-
-### Governance/Polling System
-- Poll-based decision making for trades
-- Voting mechanism with expiry
-- Democratic group control
-- Trade execution gated on poll approval
+---
 
 ---
 
@@ -551,16 +423,8 @@ Key functions:
 
 **Key Functions** (`/src/blockchain/solana/`):
 
-- **`createGroup.ts`**: Creates on-chain group PDA
-- **`joinGroup.ts`**: Adds member to group on-chain
-- **`exitGroup.ts`**: Removes member and refunds
 - **`executeTrade.ts`**: Swaps tokens via Jupiter CPI
-- **`deposit.ts`**: Transfers SOL to group account
-- **`distributeProfit.ts`**: Sends profits to members
-- **`fetchData.ts`**: Reads group state from chain
-- **`closeGroup.ts`**: Ends group and distributes funds
-- **`manageTraders.ts`**: Add/remove traders
-- **`manageBlacklist.ts`**: Block/unblock members
+- **`deposit.ts`**: Transfers SOL to account
 
 ### Jupiter Integration (DEX Aggregation)
 - Used for token swaps
@@ -577,7 +441,7 @@ Key functions:
 
 ## 8. DATA MODELS SUMMARY
 
-### Three Main Collections:
+### Two Main Collections:
 
 **1. User**
 - Core user identity & authentication
@@ -586,14 +450,7 @@ Key functions:
 - Bank account info for fiat
 - Cached balance data
 
-**2. Group**
-- Collaborative trading group data
-- Members with roles and contributions
-- Democratic polling system
-- Trade history
-- On-chain references
-
-**3. Withdrawal**
+**2. Withdrawal**
 - Audit trail for fiat conversions
 - Tracks: user, transaction ID, amounts, wallet address
 - Links crypto withdrawals to fiat payouts
@@ -611,14 +468,12 @@ Key functions:
 
 ### Database State
 - User balance cache (5-min TTL)
-- Group balance and member contributions
 - Trade history and polls
 - Bank account details
 - Referral relationships
 
 ### Blockchain State
-- Group accounts and permissions
-- Member deposits and balances
+- Deposits and balances
 - Trade execution records
 - Token ownership and transfers
 
@@ -638,8 +493,6 @@ Key functions:
 
 3. **Access Control**
    - Role-based: user vs admin
-   - Trading privileges: member vs trader role
-   - Group-level permissions on-chain
 
 4. **Transaction Verification**
    - Signature confirmation before broadcast
@@ -688,15 +541,6 @@ Key functions:
 6. Execute transaction
 ```
 
-### Group Trading
-`CreateGroupCommand.ts` -> `groupService.createGroup()`:
-```
-1. Validate creator and parameters
-2. Call createGroupOnChain() - Anchor program
-3. Save to MongoDB
-4. Display group details
-```
-
 ---
 
 ## SUMMARY TABLE
@@ -704,8 +548,8 @@ Key functions:
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | Bot Framework | Telegraf 4.16 | Telegram bot interface |
-| Database | MongoDB + Mongoose 8.19 | User, group, withdrawal data |
-| Solana | @solana/web3.js + Anchor | On-chain group management |
+| Database | MongoDB + Mongoose 8.19 | User, wallet, trade, withdrawal data |
+| Solana | @solana/web3.js | On-chain wallet & token swaps |
 | EVM | ethers.js 6.15 | Multi-chain wallet support |
 | DEX | Jupiter API | Token swaps |
 | Encryption | Node.js crypto | Private key security |
@@ -733,7 +577,7 @@ Save to DB
 Display wallet address & menu
 ```
 
-### Trading Flow (Individual)
+### Individual Trading Flow 
 ```
 Token address detected (text message)
   ↓
@@ -760,25 +604,6 @@ Confirmation
 Update balances
 ```
 
-### Group Trading Flow
-```
-Create Group (on-chain + DB)
-  ↓
-Members join & deposit SOL
-  ↓
-Trader proposes trade poll
-  ↓
-Members vote
-  ↓
-If approved: Execute trade (on-chain via Anchor)
-  ↓
-Update group balance & profits
-  ↓
-Admin distributes profits
-  ↓
-Members receive SOL
-```
-
 ### Withdrawal Flow
 ```
 User initiates withdrawal
@@ -801,4 +626,3 @@ Call Yara API for fiat conversion
   ↓
 Fiat transferred to bank account
 ```
-

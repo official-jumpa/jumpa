@@ -1,7 +1,6 @@
 import { Context } from "telegraf";
 import getUser from "@features/users/getUserInfo";
 import { Markup } from "telegraf";
-import { GroupService } from "@features/groups/services/groupService";
 import { sendOrEdit } from "@shared/utils/messageHelper";
 
 export class ProfileHandlers {
@@ -26,17 +25,9 @@ export class ProfileHandlers {
         );
         return;
       }
-      // Check if user has a solana wallet
-      const hasSolanaWallet =
-        user.solanaWallets &&
-        user.solanaWallets.length > 0 &&
-        user.solanaWallets[0].address;
-
-      // Get user's groups
-      const userGroups = await GroupService.getUserGroups(telegramId);
 
       const profileMessage = `
-      <b>📊 Your Profile</b>
+<b>📊 Your Profile</b>
 
 <b>Username:</b> @${username}
 
@@ -46,8 +37,6 @@ export class ProfileHandlers {
           const suffix = ["th", "st", "nd", "rd"][((day % 100) - 20) % 10] || ["th", "st", "nd", "rd"][day % 10] || "th";
           return `${day}${suffix} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
         })() : "Unknown"}
-
-<b>Groups:</b> ${userGroups.length}
       `;
       const keyboard = Markup.inlineKeyboard([
         [

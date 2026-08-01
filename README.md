@@ -1,6 +1,6 @@
-# Jumpa - Collaborative Crypto Trading Bot
+# Jumpa - Crypto Trading & P2P 
 
-Jumpa is a Telegram-based collaborative trading bot that enables users to create groups for collective cryptocurrency trading on Solana and EVM blockchains.
+Jumpa is a Telegram-based trading bot that enables users to trade cryptocurrency on Solana and EVM blockchains, manage multi-chain wallets, and make P2P fiat withdrawals.
 
 ### **Test the bot on Telegram 👉** [Jumpa Bot](https://t.me/official_jumpa_bot)
 ### **Watch the Demo Video on YouTube 👉** [Demo Video](https://youtube.com/shorts/85Gsr1IsJAM?feature=shared)
@@ -9,12 +9,11 @@ Jumpa is a Telegram-based collaborative trading bot that enables users to create
 ## Features
 
 - **Multi-Chain Support**: Trade on Solana and EVM-compatible chains
-- **Collaborative Trading**: Create groups and make collective trading decisions
 - **Multi-Wallet Management**: Support for multiple Solana and EVM wallets
 - **Secure Key Storage**: Encrypted private key storage
 - **Fiat On/Off Ramp**: NGN withdrawal support via integrated payment gateway
-- **On-Chain State**: Anchor smart contract integration for transparent group management
-- **Social Trading**: Referral system and community-driven decision making
+- **AI Agent Integration**: Natural language & image-based withdrawal processing
+- **Referrals System**: Referral rewards and community sharing
 
 ## Tech Stack
 
@@ -48,9 +47,9 @@ jumpa/
 │   ├── core/                     # Core configuration & infrastructure
 │   │   ├── config/               # Environment configuration
 │   │   └── database/             # Database connection & models
-│   │       └── models/           # Mongoose schemas (User, Group, Wallet, etc.)
+│   │       └── models/           # Mongoose schemas (User, Wallet, etc.)
 │   ├── blockchain/               # Blockchain integrations
-│   │   ├── solana/               # Solana & Anchor services
+│   │   ├── solana/               # Solana services
 │   │   ├── base/                 # Base chain integration
 │   │   └── shared/               # Shared blockchain utilities
 │   │       ├── interfaces/       # Common interfaces
@@ -68,11 +67,6 @@ jumpa/
 │   │   │   ├── callbacks/        # Wallet action handlers
 │   │   │   ├── services/         # Balance, creation services
 │   │   │   └── utils/            # Wallet utilities
-│   │   ├── groups/               # Group operations
-│   │   │   ├── commands/         # /create_group, /join, /leave commands
-│   │   │   ├── callbacks/        # Group action handlers
-│   │   │   ├── services/         # Group management logic
-│   │   │   └── utils/            # Group helpers
 │   │   ├── trading/              # Token trading
 │   │   │   ├── commands/         # /buy, /sell commands
 │   │   │   ├── callbacks/        # Trade confirmation handlers
@@ -271,21 +265,14 @@ See [Testing Guide](docs/TESTING_GUIDE.md) for detailed testing instructions.
 
 ### User Commands
 
-- `/start` - Register and create wallet
+- `/start` - Register and view main menu
 - `/wallet` - Manage wallets
-- `/create_group` - Create/manage groups
 - `/buy` - Buy tokens
 - `/sell` - Sell tokens
-- `/withdraw` - Withdraw to NGN
+- `/withdraw` - Withdraw to NGN bank account
+- `/deposit` - Deposit funds
+- `/referral` - View referral rewards
 - `/help` - Show help message
-
-### Group Commands
-
-- `/create_group` - Create new group
-- `/join` - Join existing group
-- `/leave_group` - Leave group
-- `/group` - View group details
-- `/poll` - Create poll for trading decision
 
 ## Contributing
 

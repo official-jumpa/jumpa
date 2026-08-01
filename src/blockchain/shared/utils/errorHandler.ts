@@ -31,7 +31,7 @@ export class BlockchainErrorHandler {
     }
 
     if (errorCode === "CALL_EXCEPTION") {
-      return "Smart contract call failed. Please check group state and try again.";
+      return "Smart contract call failed. Please check state and try again.";
     }
 
     if (errorCode === "UNPREDICTABLE_GAS_LIMIT") {
@@ -60,7 +60,7 @@ export class BlockchainErrorHandler {
     }
 
     if (errorMessage.includes("execution reverted")) {
-      return "Transaction reverted. Please check group requirements.";
+      return "Transaction reverted. Please check requirements.";
     }
 
     if (errorMessage.includes("user rejected")) {
@@ -102,7 +102,7 @@ export class BlockchainErrorHandler {
     }
 
     if (errorMessage.includes("custom program error")) {
-      return "Smart contract error. Please check group requirements and try again.";
+      return "Smart contract error. Please check requirements and try again.";
     }
 
     if (errorMessage.includes("failed to send transaction")) {
@@ -110,7 +110,7 @@ export class BlockchainErrorHandler {
     }
 
     if (errorMessage.includes("Account does not exist")) {
-      return "Group or account does not exist on-chain. Please verify the address.";
+      return "Account does not exist on-chain. Please verify the address.";
     }
 
     if (errorMessage.includes("Transaction simulation failed")) {

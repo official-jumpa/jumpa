@@ -5,7 +5,6 @@ import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
 import {
   buildPrivateChatKeyboard,
-  buildGroupChatKeyboard,
   buildWalletSetupKeyboard,
 } from "./keyboardBuilders";
 import { getUserTokenHoldings } from "@features/trading/utils/getUserTokenHoldings";
@@ -210,10 +209,7 @@ async function fetchAndUpdateBalances(
       evmBalances
     );
 
-    // Build keyboard
-    const baseKeyboard = isGroupChat
-      ? buildGroupChatKeyboard()
-      : buildPrivateChatKeyboard();
+    const baseKeyboard = buildPrivateChatKeyboard();
 
     // Add "Manage Tokens" button for private chats with tokens
     let finalKeyboard = baseKeyboard;
@@ -338,9 +334,7 @@ Choose an option below to get started:`;
     hasEvmWallet
   );
 
-  const baseKeyboard = isGroupChat
-    ? buildGroupChatKeyboard()
-    : buildPrivateChatKeyboard();
+  const baseKeyboard = buildPrivateChatKeyboard();
 
   // Add "Manage Tokens" button for private chats with tokens (even in skeleton)
   let finalKeyboard = baseKeyboard;

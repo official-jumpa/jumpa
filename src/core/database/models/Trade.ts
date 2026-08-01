@@ -17,8 +17,6 @@ export interface ITrade extends Document {
   feeNative: number;
   feeUsd: number;
   walletAddress: string;
-  isGroupTrade: boolean;
-  groupId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,8 +43,6 @@ const TradeSchema: Schema = new Schema(
     feeNative: { type: Number, required: true },
     feeUsd: { type: Number, required: true },
     walletAddress: { type: String, required: true },
-    isGroupTrade: { type: Boolean, default: false },
-    groupId: { type: Schema.Types.ObjectId, ref: "Group" },
   },
   {
     timestamps: true,

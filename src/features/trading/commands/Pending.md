@@ -7,5 +7,4 @@ The program still needs some corrections.
 GetJupiterSwap.ts
 testExecutionTrade.ts
 BuyCommand.ts
-Group trade is half done
 DetectTokenaddress.ts still needs optimization

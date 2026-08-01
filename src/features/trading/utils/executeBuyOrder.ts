@@ -105,9 +105,7 @@ export async function executeBuyOrder(ctx: Context, transactionBase64: string, r
             status: "SUCCESS",
             txHash: executeResponse.signature,
             feeNative: feeNativeSol,
-            feeUsd,
             walletAddress: user.solanaWallets[0].address,
-            isGroupTrade: false,
           });
 
           console.log(`✅ Trade saved to database for user ${telegramId}`);

@@ -18,7 +18,7 @@ export interface JupiterSwapData {
  * swap-instructions endpoint (correct endpoint per docs).
  *
  * - quoteResponse: the object returned from /quote (you must fetch /quote first)
- * - userPublicKey: typically the signer pubkey that will sign (for group CPI, put your group PDA or signer depending on who signs)
+ * - userPublicKey: typically the signer pubkey that will sign
  */
 export async function getJupiterSwapData(
   quoteResponse: any,

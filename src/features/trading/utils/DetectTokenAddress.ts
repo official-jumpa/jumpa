@@ -94,33 +94,6 @@ ${icon ? `<a href="${icon}">&#8205;</a>` : ""}
 <b>24h Traders:</b> ${numTraders?.toLocaleString() ?? "N/A"}
   `;
 
-  // 🧮 Build Telegram message for group chat
-  const groupMetricsMessage = `
-<b>Group Trade</b>
-
-<code>${contractAddress}</code>
-
-<b>${name || "Token"} (${symbol || "?"})</b>
-${icon ? `<a href="${icon}">🖼️</a>` : ""}
-
-
-
-<b>Price:</b> ${usdPrice?.toFixed(6) ?? "N/A"}
-<b>24h Change:</b> ${priceChangeString}%
-<b>Liquidity:</b> ${liquidity ? `$${liquidity.toLocaleString()}` : "N/A"}
-<b>MCap:</b> ${mcap ? `$${mcap.toLocaleString()}` : "N/A"}
-<b>FDV:</b> ${fdv ? `$${fdv.toLocaleString()}` : "N/A"}
-
-<b>Holders:</b> ${holderCount?.toLocaleString() ?? "N/A"}
-<b>24h Traders:</b> ${numTraders?.toLocaleString() ?? "N/A"}
-
-${token.twitter ? `<a href="${token.twitter}">Twitter</a>` : ""} || ${token.website ? `<a href="${token.website}">Website</a>` : ""} || ${token.discord ? `<a href="${token.discord}">Discord</a>` : ""}
-
-━━━━━━━━━━━━━━
-Select an option below to trade with the group token balance
-`;
-
-
   const tradeId = randomBytes(8).toString("hex");
   setTradeState(tradeId, {
     contractAddress,
@@ -156,27 +129,7 @@ Select an option below to trade with the group token balance
     ]
   ]);
 
-  const groupChatOptions = Markup.inlineKeyboard([
-    [
-      Markup.button.callback("Buy 0.5 SOL", `groupBuy:${tradeId}:0.5`),
-      Markup.button.callback("Buy 1 SOL", `groupBuy:${tradeId}:1`),
-      Markup.button.callback("Buy 2 SOL", `groupBuy:${tradeId}:2`),
-    ],
-    [Markup.button.callback("Buy X SOL", `groupBuy_custom:${tradeId}`)],
-    [
-      Markup.button.callback("Sell 50%", `groupSell:${tradeId}:50`),
-      Markup.button.callback("Sell 75%", `groupSell:${tradeId}:75`),
-      Markup.button.callback("Sell 100%", `groupSell:${tradeId}:100`),
-    ],
-    [Markup.button.callback("Sell X SOL", `groupSell_custom:${tradeId}`)],
-
-    [
-      Markup.button.callback("🔄 Refresh", `refresh:${contractAddress}`),
-      Markup.button.url("📊 Chart", `https://dexscreener.com/solana/${contractAddress}`),
-    ]
-  ]);
-
-  return { metricsMessage, privateChatOptions, groupChatOptions, groupMetricsMessage };
+  return { metricsMessage, privateChatOptions };
 }
 
 export async function handleDetectToken(ctx: Context, contractAddress: string) {
@@ -239,77 +192,6 @@ export async function handleDetectToken(ctx: Context, contractAddress: string) {
     }
 
     // Show appropriate error message
-    if (error.message?.includes("Invalid token address")) {
-      await ctx.reply(`❌ ${error.message}`);
-    } else if (error.message === "RATE_LIMIT_ERROR") {
-      await ctx.reply(`❌ Jupiter API rate limit exceeded. Please try again in a minute.`);
-    } else if (error.message?.includes("Failed to fetch token data from Jupiter")) {
-      await ctx.reply(`❌ Jupiter API is unavailable. Please try again later.`);
-    } else {
-      await ctx.reply(`❌ ${error.message || "An unrecognized error occurred."}`);
-    }
-  }
-}
-
-export async function handleGroupToken(ctx: Context, contractAddress: string) {
-  let loadingMsgId: number | undefined;
-
-  try {
-    // Send initial loading message (same as private chat)
-    const loadingMsg = await ctx.reply("⏳ Fetching token data...");
-    loadingMsgId = loadingMsg.message_id;
-
-    // Try to fetch token data
-    let tokenData;
-    try {
-      tokenData = await generateTokenInfoMessage(contractAddress);
-    } catch (firstError: any) {
-      // Check if it's a rate limit error
-      if (firstError.message === "RATE_LIMIT_ERROR") {
-        // Update message (same as private chat)
-        try {
-          await ctx.telegram.editMessageText(
-            ctx.chat!.id,
-            loadingMsgId,
-            undefined,
-            "⏳ Rate limit hit. Waiting 5 seconds before retrying..."
-          );
-        } catch (e) {
-          // Ignore edit errors
-        }
-
-        // Wait 5 seconds
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        // Retry the request
-        tokenData = await generateTokenInfoMessage(contractAddress);
-      } else {
-        throw firstError;
-      }
-    }
-
-    // Success! Replace with token data
-    await ctx.telegram.editMessageText(
-      ctx.chat!.id,
-      loadingMsgId,
-      undefined,
-      tokenData.groupMetricsMessage,
-      { parse_mode: 'HTML', ...tokenData.groupChatOptions }
-    );
-
-  } catch (error: any) {
-    console.error("Error in handleGroupToken:", error?.message || error);
-
-    // Clean up loading message
-    if (loadingMsgId) {
-      try {
-        await ctx.telegram.deleteMessage(ctx.chat!.id, loadingMsgId);
-      } catch (e) {
-        // Ignore
-      }
-    }
-
-    // Show error (same as private chat)
     if (error.message?.includes("Invalid token address")) {
       await ctx.reply(`❌ ${error.message}`);
     } else if (error.message === "RATE_LIMIT_ERROR") {
