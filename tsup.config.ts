@@ -9,5 +9,6 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   clean: true,
-  noExternal: ['@noble/curves', 'rpc-websockets', '@solana/web3.js'],
+  noExternal: [/(.*)/],
+  external: ['canvas'],
 });
