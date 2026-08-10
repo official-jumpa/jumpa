@@ -10,9 +10,5 @@ export default defineConfig({
   format: ['esm'],
   target: 'node20',
   clean: true,
-  banner: {
-    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
-  },
-  noExternal: ['rpc-websockets', 'uuid', '@solana/web3.js', '@noble/curves', '@coral-xyz/anchor'],
   external: ['canvas'],
 });
