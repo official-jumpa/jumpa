@@ -443,7 +443,16 @@ async function executeSingleTransferSilent(
 
       const recipientNumber = data.recipient || data.account_number;
       const paymentOptions = {
-        sender: {},
+        sender: {
+          firstName: "Jumpa",
+          lastName: "Jumpa",
+          email: "21_scene_cassia@icloud.com",
+          phoneNumber: "+2349169419535",
+          address: "NG",
+          city: "NG",
+          country: "NIGERIA",
+          postalCode: "400401"
+        },
         recipient: {
           firstName: user.telegram_id.toString(),
           lastName: user.username || "user",
