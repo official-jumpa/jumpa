@@ -2,6 +2,7 @@ import * as StellarSdk from "@stellar/stellar-sdk";
 import { decryptPrivateKey } from "./encryption";
 import { getExplorerUrl, handleBlockchainError } from "@src/blockchain/detector";
 import { BlockchainType } from "@src/blockchain/types";
+import { ensureStellarTrustline } from "./ensureStellarTrustline";
 
 export interface SendStellarTransactionParams {
   user: any;
@@ -22,8 +23,8 @@ export interface SendStellarTransactionResult {
 
 const MAINNET_HORIZON_URL = "https://horizon.stellar.org";
 const TESTNET_HORIZON_URL = "https://horizon-testnet.stellar.org";
-const MAINNET_USDC_ISSUER = "GBBD7DY23W7RLSTQ27ADK33C34tMs6rrss2vtxf44RpBwMsA543c7B6c";
-const TESTNET_USDC_ISSUER = "GBFDCVPTQCACGEGKY65TT47MM2O2CGCWKIZVNZRA62Q7H66E264TNMIK";
+const MAINNET_USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+const TESTNET_USDC_ISSUER = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
 
 /**
  * Execute Stellar (XLM / USDC) payment transaction
@@ -63,13 +64,68 @@ export async function sendStellarTransaction({
     // 3. Load source account state
     const sourceAccount = await server.loadAccount(sourceAddress);
 
-    // 4. Construct Asset
+    // 4. Construct Operation
     let asset: StellarSdk.Asset;
+    let operation: StellarSdk.xdr.Operation;
+
     if (currency === "XLM") {
       asset = StellarSdk.Asset.native();
+      let recipientExists = true;
+      try {
+        await server.loadAccount(recipientAddress);
+      } catch (err: any) {
+        if (err?.status === 404 || err?.response?.status === 404) {
+          recipientExists = false;
+        }
+      }
+
+      if (!recipientExists) {
+        if (Number(amount) < 1) {
+          throw new Error(
+            "Destination address is new and inactive. The initial transfer to activate a new Stellar account must be at least 1 XLM."
+          );
+        }
+        operation = StellarSdk.Operation.createAccount({
+          destination: recipientAddress,
+          startingBalance: amount.toString(),
+        });
+      } else {
+        operation = StellarSdk.Operation.payment({
+          destination: recipientAddress,
+          asset,
+          amount: amount.toString(),
+        });
+      }
     } else if (currency === "USDC") {
+      await ensureStellarTrustline(user, isTestnet);
       const issuer = isTestnet ? TESTNET_USDC_ISSUER : MAINNET_USDC_ISSUER;
       asset = new StellarSdk.Asset("USDC", issuer);
+
+      // Verify recipient exists and has USDC trustline
+      try {
+        const recipientAccount = await server.loadAccount(recipientAddress);
+        const recipientHasTrustline = recipientAccount.balances.some(
+          (b: any) => b.asset_code === "USDC" && b.asset_issuer === issuer
+        );
+        if (!recipientHasTrustline) {
+          throw new Error(
+            "Recipient address has not enabled a USDC trustline on Stellar yet. The recipient must activate their wallet with XLM and open a USDC trustline."
+          );
+        }
+      } catch (err: any) {
+        if (err?.status === 404 || err?.response?.status === 404) {
+          throw new Error(
+            "Recipient address is not active on the Stellar network. The recipient needs at least 1 XLM to activate their account."
+          );
+        }
+        throw err;
+      }
+
+      operation = StellarSdk.Operation.payment({
+        destination: recipientAddress,
+        asset,
+        amount: amount.toString(),
+      });
     } else {
       throw new Error(`Unsupported Stellar asset: ${currency}`);
     }
@@ -78,13 +134,7 @@ export async function sendStellarTransaction({
     const txBuilder = new StellarSdk.TransactionBuilder(sourceAccount, {
       fee: StellarSdk.BASE_FEE,
       networkPassphrase,
-    }).addOperation(
-      StellarSdk.Operation.payment({
-        destination: recipientAddress,
-        asset,
-        amount: amount.toString(),
-      })
-    );
+    }).addOperation(operation);
 
     if (memo) {
       txBuilder.addMemo(StellarSdk.Memo.text(memo));

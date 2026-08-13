@@ -6,8 +6,8 @@ const STELLAR_MAINNET_HORIZON = "https://horizon.stellar.org";
 const STELLAR_TESTNET_HORIZON = "https://horizon-testnet.stellar.org";
 
 // Official Circle USDC Issuers on Stellar
-export const STELLAR_MAINNET_USDC_ISSUER = "GBBD7DY23W7RLSTQ27ADK33C34tMs6rrss2vtxf44RpBwMsA543c7B6c";
-export const STELLAR_TESTNET_USDC_ISSUER = "GBFDCVPTQCACGEGKY65TT47MM2O2CGCWKIZVNZRA62Q7H66E264TNMIK";
+export const STELLAR_MAINNET_USDC_ISSUER = "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN";
+export const STELLAR_TESTNET_USDC_ISSUER = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5";
 
 export interface StellarBalances {
   xlm: number;
@@ -107,6 +107,13 @@ export default async function getStellarBalances(
             },
           }
         ).exec();
+      }
+
+      // Auto-ensure USDC trustline if account has XLM >= 1.5
+      if (freshBalances.xlm >= 1.5) {
+        import("./ensureStellarTrustline").then(({ ensureStellarTrustline }) => {
+          ensureStellarTrustline(user, isTestnet).catch(() => {});
+        });
       }
     }
 
