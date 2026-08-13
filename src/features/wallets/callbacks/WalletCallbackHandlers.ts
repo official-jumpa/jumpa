@@ -478,6 +478,7 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
       "lastName": user.username,
       "email": "dev.czdamian@gmail.com",
       "phoneNumber": "+2348060864466",
+      "recipient_type": "INDIVIDUAL",
       "bankAccount": {
         "accountNumber": user.bank_details.account_number,
         "bankCode": user.bank_details.bank_code
