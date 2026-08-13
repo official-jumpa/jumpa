@@ -30,10 +30,21 @@ export const createSolanaBlockchainService = (): BlockchainService => ({
   getDisplayName: () => getDisplayName(BlockchainType.SOLANA),
 });
 
+/**
+ * Stellar Blockchain Service Factory
+ */
+export const createStellarBlockchainService = (): BlockchainService => ({
+  getBlockchainType: () => BlockchainType.STELLAR,
+  getNativeCurrency: () => getNativeCurrency(BlockchainType.STELLAR),
+  validateAddress: (address: string) => validateAddress(address, BlockchainType.STELLAR),
+  getDisplayName: () => getDisplayName(BlockchainType.STELLAR),
+});
+
 // Singleton instance cache
 const services: Record<BlockchainType, BlockchainService> = {
   [BlockchainType.BASE]: createBaseBlockchainService(),
   [BlockchainType.SOLANA]: createSolanaBlockchainService(),
+  [BlockchainType.STELLAR]: createStellarBlockchainService(),
 };
 
 /**
@@ -46,7 +57,8 @@ export function getBlockchainService(
 
   if (
     addressOrType === BlockchainType.BASE ||
-    addressOrType === BlockchainType.SOLANA
+    addressOrType === BlockchainType.SOLANA ||
+    addressOrType === BlockchainType.STELLAR
   ) {
     type = addressOrType as BlockchainType;
   } else if (typeof addressOrType === "string") {

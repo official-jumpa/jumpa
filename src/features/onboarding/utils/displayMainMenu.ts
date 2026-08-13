@@ -2,6 +2,7 @@ import { Context, Markup } from "telegraf";
 import getUser from "@features/users/getUserInfo";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
+import getStellarBalances from "@shared/utils/getStellarBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
 import {
   buildPrivateChatKeyboard,
@@ -22,7 +23,8 @@ function buildSkeletonMessage(
   hasTokenHoldings: boolean,
   tokenHoldings: any[] | null,
   hasSolanaWallet: boolean,
-  hasEvmWallet: boolean
+  hasEvmWallet: boolean,
+  hasStellarWallet: boolean = false
 ): string {
   let message = `Welcome to Jumpa Bot, ${firstName}!\n`;
 
@@ -52,7 +54,7 @@ function buildSkeletonMessage(
 
 \`${user.solanaWallets[0].address}\`
 
-SOL: ...   • USDC: ...   • USDT: ...
+SOL: ⏳ ...   • USDC: ⏳ ...   • USDT: ⏳ ...
 `;
   }
 
@@ -63,10 +65,20 @@ SOL: ...   • USDC: ...   • USDT: ...
 \`${user.evmWallets[0].address}\`
 
 *Celo:*
-ETH: ...   • USDC: ...   • USDT: ...
+ETH: ⏳ ...   • USDC: ⏳ ...   • USDT: ⏳ ...
 
 *Base:*
-ETH: ...   • USDC: ...   • USDT: ...
+ETH: ⏳ ...   • USDC: ⏳ ...   • USDT: ⏳ ...
+`;
+  }
+
+  if (hasStellarWallet) {
+    message += `
+*--- Your Stellar Wallet ---*
+
+\`${user.stellarWallets[0].address}\`
+
+XLM: ⏳ ...   • USDC: ⏳ ...
 `;
   }
 
@@ -75,7 +87,7 @@ ETH: ...   • USDC: ...   • USDT: ...
 }
 
 /**
- * Build complete message with fetched balance data
+ * Build complete message with full balance data
  */
 function buildCompleteMessage(
   user: any,
@@ -87,35 +99,34 @@ function buildCompleteMessage(
   hasSolanaWallet: boolean,
   hasEvmWallet: boolean,
   tokenBalances: any,
-  evmBalances: any
+  evmBalances: any,
+  hasStellarWallet: boolean = false,
+  stellarBalances: any = null
 ): string {
   let message = `Welcome to Jumpa Bot, ${firstName}!\n`;
 
-  // If user has token holdings in private chat, show ONLY portfolio
-  if (isPrivateChat && hasTokenHoldings && tokenHoldings) {
+  // Helper functions for formatting numbers and percentages
+  const formatNum = (num: number | undefined): string => {
+    if (num === undefined || num === null) return '$0.00';
+    if (num >= 1000000) return `$${(num / 1000000).toFixed(2)}M`;
+    if (num >= 1000) return `$${(num / 1000).toFixed(2)}k`;
+    return `$${num.toFixed(2)}`;
+  };
+
+  const formatChange = (pct: number | undefined): string => {
+    if (pct === undefined || pct === null) return '0.00%';
+    const sign = pct >= 0 ? '+' : '';
+    return `${sign}${pct.toFixed(2)}%`;
+  };
+
+  // If user has token holdings in private chat, display Smart Portfolio
+  if (isPrivateChat && hasTokenHoldings && tokenHoldings && tokenHoldings.length > 0) {
     message += `\n*--- Your Tokens ---*\n\n`;
 
     tokenHoldings.slice(0, 10).forEach(holding => {
-      // P/L indicator
-      const plEmoji = (holding.profitLossPercent ?? 0) >= 0 ? '🟢' : '🔴';
-      const plSign = (holding.profitLossPercent ?? 0) >= 0 ? '+' : '';
+      const plSign = holding.profitLossPercent >= 0 ? '+' : '';
+      const plEmoji = holding.profitLossPercent >= 0 ? '🟢' : '🔴';
 
-      // Format numbers
-      const formatNum = (num: number | undefined) => {
-        if (!num) return '$0';
-        if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-        if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-        if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
-        return `$${num.toFixed(2)}`;
-      };
-
-      const formatChange = (change: number | undefined) => {
-        if (change === undefined) return 'N/A';
-        const sign = change >= 0 ? '+' : '';
-        return `${sign}${change.toFixed(1)}%`;
-      };
-
-      // Token header with P/L
       message += `*${holding.symbol}* ${holding.netAmount.toFixed(2)} \n`;
       message += `Value: ${formatNum(holding.currentValueUsd)} (${holding.currentValueSol?.toFixed(4) || '0.0000'} SOL) ${plEmoji}${plSign}${holding.profitLossPercent?.toFixed(2) || '0.00'}%\n`;
       message += `5m: ${formatChange(holding.priceChange5m)}  |  15m: ${formatChange(holding.priceChange15m)}  |  24h: ${formatChange(holding.priceChange24h)}\n`;
@@ -155,6 +166,16 @@ ETH: ${evmBalances.BASE.eth.toFixed(4)}   • USDC: ${evmBalances.BASE.usdc.toFi
 `;
   }
 
+  if (hasStellarWallet && stellarBalances) {
+    message += `
+*--- Your Stellar Wallet ---*
+
+\`${user.stellarWallets[0].address}\`
+
+XLM: ${stellarBalances.xlm.toFixed(4)}   • USDC: ${stellarBalances.usdc.toFixed(2)}
+`;
+  }
+
   message += `\n`;
   return message;
 }
@@ -174,6 +195,7 @@ async function fetchAndUpdateBalances(
   isGroupChat: boolean,
   hasSolanaWallet: boolean,
   hasEvmWallet: boolean,
+  hasStellarWallet: boolean = false,
   forceRefresh: boolean = false
 ): Promise<void> {
   try {
@@ -184,13 +206,16 @@ async function fetchAndUpdateBalances(
     const hasTokenHoldings = tokenHoldings && tokenHoldings.length > 0;
 
     // Fetch balances in parallel with force refresh flag
-    const [tokenBalances, evmBalances] = await Promise.all([
+    const [tokenBalances, evmBalances, stellarBalances] = await Promise.all([
       hasSolanaWallet
         ? getAllTokenBalances(user.solanaWallets[0].address, forceRefresh)
         : Promise.resolve(null),
       hasEvmWallet
         ? getAllEvmBalances(user.evmWallets[0].address, forceRefresh)
-        : Promise.resolve(null)
+        : Promise.resolve(null),
+      hasStellarWallet
+        ? getStellarBalances(user.stellarWallets[0].address, forceRefresh)
+        : Promise.resolve(null),
     ]);
 
     console.log("✅ Balances fetched, updating message...");
@@ -206,7 +231,9 @@ async function fetchAndUpdateBalances(
       hasSolanaWallet,
       hasEvmWallet,
       tokenBalances,
-      evmBalances
+      evmBalances,
+      hasStellarWallet,
+      stellarBalances
     );
 
     const baseKeyboard = buildPrivateChatKeyboard();
@@ -289,12 +316,16 @@ export async function displayMainMenu(
   const hasEvmWallet = !!(
     user.evmWallets && user.evmWallets.length > 0 && user.evmWallets[0].address
   );
+  const hasStellarWallet = !!(
+    user.stellarWallets && user.stellarWallets.length > 0 && user.stellarWallets[0].address
+  );
 
   console.log("Has Solana Wallet:", hasSolanaWallet);
   console.log("Has EVM Wallet:", hasEvmWallet);
+  console.log("Has Stellar Wallet:", hasStellarWallet);
 
   // Scenario 1: No wallet - show setup options (instant, no changes needed)
-  if (!hasSolanaWallet && !hasEvmWallet) {
+  if (!hasSolanaWallet && !hasEvmWallet && !hasStellarWallet) {
     const firstName = ctx.from?.first_name || username;
     const setupMessage = `Welcome to Jumpa Bot, ${firstName}!
 
@@ -331,7 +362,8 @@ Choose an option below to get started:`;
     hasTokenHoldings,
     basicTokenHoldings,
     hasSolanaWallet,
-    hasEvmWallet
+    hasEvmWallet,
+    hasStellarWallet
   );
 
   const baseKeyboard = buildPrivateChatKeyboard();
@@ -383,6 +415,7 @@ Choose an option below to get started:`;
     isGroupChat,
     hasSolanaWallet,
     hasEvmWallet,
+    hasStellarWallet,
     forceRefresh
   ).catch(error => {
     console.error("Background balance fetch error:", error);

@@ -2,11 +2,14 @@ import { Context } from "telegraf";
 import getUser, {
   addSolanaWalletToUser,
   addEVMWalletToUser,
+  addStellarWalletToUser,
 } from "@features/users/getUserInfo";
 import { Markup } from "telegraf";
 import { encryptPrivateKey } from "@shared/utils/encryption";
 import { Keypair } from "@solana/web3.js";
 import { Wallet } from "ethers";
+import { Keypair as StellarKeypair, StrKey } from "@stellar/stellar-sdk";
+import createNewStellarWallet from "@shared/utils/createStellarWallet";
 import {
   setUserActionState,
   clearUserActionState,
@@ -49,7 +52,7 @@ export async function handleAddWallet(ctx: Context): Promise<void> {
 
     const message = `➕ **Add Wallet**
 
-Choose the wallet type you want to add. Choose EVM if you want to import a wallet on Base, Celo, Lisk or any other EVM chain.`;
+Choose the wallet type you want to add. Choose EVM for Base, Celo, etc. or Stellar for XLM/USDC.`;
 
     const keyboard = Markup.inlineKeyboard([
       [
@@ -57,10 +60,11 @@ Choose the wallet type you want to add. Choose EVM if you want to import a walle
         Markup.button.callback("🔵 Import EVM", "add_wallet_evm"),
       ],
       [
-        Markup.button.callback(
-          "🔵 Generate EVM Wallet",
-          "generate_evm_wallet"
-        ),
+        Markup.button.callback("⭐ Import Stellar", "add_wallet_stellar"),
+      ],
+      [
+        Markup.button.callback("🔵 Generate EVM", "generate_evm_wallet"),
+        Markup.button.callback("⭐ Generate Stellar", "generate_stellar_wallet"),
       ],
       [Markup.button.callback("🔙 Back", "view_wallet")],
     ]);
@@ -495,5 +499,177 @@ A new wallet has been generated for you and can be used for trade and P2P transa
     await ctx.reply(
       "⚠️ An unexpected error occurred while generating your wallet. Please try again."
     );
+  }
+}
+
+// Handle add Stellar wallet callback
+export async function handleAddStellarWallet(ctx: Context): Promise<void> {
+  try {
+    const telegramId = ctx.from?.id;
+
+    if (!telegramId) {
+      await ctx.answerCbQuery("❌ invalid account.");
+      return;
+    }
+
+    await ctx.answerCbQuery("⭐ Add Stellar Wallet");
+
+    const user = await getUser(
+      telegramId,
+      ctx.from?.username || ctx.from?.first_name || "Unknown"
+    );
+    if (!user) {
+      await ctx.reply("❌ User not found. Please use /start to register first.");
+      return;
+    }
+
+    if (user.stellarWallets && user.stellarWallets.length >= 3) {
+      await ctx.reply("❌ You have reached the maximum limit of 3 Stellar wallets.");
+      return;
+    }
+
+    setUserActionState(telegramId, {
+      action: "awaiting_add_stellar_private_key",
+    });
+
+    const message = `⭐ **Import Stellar Wallet**
+
+Please reply with your Stellar Secret Key (starts with \`S\`) or private key seed hex.
+
+⚠️ **Security Warning:**
+• Make sure no one is watching your screen
+• Delete your message after sending it
+
+Type /cancel to cancel this operation.`;
+
+    await ctx.reply(message, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Add Stellar wallet error:", error);
+    await ctx.answerCbQuery("❌ Failed to initiate Stellar wallet import.");
+    await ctx.reply("❌ An error occurred. Please try again.");
+  }
+}
+
+// Handle Stellar private key input from user text message
+export async function handleAddStellarPrivateKeyInput(
+  ctx: Context,
+  privateKeyInput: string
+): Promise<void> {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  try {
+    const cleanKey = privateKeyInput.trim();
+    let stellarKeypair: StellarKeypair;
+
+    if (StrKey.isValidEd25519SecretSeed(cleanKey)) {
+      stellarKeypair = StellarKeypair.fromSecret(cleanKey);
+    } else {
+      try {
+        const rawBuffer = Buffer.from(cleanKey.replace(/^0x/, ""), "hex");
+        if (rawBuffer.length === 32) {
+          stellarKeypair = StellarKeypair.fromRawEd25519Seed(rawBuffer);
+        } else {
+          throw new Error("Invalid key length");
+        }
+      } catch {
+        await ctx.reply("❌ Invalid Stellar secret key. Please enter a valid key starting with 'S' or a 32-byte hex seed.");
+        clearUserActionState(telegramId);
+        return;
+      }
+    }
+
+    const walletAddress = stellarKeypair.publicKey();
+    const rawSecretHex = Buffer.from(stellarKeypair.rawSecretKey()).toString("hex");
+    const encryptedPrivateKey = encryptPrivateKey(rawSecretHex);
+
+    await addStellarWalletToUser(telegramId, walletAddress, encryptedPrivateKey);
+    clearUserActionState(telegramId);
+
+    const successMessage = `✅ **Stellar Wallet Added Successfully!**
+
+📍 **Wallet Address:**
+\`${walletAddress}\`
+
+Your Stellar wallet has been added to your account!`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("🔙 Back to Wallets", "view_wallet")],
+    ]);
+
+    await sendOrEdit(ctx, successMessage, {
+      parse_mode: "Markdown",
+      ...keyboard,
+    });
+  } catch (error) {
+    console.error("Add Stellar private key error:", error);
+    clearUserActionState(telegramId);
+
+    if (error instanceof Error && error.message === "Wallet already exists") {
+      await ctx.reply("⚠️ This Stellar wallet is already added to your account.");
+    } else {
+      await ctx.reply("❌ An error occurred while adding your Stellar wallet. Please try again.");
+    }
+  }
+}
+
+// Handle generate Stellar wallet callback
+export async function handleGenerateStellarWallet(ctx: Context): Promise<void> {
+  try {
+    const telegramId = ctx.from?.id;
+
+    if (!telegramId) {
+      await ctx.answerCbQuery("❌ Unable to identify your account.");
+      return;
+    }
+
+    await ctx.answerCbQuery("⭐ Generating New Stellar Wallet...");
+
+    const user = await getUser(
+      telegramId,
+      ctx.from?.username || ctx.from?.first_name || "Unknown"
+    );
+
+    if (!user) {
+      await ctx.reply("❌ User not found. Please use /start to register first.");
+      return;
+    }
+
+    if (user.stellarWallets && user.stellarWallets.length >= 3) {
+      await ctx.reply("❌ You have reached the maximum limit of 3 Stellar wallets.");
+      return;
+    }
+
+    const newWallet = await createNewStellarWallet(telegramId);
+
+    await addStellarWalletToUser(
+      telegramId,
+      newWallet.address,
+      newWallet.private_key_encrypted
+    );
+
+    const replyMessage = `📥 **Generate New Stellar Wallet**
+
+A new Stellar wallet has been generated for you:
+
+**Address:** \`${newWallet.address}\`
+
+⚠️ **Private Key (Secret Key):**
+\`${newWallet.private_key}\`
+
+🔐 *Never share your secret key with anyone.*
+`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("🔙 Back", "view_wallet")],
+    ]);
+
+    await sendOrEdit(ctx, replyMessage, {
+      parse_mode: "Markdown",
+      ...keyboard,
+    });
+  } catch (error) {
+    console.error("Stellar wallet generation error:", error);
+    await ctx.reply("⚠️ An unexpected error occurred while generating your Stellar wallet.");
   }
 }

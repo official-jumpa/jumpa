@@ -3,6 +3,9 @@
  * Unifies AI withdrawal, bank update, deposit, order, token carousel, trade, user action, and withdrawal states.
  */
 
+export type SupportedChain = 'SOLANA' | 'BASE' | 'CELO' | 'STELLAR';
+export type SupportedCurrency = 'SOL' | 'USDC' | 'USDT' | 'ETH' | 'CELO' | 'XLM';
+
 // ==========================================
 // 1. AI Withdrawal State
 // ==========================================
@@ -17,8 +20,8 @@ export interface AIWithdrawalState {
     bankName?: string;
     bankCode?: string;
     accountName?: string;
-    chain?: 'SOLANA' | 'BASE' | 'CELO';
-    currency?: 'SOL' | 'USDC' | 'USDT' | 'ETH';
+    chain?: SupportedChain;
+    currency?: SupportedCurrency;
     cryptoAmount?: number;
     yaraWalletAddress?: string;
     pinAttempts?: number;
@@ -235,9 +238,9 @@ export function clearTradeState(id: string) {
 // 7. User Action State
 // ==========================================
 export interface UserActionState {
-  action: 'awaiting_custom_buy_amount' | 'awaiting_export_pin' | 'awaiting_import_private_key' | 'awaiting_add_solana_private_key' | 'awaiting_add_evm_private_key';
+  action: 'awaiting_custom_buy_amount' | 'awaiting_export_pin' | 'awaiting_import_private_key' | 'awaiting_add_solana_private_key' | 'awaiting_add_evm_private_key' | 'awaiting_add_stellar_private_key';
   tradeId?: string;
-  walletType?: 'sol' | 'evm';
+  walletType?: 'sol' | 'evm' | 'stellar';
   walletIndex?: number;
 }
 
@@ -262,8 +265,8 @@ export interface WithdrawalState {
   step: 'awaiting_pin' | 'awaiting_custom_amount' | 'awaiting_dest_address' | 'awaiting_onchain_amount' | 'awaiting_onchain_pin';
   data: {
     amount?: string;
-    currency?: 'SOL' | 'USDC' | 'USDT' | 'ETH';
-    chain?: 'SOLANA' | 'BASE' | 'CELO';
+    currency?: SupportedCurrency;
+    chain?: SupportedChain;
     destination_address?: string;
   };
 }

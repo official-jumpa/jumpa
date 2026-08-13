@@ -1,6 +1,7 @@
 import getUser from "@features/users/getUserInfo";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
+import getStellarBalances from "@shared/utils/getStellarBalances";
 
 export interface UserBalances {
   solana: {
@@ -22,13 +23,18 @@ export interface UserBalances {
     };
     address: string;
   } | null;
+  stellar: {
+    xlm: number;
+    usdc: number;
+    address: string;
+  } | null;
 }
 
 /**
  * Fetch user's wallet balances across all chains
  * @param telegramId - User's telegram ID
  * @param username - User's username
- * @returns Object containing Solana and EVM balances
+ * @returns Object containing Solana, EVM, and Stellar balances
  */
 export async function getUserBalances(
   telegramId: number,
@@ -43,6 +49,7 @@ export async function getUserBalances(
   const balances: UserBalances = {
     solana: null,
     evm: null,
+    stellar: null,
   };
 
   // Fetch Solana balances if wallet exists
@@ -88,6 +95,22 @@ export async function getUserBalances(
     };
   }
 
+  // Fetch Stellar balances if wallet exists
+  const hasStellarWallet =
+    user.stellarWallets &&
+    user.stellarWallets.length > 0 &&
+    user.stellarWallets[0].address;
+
+  if (hasStellarWallet) {
+    const stellarBals = await getStellarBalances(user.stellarWallets[0].address);
+
+    balances.stellar = {
+      xlm: stellarBals.xlm,
+      usdc: stellarBals.usdc,
+      address: user.stellarWallets[0].address,
+    };
+  }
+
   return balances;
 }
 
@@ -112,6 +135,12 @@ export function formatBalances(balances: UserBalances): string {
     message += `ETH: ${balances.evm.celo.eth.toFixed(4)}   • USDC: ${balances.evm.celo.usdc.toFixed(2)}   • USDT: ${balances.evm.celo.usdt.toFixed(2)}\n\n`;
     message += `<b>Base:</b>\n`;
     message += `ETH: ${balances.evm.base.eth.toFixed(4)}   • USDC: ${balances.evm.base.usdc.toFixed(2)}   • USDT: ${balances.evm.base.usdt.toFixed(2)}\n`;
+  }
+
+  if (balances.stellar) {
+    message += `\n<b>--- Your Stellar Wallet ---</b>\n\n`;
+    message += `<code>${balances.stellar.address}</code>\n\n`;
+    message += `XLM: ${balances.stellar.xlm.toFixed(4)}   • USDC: ${balances.stellar.usdc.toFixed(2)}\n`;
   }
 
   return message;

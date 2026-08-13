@@ -4,10 +4,13 @@ import { config } from "@core/config/environment";
 import Withdrawal from "@core/database/models/withdrawal";
 import { executeSolTransfer, executeUSDCTransfer, executeUSDTTransfer } from "@features/payments/utils/solWithdrawTx";
 import { executeETHTransfer, executeUSDCTransferEVM, executeUSDTTransferEVM } from "@features/payments/utils/evmWithdrawTx";
+import { sendStellarTransaction } from "@shared/utils/sendStellarTransaction";
+import { StrKey } from "@stellar/stellar-sdk";
+import getStellarBalances from "@shared/utils/getStellarBalances";
 import { ethers } from 'ethers';
 import { PublicKey } from '@solana/web3.js';
 import { safeDeleteMessage } from "@shared/utils/messageUtils";
-import { clearWithdrawalState, getWithdrawalState, setWithdrawalState } from "@shared/state";
+import { clearWithdrawalState, getWithdrawalState, setWithdrawalState, SupportedChain, SupportedCurrency } from "@shared/state";
 import { handleViewWallet } from "@features/onboarding/callbacks/WalletViewHandlers";
 import { getUserBalances, formatBalances } from "@features/onboarding/utils/getUserBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
@@ -136,6 +139,11 @@ export async function handleWithdrawCurrencySelection(ctx: Context): Promise<voi
     const usdPerEth = rate.data.sell.ETH ? (1 / rate.data.sell.ETH) : 3361.13;
     const usdToNgn = rate.data.sell.NGN;
     rateMessage = `1 USD = ₦${usdToNgn.toFixed(2)}\n\n0.001 ${currency} = ₦${(0.001 * usdPerEth * usdToNgn).toFixed(2)}\n0.005 ${currency} = ₦${(0.005 * usdPerEth * usdToNgn).toFixed(2)}\n0.01 ${currency} = ₦${(0.01 * usdPerEth * usdToNgn).toFixed(2)}`;
+  } else if (currency === "XLM") {
+    const xlmRate = rate.data.sell.XLM || 10;
+    const usdPerXlm = 1 / xlmRate;
+    const usdToNgn = rate.data.sell.NGN;
+    rateMessage = `1 USD = ₦${usdToNgn.toFixed(2)}\n\n10 ${currency} = ₦${(10 * usdPerXlm * usdToNgn).toFixed(2)}\n50 ${currency} = ₦${(50 * usdPerXlm * usdToNgn).toFixed(2)}\n100 ${currency} = ₦${(100 * usdPerXlm * usdToNgn).toFixed(2)}`;
   } else if (currency === "USDC" || currency === "USDT") {
     const usdToNgn = rate.data.sell.NGN;
     rateMessage = `1 USD = ₦${usdToNgn.toFixed(2)}\n\n2 ${currency} = ₦${(2 * usdToNgn).toFixed(2)}\n5 ${currency} = ₦${(5 * usdToNgn).toFixed(2)}\n10 ${currency} = ₦${(10 * usdToNgn).toFixed(2)}`;
@@ -146,6 +154,8 @@ export async function handleWithdrawCurrencySelection(ctx: Context): Promise<voi
     minAmountText = "Minimum: 0.01 SOL";
   } else if (currency === "ETH") {
     minAmountText = `Minimum: 0.001 ${currency}`;
+  } else if (currency === "XLM") {
+    minAmountText = `Minimum: 1 XLM`;
   } else {
     minAmountText = `Minimum: 2.5 ${currency}`;
   }
@@ -169,6 +179,14 @@ export async function handleWithdrawCurrencySelection(ctx: Context): Promise<voi
       Markup.button.callback("0.005 ETH", `withdraw_amount:${currency}:0.005:${chain}`),
       Markup.button.callback("0.01 ETH", `withdraw_amount:${currency}:0.01:${chain}`),
       Markup.button.callback("0.05 ETH", `withdraw_amount:${currency}:0.05:${chain}`),
+    ]);
+  } else if (currency === "XLM") {
+    amountButtons.push([
+      Markup.button.callback("✏️ Custom Amount", `withdraw_custom_amount:${currency}:${chain}`),
+    ], [
+      Markup.button.callback("10 XLM", `withdraw_amount:${currency}:10:${chain}`),
+      Markup.button.callback("50 XLM", `withdraw_amount:${currency}:50:${chain}`),
+      Markup.button.callback("100 XLM", `withdraw_amount:${currency}:100:${chain}`),
     ]);
   } else {
     amountButtons.push([
@@ -208,7 +226,7 @@ export async function handleWithdrawCustomAmount(ctx: Context): Promise<void> {
     return;
   }
 
-  setWithdrawalState(telegramId, 'awaiting_custom_amount', { currency: currency as 'SOL' | 'USDC' | 'USDT' | 'ETH', chain: chain as 'SOLANA' | 'BASE' | 'CELO' });
+  setWithdrawalState(telegramId, 'awaiting_custom_amount', { currency: currency as SupportedCurrency, chain: chain as SupportedChain });
 
   let minAmount = "";
   let example = "";
@@ -366,7 +384,7 @@ export async function handleWithdrawConfirmation(ctx: Context): Promise<void> {
     await ctx.answerCbQuery("❌ Unable to identify your account.");
     return;
   }
-  setWithdrawalState(telegramId, 'awaiting_pin', { amount, currency: currency as 'SOL' | 'USDC' | 'USDT' | 'ETH', chain: chain as 'SOLANA' | 'BASE' | 'CELO' });
+  setWithdrawalState(telegramId, 'awaiting_pin', { amount, currency: currency as SupportedCurrency, chain: chain as SupportedChain });
 
   const user = await getUser(telegramId, username);
   if (!user) {
@@ -545,6 +563,9 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
           await ctx.reply(`❌ Unsupported ${chain} currency: ${currency}`);
           return;
         }
+      } else if (chain === 'STELLAR') {
+        await ctx.reply("❌ Bank withdrawals are not supported for Stellar assets. Please use On-Chain Transfer to send XLM / USDC to another Stellar wallet.");
+        return;
       } else {
         console.error(`[WITHDRAWAL] Unsupported chain: ${chain}`);
         await ctx.reply(`❌ Unsupported chain: ${chain}`);
@@ -621,6 +642,10 @@ export async function handleWithdrawOnChain(ctx: Context): Promise<void> {
       Markup.button.callback("USDC (Celo)", "withdraw_onchain_asset:USDC:CELO"),
       Markup.button.callback("USDT (Celo)", "withdraw_onchain_asset:USDT:CELO"),
     ],
+    [
+      Markup.button.callback("XLM (Stellar)", "withdraw_onchain_asset:XLM:STELLAR"),
+      Markup.button.callback("USDC (Stellar)", "withdraw_onchain_asset:USDC:STELLAR"),
+    ],
     [Markup.button.callback("❌ Cancel", "delete_message")]
   ]);
 
@@ -663,6 +688,8 @@ export async function handleWithdrawAddressInput(ctx: Context): Promise<void> {
       new PublicKey(address);
       isValid = true;
     } catch (e) { isValid = false; }
+  } else if (chain === 'STELLAR') {
+    isValid = StrKey.isValidEd25519PublicKey(address);
   } else {
     isValid = ethers.isAddress(address);
   }
@@ -791,6 +818,13 @@ export async function handleWithdrawOnChainPinVerification(ctx: Context): Promis
       if (currency === 'SOL') result = await executeSolTransfer(user, destination_address!, amountNum);
       else if (currency === 'USDC') result = await executeUSDCTransfer(user, destination_address!, amountNum);
       else if (currency === 'USDT') result = await executeUSDTTransfer(user, destination_address!, amountNum);
+    } else if (chain === 'STELLAR') {
+      result = await sendStellarTransaction({
+        user,
+        recipientAddress: destination_address!,
+        amount: amountNum,
+        currency: currency as "XLM" | "USDC"
+      });
     } else {
       if (currency === 'ETH') result = await executeETHTransfer(user, destination_address!, amountNum, chain as 'BASE' | 'CELO');
       else if (currency === 'USDC') result = await executeUSDCTransferEVM(user, destination_address!, amountNum, chain as 'BASE' | 'CELO');
@@ -843,6 +877,12 @@ export async function handleRefreshBalance(ctx: Context): Promise<void> {
     if (user.evmWallets) {
       for (const wallet of user.evmWallets) {
         promises.push(getAllEvmBalances(wallet.address, true));
+      }
+    }
+
+    if (user.stellarWallets) {
+      for (const wallet of user.stellarWallets) {
+        promises.push(getStellarBalances(wallet.address, true));
       }
     }
 

@@ -3,6 +3,7 @@ import { findYaraBankCode } from "@features/payments/utils/yaraBankCodes";
 import { findPaystackBankCode } from "@features/payments/utils/paystackUtils";
 import { validateAccountNumber } from "@src/features/payments/utils/validateAccountNumber";
 import { getCurrenciesForChain } from "@features/payments/utils/convertNGNToCrypto";
+import { StrKey } from "@stellar/stellar-sdk";
 
 // Mocking function to get banks if not directly available, 
 // but we might just trust the agent to fuzzy match or asking validation to handle it.
@@ -89,7 +90,7 @@ export const tools = [
   },
   {
     name: "validate_wallet_address",
-    description: "Validate a crypto wallet address format. Returns address_type: 'SOLANA' or 'EVM'. For EVM addresses, you MUST ask the user which network (Base or Celo) before proceeding.",
+    description: "Validate a crypto wallet address format. Returns address_type: 'SOLANA', 'STELLAR', or 'EVM'. For EVM addresses, you MUST ask the user which network (Base or Celo) before proceeding.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -100,6 +101,7 @@ export const tools = [
     handler: async ({ address }: { address: string }) => {
       const isEVMAddress = /^0x[a-fA-F0-9]{40}$/.test(address);
       const isSolanaAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+      const isStellarAddress = StrKey.isValidEd25519PublicKey(address);
 
       if (isSolanaAddress) {
         return {
@@ -107,6 +109,15 @@ export const tools = [
           address: address,
           address_type: "SOLANA",
           chain: "SOLANA",
+        };
+      }
+
+      if (isStellarAddress) {
+        return {
+          valid: true,
+          address: address,
+          address_type: "STELLAR",
+          chain: "STELLAR",
         };
       }
 
@@ -141,8 +152,8 @@ export const tools = [
         wallet_address: { type: "string", description: "Destination Wallet Address (Required for Crypto Transfer)" },
 
         // Common
-        chain: { type: "string", enum: ["SOLANA", "BASE", "CELO"], description: "Source Chain" },
-        currency: { type: "string", enum: ["SOL", "USDC", "USDT", "ETH", "CELO"], description: "Source Currency" },
+        chain: { type: "string", enum: ["SOLANA", "BASE", "CELO", "STELLAR"], description: "Source Chain" },
+        currency: { type: "string", enum: ["SOL", "USDC", "USDT", "ETH", "CELO", "XLM"], description: "Source Currency" },
       },
       // Note: We can't express "XOR" easily in JSON schema for OpenAI/Anthropic reliably, 
       // so we rely on the description and agent logic to enforce one set or the other.
@@ -150,7 +161,7 @@ export const tools = [
     },
     handler: async (args: any) => {
       // Validate supported currencies
-      const SUPPORTED_CURRENCIES = ["SOL", "USDC", "USDT", "ETH", "CELO"];
+      const SUPPORTED_CURRENCIES = ["SOL", "USDC", "USDT", "ETH", "CELO", "XLM"];
       if (!SUPPORTED_CURRENCIES.includes(args.currency)) {
         throw new Error(`Invalid currency '${args.currency}'. Supported: ${SUPPORTED_CURRENCIES.join(", ")}. Ask user which currency to use.`);
       }
@@ -163,6 +174,11 @@ export const tools = [
         if (!args.wallet_address) {
           throw new Error("CELO token is only supported for wallet-to-wallet transfers, not bank withdrawals.");
         }
+      }
+
+      // Stellar restrictions
+      if (args.chain === 'STELLAR' && !args.wallet_address) {
+        throw new Error("Stellar is only supported for wallet-to-wallet transfers, not bank withdrawals.");
       }
 
       // Validate that we have a destination
@@ -202,8 +218,8 @@ export const tools = [
           maxItems: 5
         },
         // Common for all transfers
-        chain: { type: "string", enum: ["SOLANA", "BASE", "CELO"], description: "Source chain for all transfers" },
-        currency: { type: "string", enum: ["SOL", "USDC", "USDT", "ETH", "CELO"], description: "Source currency for all transfers" },
+        chain: { type: "string", enum: ["SOLANA", "BASE", "CELO", "STELLAR"], description: "Source chain for all transfers" },
+        currency: { type: "string", enum: ["SOL", "USDC", "USDT", "ETH", "CELO", "XLM"], description: "Source currency for all transfers" },
       },
       required: ["recipients", "chain", "currency"],
     },
@@ -224,7 +240,7 @@ export const tools = [
       }
 
       // Validate supported currency
-      const SUPPORTED_CURRENCIES = ["SOL", "USDC", "USDT", "ETH", "CELO"];
+      const SUPPORTED_CURRENCIES = ["SOL", "USDC", "USDT", "ETH", "CELO", "XLM"];
       if (!SUPPORTED_CURRENCIES.includes(args.currency)) {
         throw new Error(`Invalid currency '${args.currency}'. Supported: ${SUPPORTED_CURRENCIES.join(", ")}.`);
       }

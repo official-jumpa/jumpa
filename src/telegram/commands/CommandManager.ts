@@ -44,13 +44,18 @@ import {
   handleAddSolanaWallet,
   handleAddEVMWallet,
   handleGenerateEVMWallet,
+  handleAddStellarWallet,
+  handleGenerateStellarWallet,
   handleSetDefaultSolanaWallet,
   handleSetDefaultEVMWallet,
+  handleSetDefaultStellarWallet,
   handleDeleteSolanaWallet,
   handleDeleteEVMWallet,
+  handleDeleteStellarWallet,
   handlePrivateKeyImport,
   handleAddSolanaPrivateKeyInput,
   handleAddEVMPrivateKeyInput,
+  handleAddStellarPrivateKeyInput,
 } from "@features/onboarding/callbacks/StartCallbackHandlers";
 import {
   handleFromBank as handleDepositFromBank,
@@ -119,12 +124,17 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   bot.action("add_wallet_solana", handleAddSolanaWallet);
   bot.action("add_wallet_evm", handleAddEVMWallet);
   bot.action("generate_evm_wallet", handleGenerateEVMWallet);
+  bot.action("add_wallet_stellar", handleAddStellarWallet);
+  bot.action("generate_stellar_wallet", handleGenerateStellarWallet);
   bot.action(/set_default_solana:/, handleSetDefaultSolanaWallet);
   bot.action(/set_default_evm:/, handleSetDefaultEVMWallet);
+  bot.action(/set_default_stellar:/, handleSetDefaultStellarWallet);
   bot.action(/delete_solana_wallet:/, handleDeleteSolanaWallet);
   bot.action(/delete_evm_wallet:/, handleDeleteEVMWallet);
+  bot.action(/delete_stellar_wallet:/, handleDeleteStellarWallet);
   bot.action(/confirm_delete_solana:/, handleDeleteSolanaWallet);
   bot.action(/confirm_delete_evm:/, handleDeleteEVMWallet);
+  bot.action(/confirm_delete_stellar:/, handleDeleteStellarWallet);
 
   // Register deposit callback handlers
   bot.action("deposit_from_bank", handleDepositFromBank);
@@ -149,7 +159,7 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   bot.action("export_private_key", handleExportPrivateKey);
   bot.action("show_private_key", handleExportPrivateKey);
   bot.action(
-    /^select_export_(sol|evm):\d+$/,
+    /^select_export_(sol|evm|stellar):\d+$/,
     handleSelectWalletForExport
   );
   bot.action("cancel_export", handleCancelExport);
@@ -297,6 +307,16 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
         return;
       }
       await handleAddEVMPrivateKeyInput(ctx, text);
+      return;
+    }
+
+    if (userAction?.action === "awaiting_add_stellar_private_key") {
+      if (text.toLowerCase().trim() === "/cancel") {
+        clearUserActionState(userId);
+        await ctx.reply("❌ Add wallet cancelled");
+        return;
+      }
+      await handleAddStellarPrivateKeyInput(ctx, text);
       return;
     }
 

@@ -1,5 +1,6 @@
 import { Markup } from "telegraf";
 import { decryptPrivateKey } from "@shared/utils/encryption";
+import { Keypair as StellarKeypair } from "@stellar/stellar-sdk";
 import {
   getUserActionState,
   setUserActionState,
@@ -42,6 +43,19 @@ export const handleExportPrivateKey = async (ctx) => {
             : `🔑 Export EVM Wallet ${index + 1}`;
         buttons.push([
           Markup.button.callback(label, `select_export_evm:${index}`),
+        ]);
+      });
+    }
+
+    // Add Stellar wallet export buttons
+    if (user.stellarWallets && user.stellarWallets.length > 0) {
+      user.stellarWallets.forEach((wallet, index) => {
+        const label =
+          index === 0
+            ? `🔑 Export Stellar Wallet ${index + 1} (Default)`
+            : `🔑 Export Stellar Wallet ${index + 1}`;
+        buttons.push([
+          Markup.button.callback(label, `select_export_stellar:${index}`),
         ]);
       });
     }
@@ -94,7 +108,7 @@ export const handleSelectWalletForExport = (ctx) => {
 
   setUserActionState(ctx.from.id, {
     action: "awaiting_export_pin",
-    walletType: walletType as "sol" | "evm",
+    walletType: walletType as "sol" | "evm" | "stellar",
     walletIndex: walletIndex,
   });
 };
@@ -141,12 +155,6 @@ export const handlePinForExport = async (ctx) => {
         "Index:",
         walletIndex
       );
-      console.log(
-        "User has",
-        user.solanaWallets?.length || 0,
-        "Solana wallets"
-      );
-      console.log("User has", user.evmWallets?.length || 0, "EVM wallets");
 
       // Validate that we have the required data
       if (!walletType || walletIndex === undefined) {
@@ -157,37 +165,38 @@ export const handlePinForExport = async (ctx) => {
         return;
       }
 
-      let wallet;
-      let walletLabel;
+      let wallet: any;
+      let walletLabel: string;
+      let privateKey: string;
 
       if (walletType === "sol") {
         if (!user.solanaWallets || walletIndex >= user.solanaWallets.length) {
-          console.log(
-            "Solana wallet not found - Index:",
-            walletIndex,
-            "Array length:",
-            user.solanaWallets?.length
-          );
           ctx.reply("❌ Solana wallet not found. Please try again.");
           clearUserActionState(userId);
           return;
         }
         wallet = user.solanaWallets[walletIndex];
         walletLabel = `SOL Wallet ${walletIndex + 1}`;
+        privateKey = decryptPrivateKey(wallet.encryptedPrivateKey);
       } else if (walletType === "evm") {
         if (!user.evmWallets || walletIndex >= user.evmWallets.length) {
-          console.log(
-            "EVM wallet not found - Index:",
-            walletIndex,
-            "Array length:",
-            user.evmWallets?.length
-          );
           ctx.reply("❌ EVM wallet not found. Please try again.");
           clearUserActionState(userId);
           return;
         }
         wallet = user.evmWallets[walletIndex];
         walletLabel = `EVM Wallet ${walletIndex + 1}`;
+        privateKey = decryptPrivateKey(wallet.encryptedPrivateKey);
+      } else if (walletType === "stellar") {
+        if (!user.stellarWallets || walletIndex >= user.stellarWallets.length) {
+          ctx.reply("❌ Stellar wallet not found. Please try again.");
+          clearUserActionState(userId);
+          return;
+        }
+        wallet = user.stellarWallets[walletIndex];
+        walletLabel = `Stellar Wallet ${walletIndex + 1}`;
+        const decryptedHex = decryptPrivateKey(wallet.encryptedPrivateKey);
+        privateKey = StellarKeypair.fromRawEd25519Seed(Buffer.from(decryptedHex, "hex")).secret();
       } else {
         ctx.reply("❌ Invalid wallet type. Please try again.");
         clearUserActionState(userId);
@@ -199,8 +208,6 @@ export const handlePinForExport = async (ctx) => {
         clearUserActionState(userId);
         return;
       }
-
-      const privateKey = decryptPrivateKey(wallet.encryptedPrivateKey);
 
       const message = await ctx.reply(
         `🔑 *${walletLabel} Private Key*\n\n` +

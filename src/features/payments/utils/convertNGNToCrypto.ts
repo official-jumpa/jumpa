@@ -42,7 +42,7 @@ export async function convertNGNToCrypto(
     } else if (currency === 'USDC' || currency === 'USDT') {
       cryptoAmount = usdAmount;
     } else {
-      throw new Error(`Unsupported currency: ${currency}`);
+      throw new Error(`Unsupported currency for conversion: ${currency}`);
     }
 
     console.log(`[Currency Conversion] $${usdAmount.toFixed(2)} = ${cryptoAmount.toFixed(6)} ${currency}`);
@@ -62,16 +62,18 @@ export async function convertNGNToCrypto(
 
 /**
  * Get available currencies for a specific chain
- * @param chain - Blockchain (SOLANA, BASE, CELO)
+ * @param chain - Blockchain (SOLANA, BASE, CELO, STELLAR)
  * @returns Array of supported currencies
  */
-export function getCurrenciesForChain(chain: 'SOLANA' | 'BASE' | 'CELO'): string[] {
+export function getCurrenciesForChain(chain: 'SOLANA' | 'BASE' | 'CELO' | 'STELLAR'): string[] {
   if (chain === 'SOLANA') {
     return ['SOL', 'USDC', 'USDT'];
   } else if (chain === 'CELO') {
     return ['CELO', 'ETH', 'USDC', 'USDT'];
   } else if (chain === 'BASE') {
     return ['ETH', 'USDC', 'USDT'];
+  } else if (chain === 'STELLAR') {
+    return ['XLM', 'USDC'];
   }
   return [];
 }
@@ -79,8 +81,8 @@ export function getCurrenciesForChain(chain: 'SOLANA' | 'BASE' | 'CELO'): string
 /**
  * Converts cryptocurrency amount to NGN using current exchange rates
  * @param cryptoAmount - Amount in cryptocurrency
- * @param currency - Cryptocurrency (SOL, USDC, USDT, ETH)
- * @param chain - Blockchain (SOLANA, BASE, CELO)
+ * @param currency - Cryptocurrency (SOL, USDC, USDT, ETH, CELO, XLM)
+ * @param chain - Blockchain (SOLANA, BASE, CELO, STELLAR)
  * @returns NGN amount
  */
 export async function convertCryptoToNGN(
@@ -106,11 +108,11 @@ export async function convertCryptoToNGN(
     } else if (currency === 'ETH') {
       usdAmount = cryptoAmount / rate.data.sell.ETH;
     } else if (currency === 'CELO') {
-      usdAmount = cryptoAmount / rate.data.sell.CELO; // will throw an error since our LP doesnt support CELO token
+      usdAmount = cryptoAmount / rate.data.sell.CELO;
     } else if (currency === 'USDC' || currency === 'USDT') {
       usdAmount = cryptoAmount;
     } else {
-      throw new Error(`Unsupported currency: ${currency}`);
+      throw new Error(`Unsupported currency for conversion: ${currency}`);
     }
 
     // Convert USD to NGN

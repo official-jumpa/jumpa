@@ -37,8 +37,8 @@ export const BLOCKCHAIN_CONFIGS: Record<BlockchainType, BlockchainConfig> = {
     type: BlockchainType.STELLAR,
     displayName: "Stellar",
     nativeCurrency: "XLM",
-    explorerUrl: "https://stellar.expert/explorer/public/",
-    testnetExplorerUrl: "https://horizon.stellar.org",
+    explorerUrl: "https://stellar.expert/explorer/public",
+    testnetExplorerUrl: "https://stellar.expert/explorer/testnet",
   },
 };
 

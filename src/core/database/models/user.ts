@@ -82,6 +82,35 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    stellarWallets: [
+      {
+        address: {
+          type: String,
+          required: true,
+          index: true,
+        },
+        encryptedPrivateKey: {
+          type: String,
+          required: true,
+        },
+        balance: {
+          type: Number,
+          default: 0,
+        },
+        usdcBalance: {
+          type: Number,
+          default: 0,
+        },
+        last_updated_balance: {
+          type: Date,
+          default: Date.now,
+        },
+        last_updated_stellar_balance: {
+          type: Date,
+          default: () => new Date(0),
+        },
+      },
+    ],
     referrals: {
       referralCode: {
         type: String,

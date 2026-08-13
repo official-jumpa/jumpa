@@ -42,5 +42,9 @@ export function buildWalletSetupKeyboard(): {
       Markup.button.callback("Generate EVM Wallet", "generate_evm_wallet"),
       Markup.button.callback("Import EVM Wallet", "add_wallet_evm"),
     ],
+    [
+      Markup.button.callback("Generate Stellar Wallet", "generate_stellar_wallet"),
+      Markup.button.callback("Import Stellar Wallet", "add_wallet_stellar"),
+    ],
   ]);
 }

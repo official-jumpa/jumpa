@@ -3,6 +3,7 @@ import getUser from "@features/users/getUserInfo";
 import { Markup } from "telegraf";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
+import getStellarBalances from "@shared/utils/getStellarBalances";
 
 /**
  * Build skeleton wallet view with loading indicators
@@ -39,6 +40,20 @@ function buildWalletSkeleton(user: any): string {
     message += `\n`;
   }
 
+  // Stellar wallets
+  const stellarWallets = user.stellarWallets || [];
+  if (stellarWallets.length > 0) {
+    message += `*⭐ Stellar Wallets (${stellarWallets.length}/3)*\n`;
+
+    for (let index = 0; index < stellarWallets.length; index++) {
+      const wallet = stellarWallets[index];
+      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
+      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
+      message += `XLM: ...   • USDC: ...\n`;
+    }
+    message += `\n`;
+  }
+
   return message;
 }
 
@@ -48,7 +63,8 @@ function buildWalletSkeleton(user: any): string {
 function buildWalletComplete(
   user: any,
   solBalancesArray: any[],
-  evmBalancesArray: any[]
+  evmBalancesArray: any[],
+  stellarBalancesArray: any[] = []
 ): string {
   let message = "*Your Wallets*\n\n";
 
@@ -98,6 +114,27 @@ function buildWalletComplete(
     message += `\n`;
   }
 
+  // Stellar wallets
+  const stellarWallets = user.stellarWallets || [];
+  if (stellarWallets.length > 0) {
+    message += `*⭐ Stellar Wallets (${stellarWallets.length}/3)*\n`;
+
+    for (let index = 0; index < stellarWallets.length; index++) {
+      const wallet = stellarWallets[index];
+      const balances = stellarBalancesArray[index];
+      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
+
+      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
+
+      if (balances) {
+        message += `XLM: ${balances.xlm.toFixed(2)}   • USDC: ${balances.usdc.toFixed(2)}\n`;
+      } else {
+        message += `XLM: 0.00   • USDC: 0.00\n`;
+      }
+    }
+    message += `\n`;
+  }
+
   return message;
 }
 
@@ -116,9 +153,10 @@ async function fetchAndUpdateWalletBalances(
 
     const solanaWallets = user.solanaWallets || [];
     const evmWallets = user.evmWallets || [];
+    const stellarWallets = user.stellarWallets || [];
 
     // Fetch all balances in parallel
-    const [solBalancesArray, evmBalancesArray] = await Promise.all([
+    const [solBalancesArray, evmBalancesArray, stellarBalancesArray] = await Promise.all([
       // Fetch all Solana wallet balances
       Promise.all(
         solanaWallets.map((wallet: any) =>
@@ -130,6 +168,12 @@ async function fetchAndUpdateWalletBalances(
         evmWallets.map((wallet: any) =>
           getAllEvmBalances(wallet.address, forceRefresh)
         )
+      ),
+      // Fetch all Stellar wallet balances
+      Promise.all(
+        stellarWallets.map((wallet: any) =>
+          getStellarBalances(wallet.address, forceRefresh)
+        )
       )
     ]);
 
@@ -139,7 +183,8 @@ async function fetchAndUpdateWalletBalances(
     const completeMessage = buildWalletComplete(
       user,
       solBalancesArray,
-      evmBalancesArray
+      evmBalancesArray,
+      stellarBalancesArray
     );
 
     // Build keyboard
@@ -176,6 +221,7 @@ async function fetchAndUpdateWalletBalances(
 function buildWalletKeyboard(user: any) {
   const solanaWallets = user.solanaWallets || [];
   const evmWallets = user.evmWallets || [];
+  const stellarWallets = user.stellarWallets || [];
 
   const keyboardButtons = [
     [
@@ -210,6 +256,19 @@ function buildWalletKeyboard(user: any) {
     }
   }
 
+  // Add "Set as Default" buttons for Stellar wallets (skip first one)
+  if (stellarWallets.length > 1) {
+    const stellarButtons = [];
+    for (let i = 1; i < stellarWallets.length; i++) {
+      stellarButtons.push(
+        Markup.button.callback(`Set Stellar ${i + 1} as Main`, `set_default_stellar:${i}`)
+      );
+    }
+    for (let i = 0; i < stellarButtons.length; i += 2) {
+      keyboardButtons.push(stellarButtons.slice(i, i + 2));
+    }
+  }
+
   // Add delete buttons for Solana wallets
   if (solanaWallets.length > 0) {
     const deleteButtons = [];
@@ -229,6 +288,19 @@ function buildWalletKeyboard(user: any) {
     for (let i = 0; i < evmWallets.length; i++) {
       deleteButtons.push(
         Markup.button.callback(`🗑️ Delete EVM ${i + 1}`, `delete_evm_wallet:${i}`)
+      );
+    }
+    for (let i = 0; i < deleteButtons.length; i += 2) {
+      keyboardButtons.push(deleteButtons.slice(i, i + 2));
+    }
+  }
+
+  // Add delete buttons for Stellar wallets
+  if (stellarWallets.length > 0) {
+    const deleteButtons = [];
+    for (let i = 0; i < stellarWallets.length; i++) {
+      deleteButtons.push(
+        Markup.button.callback(`🗑️ Delete Stellar ${i + 1}`, `delete_stellar_wallet:${i}`)
       );
     }
     for (let i = 0; i < deleteButtons.length; i += 2) {

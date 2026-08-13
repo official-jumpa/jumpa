@@ -3,6 +3,7 @@
  */
 
 import { PublicKey } from "@solana/web3.js";
+import { StrKey } from "@stellar/stellar-sdk";
 import { BlockchainType, BLOCKCHAIN_CONFIGS, TransactionResult } from "./types";
 
 /**
@@ -15,6 +16,10 @@ export function detectBlockchainType(address: string): BlockchainType {
 
   if (address.startsWith("0x") && address.length === 42) {
     return BlockchainType.BASE;
+  }
+
+  if (StrKey.isValidEd25519PublicKey(address)) {
+    return BlockchainType.STELLAR;
   }
 
   try {
@@ -35,6 +40,8 @@ export function validateAddress(address: string, type: BlockchainType): boolean 
     } else if (type === BlockchainType.SOLANA) {
       new PublicKey(address);
       return true;
+    } else if (type === BlockchainType.STELLAR) {
+      return StrKey.isValidEd25519PublicKey(address);
     }
     return false;
   } catch {
@@ -128,6 +135,8 @@ export function handleBlockchainError(error: any, blockchain: BlockchainType): s
     return handleBaseError(error);
   } else if (blockchain === BlockchainType.SOLANA) {
     return handleSolanaError(error);
+  } else if (blockchain === BlockchainType.STELLAR) {
+    return handleStellarError(error);
   }
   return getGenericErrorMessage(error);
 }
@@ -174,6 +183,28 @@ function handleSolanaError(error: any): string {
   if (errorMessage.includes("Transaction simulation failed")) return "Transaction simulation failed. Please check inputs and try again.";
 
   return errorMessage || "Unknown Solana blockchain error occurred";
+}
+
+function handleStellarError(error: any): string {
+  const errorMessage = error?.message || error?.response?.data?.title || error?.toString() || "";
+
+  if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+    return "Account not funded or not active on Stellar";
+  }
+  if (errorMessage.includes("op_underfunded") || errorMessage.includes("insufficient balance")) {
+    return "Insufficient XLM balance for this transaction.";
+  }
+  if (errorMessage.includes("op_no_destination")) {
+    return "Destination account does not exist on Stellar";
+  }
+  if (errorMessage.includes("op_no_trust")) {
+    return "Destination account has not established a trustline for this token.";
+  }
+  if (errorMessage.includes("tx_bad_seq")) {
+    return "Transaction sequence error. Please try again.";
+  }
+
+  return errorMessage || "Unknown Stellar error occurred";
 }
 
 function getGenericErrorMessage(error: any): string {

@@ -114,6 +114,41 @@ export async function addEVMWalletToUser(
   return user;
 }
 
-//THE getUserInfo and the getBalcnce files can be combined together later for optimization
+// Helper function to add a Stellar wallet to user
+export async function addStellarWalletToUser(
+  telegram_id: number,
+  address: string,
+  encryptedPrivateKey: string
+) {
+  const user = await User.findOne({ telegram_id });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (!user.stellarWallets) {
+    user.stellarWallets = [] as any;
+  }
+
+  // Check if wallet already exists
+  const existingWallet = user.stellarWallets.find(
+    (wallet) => wallet.address === address
+  );
+  if (existingWallet) {
+    throw new Error("Wallet already exists");
+  }
+
+  // Add new wallet
+  user.stellarWallets.push({
+    address,
+    encryptedPrivateKey,
+    balance: 0,
+    usdcBalance: 0,
+    last_updated_balance: new Date(),
+    last_updated_stellar_balance: new Date(0),
+  });
+
+  await user.save();
+  return user;
+}
 
 export default getUser;
