@@ -15,6 +15,11 @@ Jumpa is a Telegram-based trading bot that enables users to trade cryptocurrency
 - **AI Agent Integration**: Natural language & image-based withdrawal processing
 - **Referrals System**: Referral rewards and community sharing
 
+## Documentation
+
+- [Stellar Integration Architecture](/scripts/STELLAR_BLOCKCHAIN.md)
+- [Stellar Trustlines & Account Activation Guide](STELLAR_TRUSTLINES_AND_ACTIVATION.md)
+
 ## Tech Stack
 
 ### Backend
