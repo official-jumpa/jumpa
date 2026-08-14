@@ -42,7 +42,7 @@ function buildSkeletonMessage(
     if (tokenHoldings.length > 10) {
       message += `\n_...and ${tokenHoldings.length - 10} more tokens_\n`;
     }
-    message += `\nClick on 'Manage tokens' to buy/sell tokens in your wallets. Click on 'Manage wallet' to view and manage all your wallets. Use /start to return to this menu anytime`;
+    message += `\nClick on 'Manage tokens' to buy/sell tokens in your wallets. Click on 'Manage wallet' to view and manage all your wallets. Use /start to return to this menu anytime.\n\nFor support and suggestions: @Jumpatrading`;
 
     return message;
   }
@@ -136,7 +136,7 @@ function buildCompleteMessage(
     if (tokenHoldings.length > 10) {
       message += `\n_...and ${tokenHoldings.length - 10} more tokens_\n`;
     }
-    message += `\nClick on 'Manage tokens' to buy/sell tokens in your wallets. Click on 'Manage wallet' to view and manage all your wallets. Use /start to return to this menu anytime`;
+    message += `\nClick on 'Manage tokens' to buy/sell tokens in your wallets. Click on 'Manage wallet' to view and manage all your wallets. Use /start to return to this menu anytime.\n\nFor support and suggestions: @Jumpatrading`;
 
     return message;
   }

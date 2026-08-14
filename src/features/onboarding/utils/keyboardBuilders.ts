@@ -15,6 +15,7 @@ export function buildPrivateChatKeyboard(): {
     ],
     [
       Markup.button.callback("Withdraw", "withdraw_sol"),
+      Markup.button.callback("Deposit", "deposit_sol"),
       Markup.button.callback("Referral", "referral")
     ],
     [

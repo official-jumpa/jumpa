@@ -1,5 +1,6 @@
 import { Context, Markup } from "telegraf";
 import getUser from "@features/users/getUserInfo";
+import { sendOrEdit } from "@shared/utils/messageHelper";
 
 export const depositCommandConfig = {
   name: "deposit",
@@ -8,6 +9,10 @@ export const depositCommandConfig = {
 
 export async function handleDepositCommand(ctx: Context): Promise<void> {
   try {
+    if (ctx.callbackQuery) {
+      await ctx.answerCbQuery().catch(() => {});
+    }
+
     const telegramId = ctx.from?.id;
     const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
 
@@ -30,27 +35,37 @@ export async function handleDepositCommand(ctx: Context): Promise<void> {
       user.evmWallets.length > 0 &&
       user.evmWallets[0].address;
 
+    const hasStellarWallet =
+      user.stellarWallets &&
+      user.stellarWallets.length > 0 &&
+      user.stellarWallets[0].address;
+
     let message = "*Deposit Funds*\n\n";
 
-    if (!hasSolanaWallet && !hasEvmWallet) {
+    if (!hasSolanaWallet && !hasEvmWallet && !hasStellarWallet) {
       message += "You haven't set up any wallets yet. Please use the /start command to create a wallet first.\n\n";
     } else {
-      message += "You can deposit funds by sending USDC or USDT to your wallet addresses below:\n\n";
+      message += "You can deposit funds by sending crypto to your wallet addresses below:\n\n";
 
       if (hasSolanaWallet) {
-        message += "*Solana (USDC/USDT)*\n";
+        message += "*Solana*\n";
         message += `\`${user.solanaWallets[0].address}\`\n\n`;
       }
 
       if (hasEvmWallet) {
-        message += "*Base (USDC/USDT)*\n";
+        message += "*Base / Celo*\n";
         message += `\`${user.evmWallets[0].address}\`\n\n`;
+      }
+
+      if (hasStellarWallet) {
+        message += "*Stellar*\n";
+        message += `\`${user.stellarWallets[0].address}\`\n\n`;
       }
     }
 
-    message += "Or deposit directly from your bank account by clicking the button below.";
+    message += "Or deposit from your Nigerian bank account 👇";
 
-    await ctx.reply(message, {
+    await sendOrEdit(ctx, message, {
       parse_mode: "Markdown",
       ...Markup.inlineKeyboard([
         [

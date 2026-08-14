@@ -137,6 +137,7 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   bot.action(/confirm_delete_stellar:/, handleDeleteStellarWallet);
 
   // Register deposit callback handlers
+  bot.action("deposit_sol", handleDepositCommand);
   bot.action("deposit_from_bank", handleDepositFromBank);
   bot.action(/^deposit_select_asset:/, handleDepositAssetSelection);
   bot.action("deposit_confirm", handleDepositConfirmation);

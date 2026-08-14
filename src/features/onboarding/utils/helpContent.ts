@@ -4,31 +4,34 @@ import { Markup } from "telegraf";
  * Centralized help content for the bot
  * Used by both HelpCommand (/help) and HelpAboutHandlers (callback)
  */
-export const HELP_MESSAGE = `<b>🤖 Jumpa Bot Commands:</b>
+export const HELP_MESSAGE = `<b>🤖 Jumpa Commands:</b>
 
 <b>General Commands:</b>
 /start - Start the bot and register
 /wallet - View your wallet information
 /profile - View your profile details
 /referral - View referral rewards
-/deposit - Deposit funds
+/deposit - Deposit assets to your wallet
 /help - Show this help message
 
-<b>Need Support?</b>
-Contact @official_jumpa_bot for help!`;
+<b>For Support and suggestions</b>
+@jumpatrading`;
 
 /**
  * About message content
  */
-export const ABOUT_MESSAGE = `ℹ️ <b>About Jumpa Bot</b>
+export const ABOUT_MESSAGE = `ℹ️ <b>About Jumpa</b>
 
 <b>What is Jumpa?</b>
-Jumpa is a Telegram trading bot for multi-chain crypto trading, wallet management, and P2P fiat withdrawals.
+Jumpa is a Telegram bot for multi-chain crypto trading, wallet management, and P2P fiat services.
 
 <b>Key Features:</b>
-  <b>Multi-Chain Wallets</b> (Solana & EVM)
-  <b>Token Trading</b> (Jupiter / DEX swaps)
-  <b>Instant Fiat Withdrawals</b> (off-ramp)
+  <b>Multi-Chain Wallets</b> (Solana, Stellar & EVM chains)
+  <b>Token Trading</b> (DEX swaps)
+  <b>Fiat Deposits</b> (via bank account)
+  <b>Crypto Deposits</b> (via wallet addresses)
+  <b>Fiat Withdrawals</b> (to bank account)
+  <b>Crypto Withdrawals</b> (on-chain)
   <b>AI Assistant</b> for natural language withdrawals
   <b>Referral System</b> for community rewards
 `;
