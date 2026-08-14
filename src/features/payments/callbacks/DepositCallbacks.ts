@@ -180,11 +180,6 @@ export async function handleConfirmation(ctx: Context): Promise<void> {
     } else {
       await ctx.reply(`❌ Failed to initiate deposit: ${response.message}`);
     }
-
-    if (ctx.callbackQuery?.message?.message_id) {
-      await safeDeleteMessage(ctx, ctx.callbackQuery.message.message_id);
-    }
-
   } catch (error) {
     console.error("Error handling confirmation:", error);
     await ctx.reply("❌ An unexpected error occurred");

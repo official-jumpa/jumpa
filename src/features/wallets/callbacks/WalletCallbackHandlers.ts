@@ -15,12 +15,20 @@ import { handleViewWallet } from "@features/onboarding/callbacks/WalletViewHandl
 import { getUserBalances, formatBalances } from "@features/onboarding/utils/getUserBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
 import { generateTransactionReceipt } from "@shared/utils/receiptGenerator";
+import { findSwitchBankCode } from "@features/payments/utils/SwitchBankCodes";
+import {
+  initiateOfframp,
+  confirmDeposit,
+  formatAssetCode,
+  isOfframpSupported,
+} from "@features/payments/services/switchService";
+import crypto from "crypto";
 
 export async function handleWithdraw(ctx: Context): Promise<void> {
   const keyboard = Markup.inlineKeyboard(
     [
       [
-        Markup.button.callback("ATM To NGN Bank Account", "withdraw_to_bank"),
+        Markup.button.callback("To NGN Bank", "withdraw_to_bank"),
         Markup.button.callback("On Chain", "withdraw_onchain"),
       ], [
         Markup.button.callback("Set Withdrawal Pin", "set_withdrawal_pin"),
@@ -74,17 +82,17 @@ export async function handleWithdrawToBank(ctx: Context): Promise<void> {
 
   const keyboard = Markup.inlineKeyboard([
     [
-      Markup.button.callback("SOL (Solana)", "withdraw_currency:SOL:SOLANA"),
+      // Markup.button.callback("SOL (Solana)", "withdraw_currency:SOL:SOLANA"),
       Markup.button.callback("USDC (Solana)", "withdraw_currency:USDC:SOLANA"),
       Markup.button.callback("USDT (Solana)", "withdraw_currency:USDT:SOLANA"),
     ],
     [
-      Markup.button.callback("ETH (Base)", "withdraw_currency:ETH:BASE"),
+      // Markup.button.callback("ETH (Base)", "withdraw_currency:ETH:BASE"),
       Markup.button.callback("USDC (Base)", "withdraw_currency:USDC:BASE"),
       Markup.button.callback("USDT (Base)", "withdraw_currency:USDT:BASE"),
     ],
     [
-      Markup.button.callback("ETH (Celo)", "withdraw_currency:ETH:CELO"),
+      // Markup.button.callback("ETH (Celo)", "withdraw_currency:ETH:CELO"),
       Markup.button.callback("USDC (Celo)", "withdraw_currency:USDC:CELO"),
       Markup.button.callback("USDT (Celo)", "withdraw_currency:USDT:CELO"),
     ],
@@ -109,6 +117,12 @@ export async function handleWithdrawCurrencySelection(ctx: Context): Promise<voi
 
   if (!telegramId) {
     await ctx.answerCbQuery("❌ Unable to identify your account.");
+    return;
+  }
+
+  if (!isOfframpSupported(currency)) {
+    await ctx.answerCbQuery("❌ Unsupported currency for bank withdrawal");
+    await ctx.reply(`❌ Bank withdrawals only support stablecoins (USDC or USDT).\n\nIf you want to transfer ${currency} to another wallet, please use On-Chain Transfer.`);
     return;
   }
 
@@ -396,8 +410,8 @@ export async function handleWithdrawConfirmation(ctx: Context): Promise<void> {
   } else if (!user.bank_details.withdrawalPin) {
     await ctx.reply("❌ Please setup a withdrawal pin first.");
     return;
-  } else if (!config.yaraApiKey) {
-    await ctx.reply("❌ Developement error");
+  } else if (!config.switchApiKey) {
+    await ctx.reply("❌ Switch API not configured.");
     return;
   }
 
@@ -464,89 +478,63 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
     return;
   }
 
-  console.log(`[WITHDRAWAL] Creating payment widget for ${amount} ${currency} on ${chain}`);
-
-  const widget = config.paymentWidgetUrl;
-  if (!widget) {
-    await ctx.reply("Payment widget URL not specified");
+  if (!isOfframpSupported(currency)) {
+    await ctx.reply(`❌ Bank withdrawals only support stablecoins (USDC or USDT). Cannot withdraw ${currency} directly to a bank account. Please use On-Chain Transfer instead.`);
     return;
   }
-  const paymentOptions = {
-    sender: {
-      firstName: "Jumpa",
-      lastName: "Jumpa",
-      email: "21_scene_cassia@icloud.com",
-      phoneNumber: "+2349169419535",
-      address: "NG",
-      city: "NG",
-      country: "NIGERIA",
-      postalCode: "400401"
-    },
-    "recipient": {
-      "firstName": user.telegram_id.toString(),
-      "lastName": user.username,
-      "email": "dev.czdamian@gmail.com",
-      "phoneNumber": "+2348060864466",
-      "recipient_type": "INDIVIDUAL",
-      "bankAccount": {
-        "accountNumber": user.bank_details.account_number,
-        "bankCode": user.bank_details.bank_code
-      },
-      "address": "Jumpabot",
-      "city": "Jumpabot",
-      "country": "Jumpabot"
-    },
-    "amount": Number(amount),
-    "paymentRemarks": "thanks",
-    "fromCurrency": currency,
-    "payoutCurrency": "NGN",
-    "publicKey": "pk_test_GIST",
-    "developerFee": "1",
-    "payoutType": "DIRECT_DEPOSIT"
-  };
-  console.log("payment options: ", paymentOptions);
+
+  console.log(`[WITHDRAWAL] Initiating Switch offramp for ${amount} ${currency} on ${chain}`);
 
   try {
-    const getPaymentWidget = await fetch(widget, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-yara-public-key": config.yaraApiKey,
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(paymentOptions),
-    });
+    const reference = crypto.randomUUID();
+    const assetCode = formatAssetCode(chain, currency);
 
-    if (!getPaymentWidget.ok) {
-      const errorText = await getPaymentWidget.text();
-      throw new Error(`Payment widget API error: ${getPaymentWidget.status} - ${errorText}`);
+    // Resolve bank code to Switch 6-digit bank code if stored bank code was legacy
+    let bankCode = user.bank_details.bank_code;
+    if (user.bank_details.bank_name) {
+      const switchCode = findSwitchBankCode(user.bank_details.bank_name);
+      if (switchCode) {
+        bankCode = switchCode;
+      }
     }
 
-    const paymentWidget = await getPaymentWidget.json();
-    console.log("payment widget generated: ", paymentWidget);
+    const offrampRes = await initiateOfframp({
+      amount: Number(amount),
+      country: "NG",
+      asset: assetCode,
+      currency: "NGN",
+      beneficiary: {
+        holder_type: "INDIVIDUAL",
+        holder_name: user.username || "User",
+        account_number: user.bank_details.account_number,
+        bank_code: bankCode,
+      },
+      sender_name: "Jumpa",
+      reference,
+    });
 
-    if (paymentWidget.error) {
-      await ctx.reply(`❌ Withdrawal of ${amount} ${currency} failed.`);
+    if (!offrampRes.success || !offrampRes.data?.deposit?.address) {
+      console.error("[WITHDRAWAL] Switch offramp initiation error:", offrampRes);
+      await ctx.reply(`❌ Withdrawal initiation failed: ${offrampRes.message || "Unknown error"}`);
       return;
-    } else {
-      const solAddress = paymentWidget.data.solAddress;
-      const ethAddress = paymentWidget.data.ethAddress;
-      const depositAmount = paymentWidget.data.depositAmount;
-      const fiatPayoutAmount = paymentWidget.data.fiatPayoutAmount;
-      const paymentStatus = paymentWidget.data.status;
+    }
 
-      const recipientAddress = chain === 'SOLANA' ? solAddress : ethAddress;
-      console.log(`Recipient address (${chain}): ${recipientAddress}`);
+    const recipientAddress = offrampRes.data.deposit.address;
+    const depositAmount = Number(amount);
+    const fiatPayoutAmount = offrampRes.data.destination?.amount || 0;
+    const paymentStatus = offrampRes.data.status || "AWAITING_DEPOSIT";
 
-      const saveTxtoDb = await Withdrawal.create({
-        telegram_id: ctx.from?.id,
-        transaction_id: paymentWidget.data.id,
-        fiatPayoutAmount: fiatPayoutAmount,
-        depositAmount: depositAmount,
-        yaraWalletAddress: recipientAddress,
-        status: paymentStatus,
-      });
-      console.log("withdrawal saved to db: ", saveTxtoDb);
+    console.log(`Recipient deposit address (${chain}): ${recipientAddress}`);
+
+    const saveTxtoDb = await Withdrawal.create({
+      telegram_id: ctx.from?.id,
+      transaction_id: offrampRes.data.reference || reference,
+      fiatPayoutAmount: fiatPayoutAmount,
+      depositAmount: depositAmount,
+      yaraWalletAddress: recipientAddress,
+      status: paymentStatus,
+    });
+    console.log("withdrawal saved to db: ", saveTxtoDb);
 
       let initTx;
       if (chain === 'SOLANA') {
@@ -585,6 +573,18 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
       console.log("init tx result:", initTx);
 
       if (initTx.success) {
+        const txHash = initTx.signature || (initTx as any).hash || "";
+
+        // Confirm offramp deposit with Switch API using the on-chain transaction hash
+        if (txHash) {
+          try {
+            await confirmDeposit(reference, txHash);
+            console.log(`[WITHDRAWAL] Offramp deposit confirmed with Switch. Ref: ${reference}, Hash: ${txHash}`);
+          } catch (confirmErr: any) {
+            console.warn(`[WITHDRAWAL] Failed to confirm deposit with Switch:`, confirmErr?.message || confirmErr);
+          }
+        }
+
         await ctx.reply(`✅ Withdrawal of ${depositAmount} ${currency} was successful. ₦${fiatPayoutAmount} will be added to your account shortly.`);
 
         try {
@@ -614,7 +614,6 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
         await ctx.reply(`❌ Withdrawal of ${depositAmount} ${currency} failed. ${initTx.error}`);
         return;
       }
-    }
   } catch (error: any) {
     console.error("Withdrawal error:", {
       error: error.message,

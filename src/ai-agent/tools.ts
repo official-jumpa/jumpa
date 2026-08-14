@@ -1,5 +1,5 @@
 
-import { findYaraBankCode } from "@features/payments/utils/yaraBankCodes";
+import { findSwitchBankCode } from "@features/payments/utils/SwitchBankCodes";
 import { findPaystackBankCode } from "@features/payments/utils/paystackUtils";
 import { validateAccountNumber } from "@src/features/payments/utils/validateAccountNumber";
 import { getCurrenciesForChain } from "@features/payments/utils/convertNGNToCrypto";
@@ -7,7 +7,7 @@ import { StrKey } from "@stellar/stellar-sdk";
 
 // Mocking function to get banks if not directly available, 
 // but we might just trust the agent to fuzzy match or asking validation to handle it.
-// For now, we rely on findYaraBankCode doing the heavy lifting during validation.
+// For now, we rely on findSwitchBankCode doing the heavy lifting during validation.
 
 export const tools = [
   {
@@ -39,13 +39,13 @@ export const tools = [
       required: ["account_number", "bank_name"],
     },
     handler: async ({ account_number, bank_name }: { account_number: string, bank_name: string }) => {
-      // 1. Find Yara Code (for execution)
-      const yaraBankCode = findYaraBankCode(bank_name);
+      // 1. Find Switch Bank Code
+      const switchBankCode = findSwitchBankCode(bank_name);
 
-      // 2. Find Paystack Code (for validation)
+      // 2. Find Paystack Code (for name resolution validation)
       const paystackBankCode = findPaystackBankCode(bank_name);
 
-      if (!yaraBankCode) {
+      if (!switchBankCode) {
         return {
           valid: false,
           error: "Bank not supported for withdrawal. Please check the bank name and try again.",
@@ -76,7 +76,7 @@ export const tools = [
         return {
           valid: true,
           account_name: validation.data.account_name,
-          bank_code: yaraBankCode,
+          bank_code: switchBankCode,
           bank_name_confirmed: bank_name,
         };
       } catch (err: any) {

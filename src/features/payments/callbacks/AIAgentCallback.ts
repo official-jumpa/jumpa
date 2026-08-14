@@ -22,7 +22,14 @@ import {
   executeUSDTTransferEVM,
   executeCELOTransfer,
 } from "@features/payments/utils/evmWithdrawTx";
-import { findYaraBankCode } from "@features/payments/utils/yaraBankCodes";
+import { findSwitchBankCode } from "@features/payments/utils/SwitchBankCodes";
+import {
+  initiateOfframp,
+  confirmDeposit,
+  formatAssetCode,
+  isOfframpSupported,
+} from "@features/payments/services/switchService";
+import crypto from "crypto";
 import { processUserQuery } from "@src/ai-agent/agent.config";
 import { sendOrEdit } from "@src/shared/utils/messageHelper";
 
@@ -216,7 +223,7 @@ async function initiatePINFlow(ctx: Context, data: any): Promise<void> {
   if (!data.wallet_address) {
     const bName = data.bankName || data.bank_name;
     if (bName) {
-      bankCode = findYaraBankCode(bName);
+      bankCode = findSwitchBankCode(bName);
     } else {
       console.warn("[AI Withdrawal] Missing bank name in bank flow. Skipping code lookup.");
     }
@@ -420,96 +427,68 @@ async function executeSingleTransferSilent(
   try {
     let recipientAddress = "";
     let recipientName = data.wallet_address || `${data.accountName || data.account_name}`;
+    let switchReference: string | undefined;
 
     if (data.wallet_address) {
       console.log(`[Silent Transfer] Crypto transfer to ${data.wallet_address}`);
       recipientAddress = data.wallet_address;
     } else {
-      console.log(`[Silent Transfer] Bank transfer via Yara with data: ${JSON.stringify(data)}`);
+      console.log(`[Silent Transfer] Bank transfer via Switch API: ${JSON.stringify(data)}`);
 
       const bankName = data.bankName || data.bank_name;
-      const yaraBankCode = findYaraBankCode(bankName);
+      const switchBankCode = findSwitchBankCode(bankName);
 
-      if (!yaraBankCode) {
+      if (!switchBankCode) {
         console.log(`[Silent Transfer] Bank "${bankName}" not supported`);
         return { success: false, error: `Bank "${bankName}" not supported`, recipient: recipientName };
       }
 
-      const widget = config.paymentWidgetUrl;
-      if (!widget) {
-        console.log("payment widget not configured");
-        return { success: false, error: "Payment widget URL not configured", recipient: recipientName };
-      }
-
-      const recipientNumber = data.recipient || data.account_number;
-      const paymentOptions = {
-        sender: {
-          firstName: "Jumpa",
-          lastName: "Jumpa",
-          email: "21_scene_cassia@icloud.com",
-          phoneNumber: "+2349169419535",
-          address: "NG",
-          city: "NG",
-          country: "NIGERIA",
-          postalCode: "400401"
-        },
-        recipient: {
-          firstName: user.telegram_id.toString(),
-          lastName: user.username || "user",
-          email: "dev.czdamian@gmail.com",
-          phoneNumber: "+2348060864466",
-          bankAccount: {
-            accountNumber: recipientNumber,
-            bankCode: yaraBankCode,
-          },
-          address: "Jumpabot",
-          city: "Jumpabot",
-          country: "Jumpabot",
-        },
-        amount: Number(data.cryptoAmount),
-        paymentRemarks: "AI Withdrawal",
-        fromCurrency: data.currency,
-        payoutCurrency: "NGN",
-        publicKey: "pk_test_GIST",
-        developerFee: "1",
-        payoutType: "DIRECT_DEPOSIT",
-      };
-
-      const getPaymentWidget = await fetch(widget, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-yara-public-key": config.yaraApiKey!,
-          Accept: "application/json",
-        },
-        body: JSON.stringify(paymentOptions),
-      });
-
-      if (!getPaymentWidget.ok) {
+      if (!isOfframpSupported(data.currency)) {
         return {
           success: false,
-          error: `Payment widget error: ${getPaymentWidget.status}`,
+          error: `Bank withdrawals only support stablecoins (USDC or USDT). Cannot withdraw ${data.currency} directly to a bank account.`,
           recipient: recipientName
         };
       }
 
-      const paymentWidget = await getPaymentWidget.json();
+      const recipientNumber = data.recipient || data.account_number;
+      const reference = crypto.randomUUID();
+      const assetCode = formatAssetCode(data.chain, data.currency);
 
-      if (paymentWidget.error) {
-        return { success: false, error: paymentWidget.error, recipient: recipientName };
+      const offrampRes = await initiateOfframp({
+        amount: Number(data.cryptoAmount),
+        country: "NG",
+        asset: assetCode,
+        currency: "NGN",
+        beneficiary: {
+          holder_type: "INDIVIDUAL",
+          holder_name: user.username || "User",
+          account_number: recipientNumber,
+          bank_code: switchBankCode,
+        },
+        sender_name: "Jumpa",
+        reference,
+      });
+
+      if (!offrampRes.success || !offrampRes.data?.deposit?.address) {
+        console.error("[Silent Transfer] Switch offramp error:", offrampRes);
+        return {
+          success: false,
+          error: offrampRes.message || "Failed to initiate Switch offramp transaction",
+          recipient: recipientName
+        };
       }
 
-      const solAddress = paymentWidget.data.solAddress;
-      const ethAddress = paymentWidget.data.ethAddress;
-      recipientAddress = data.chain === "SOLANA" ? solAddress : ethAddress;
+      recipientAddress = offrampRes.data.deposit.address;
+      switchReference = offrampRes.data.reference || reference;
 
       await Withdrawal.create({
         telegram_id: userId,
-        transaction_id: paymentWidget.data.id,
-        fiatPayoutAmount: paymentWidget.data.fiatPayoutAmount,
-        depositAmount: paymentWidget.data.depositAmount,
+        transaction_id: offrampRes.data.reference || reference,
+        fiatPayoutAmount: offrampRes.data.destination?.amount || 0,
+        depositAmount: Number(data.cryptoAmount),
         yaraWalletAddress: recipientAddress,
-        status: paymentWidget.data.status,
+        status: offrampRes.data.status || "AWAITING_DEPOSIT",
         batch_id: data.batch_id,
       });
     }
@@ -538,9 +517,21 @@ async function executeSingleTransferSilent(
     }
 
     if (initTx?.success) {
+      const txHash = initTx.signature || initTx.hash || "";
+
+      // Confirm offramp deposit with Switch API if this was a bank withdrawal
+      if (!data.wallet_address && switchReference && txHash) {
+        try {
+          await confirmDeposit(switchReference, txHash);
+          console.log(`[AI Withdrawal] Offramp deposit confirmed with Switch. Ref: ${switchReference}, Hash: ${txHash}`);
+        } catch (confirmErr: any) {
+          console.warn(`[AI Withdrawal] Failed to confirm deposit with Switch:`, confirmErr?.message || confirmErr);
+        }
+      }
+
       return {
         success: true,
-        transactionId: initTx.signature || initTx.hash,
+        transactionId: txHash,
         recipient: recipientName
       };
     } else {
