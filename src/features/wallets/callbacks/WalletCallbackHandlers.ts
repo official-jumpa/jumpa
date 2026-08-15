@@ -251,7 +251,7 @@ export async function handleWithdrawCustomAmount(ctx: Context): Promise<void> {
     minAmount = "0.001 ETH";
     example = "0.01";
   } else {
-    minAmount = `1 ${currency}`;
+    minAmount = `2.5 ${currency}`;
     example = "10";
   }
 
@@ -288,8 +288,8 @@ export async function handleCustomAmountInput(ctx: Context): Promise<void> {
   } else if (currency === "ETH" && amount < 0.001) {
     await ctx.reply("❌ Minimum withdrawal amount for ETH is 0.001 ETH. Please enter a valid amount:");
     return;
-  } else if ((currency === "USDC" || currency === "USDT") && amount < 1) {
-    await ctx.reply(`❌ Minimum withdrawal amount for ${currency} is 1 ${currency}. Please enter a valid amount:`);
+  } else if ((currency === "USDC" || currency === "USDT") && amount < 2.5) {
+    await ctx.reply(`❌ Minimum withdrawal amount for ${currency} is 2.5 ${currency}. Please enter a valid amount:`);
     return;
   }
   const rateUrl = config.paymentRateUrl;

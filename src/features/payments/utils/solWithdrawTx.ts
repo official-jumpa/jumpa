@@ -170,8 +170,15 @@ export async function executeUSDCTransfer(user: any, toAddress: string, amount: 
     console.log(`[USDC Transfer] Amount in smallest unit: ${amountInSmallestUnit}`);
 
     // 5. Check sender's balance
-    const fromAccount = await connection.getTokenAccountBalance(fromTokenAccount);
-    const balance = parseFloat(fromAccount.value.amount) / Math.pow(10, USDC_DECIMALS);
+    let balance = 0;
+    try {
+      const fromAccount = await connection.getTokenAccountBalance(fromTokenAccount);
+      balance = parseFloat(fromAccount.value.amount) / Math.pow(10, USDC_DECIMALS);
+    } catch (balanceErr: any) {
+      // If the token account does not exist on-chain, balance is 0
+      console.log('[USDC Transfer] Token account not found on-chain, balance is 0');
+      balance = 0;
+    }
 
     console.log(`[USDC Transfer] Balance: ${balance} USDC`);
 
@@ -293,8 +300,15 @@ export async function executeUSDTTransfer(user: any, toAddress: string, amount: 
     console.log(`[USDT Transfer] Amount in smallest unit: ${amountInSmallestUnit}`);
 
     // 5. Check sender's balance
-    const fromAccount = await connection.getTokenAccountBalance(fromTokenAccount);
-    const balance = parseFloat(fromAccount.value.amount) / Math.pow(10, USDT_DECIMALS);
+    let balance = 0;
+    try {
+      const fromAccount = await connection.getTokenAccountBalance(fromTokenAccount);
+      balance = parseFloat(fromAccount.value.amount) / Math.pow(10, USDT_DECIMALS);
+    } catch (balanceErr: any) {
+      // If the token account does not exist on-chain, balance is 0
+      console.log('[USDT Transfer] Token account not found on-chain, balance is 0');
+      balance = 0;
+    }
 
     console.log(`[USDT Transfer] Balance: ${balance} USDT`);
 
