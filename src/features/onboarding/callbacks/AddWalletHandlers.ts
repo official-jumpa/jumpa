@@ -52,19 +52,17 @@ export async function handleAddWallet(ctx: Context): Promise<void> {
 
     const message = `➕ **Add Wallet**
 
-Choose the wallet type you want to add. Choose EVM for Base, Celo, etc. or Stellar for XLM/USDC.`;
+Choose the wallet type you want to add. Solana, Stellar or EVM (for Base, Celo, Polygon, Arbitrum etc). If you don't have an existing one already, you can generate one by clicking on the generate button below.`;
 
     const keyboard = Markup.inlineKeyboard([
       [
-        Markup.button.callback("🟣 Import Solana", "add_wallet_solana"),
-        Markup.button.callback("🔵 Import EVM", "add_wallet_evm"),
+        Markup.button.callback("Solana", "add_wallet_solana"),
+        Markup.button.callback("EVM", "add_wallet_evm"),
+        Markup.button.callback("Stellar", "add_wallet_stellar"),
       ],
       [
-        Markup.button.callback("⭐ Import Stellar", "add_wallet_stellar"),
-      ],
-      [
-        Markup.button.callback("🔵 Generate EVM", "generate_evm_wallet"),
-        Markup.button.callback("⭐ Generate Stellar", "generate_stellar_wallet"),
+        Markup.button.callback("Generate EVM", "generate_evm_wallet"),
+        Markup.button.callback("Generate Stellar", "generate_stellar_wallet"),
       ],
       [Markup.button.callback("🔙 Back", "view_wallet")],
     ]);
@@ -532,11 +530,11 @@ export async function handleAddStellarWallet(ctx: Context): Promise<void> {
       action: "awaiting_add_stellar_private_key",
     });
 
-    const message = `⭐ **Import Stellar Wallet**
+    const message = `**Import Stellar Wallet**
 
-Please reply with your Stellar Secret Key (starts with \`S\`) or private key seed hex.
+Reply with your Stellar Secret Key (starts with \`S\`) or private key seed hex.
 
-⚠️ **Security Warning:**
+⚠️ **To keep your wallet safe:**
 • Make sure no one is watching your screen
 • Delete your message after sending it
 
@@ -648,16 +646,15 @@ export async function handleGenerateStellarWallet(ctx: Context): Promise<void> {
       newWallet.private_key_encrypted
     );
 
-    const replyMessage = `📥 **Generate New Stellar Wallet**
-
-A new Stellar wallet has been generated for you:
+    const replyMessage = `
+Here's your new Stellar Wallet
 
 **Address:** \`${newWallet.address}\`
 
-⚠️ **Private Key (Secret Key):**
+⚠️ **Private Key:**
 \`${newWallet.private_key}\`
 
-🔐 *Never share your secret key with anyone.*
+🔐 *Never share your secret key with anyone. Delete this message after backing up your wallet. You can always export your private key anytime*
 `;
 
     const keyboard = Markup.inlineKeyboard([

@@ -1,60 +1,92 @@
-import { Context } from "telegraf";
+import { Context, Markup } from "telegraf";
 import getUser from "@features/users/getUserInfo";
-import { Markup } from "telegraf";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
 import getStellarBalances from "@shared/utils/getStellarBalances";
 
+export type ChainType = "solana" | "evm" | "stellar";
+
 /**
  * Build skeleton wallet view with loading indicators
  */
-function buildWalletSkeleton(user: any): string {
+function buildWalletSkeleton(
+  user: any,
+  activeChain: ChainType = "solana",
+  activeWalletIndex: number = 0
+): string {
   let message = "*Your Wallets*\n\n";
+  message += `*Total Value:* ⏳\n\n`;
 
-  // Solana wallets
   const solanaWallets = user.solanaWallets || [];
-  if (solanaWallets.length > 0) {
-    message += `*🟣 Solana Wallets (${solanaWallets.length}/3)*\n`;
-
-    for (let index = 0; index < solanaWallets.length; index++) {
-      const wallet = solanaWallets[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
-      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
-      message += `SOL: ...   • USDC: ...   • USDT: ...\n`;
-    }
-    message += `\n`;
-  }
-
-  // EVM wallets
   const evmWallets = user.evmWallets || [];
-  if (evmWallets.length > 0) {
-    message += `*🔵 EVM Wallets (${evmWallets.length}/3)*\n`;
-
-    for (let index = 0; index < evmWallets.length; index++) {
-      const wallet = evmWallets[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
-      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
-      message += `*Base:* ... ETH • ... USDC\n`;
-      message += `*Celo:* ... ETH • ... cUSD\n`;
-    }
-    message += `\n`;
-  }
-
-  // Stellar wallets
   const stellarWallets = user.stellarWallets || [];
-  if (stellarWallets.length > 0) {
-    message += `*⭐ Stellar Wallets (${stellarWallets.length}/3)*\n`;
 
-    for (let index = 0; index < stellarWallets.length; index++) {
-      const wallet = stellarWallets[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
-      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
-      message += `XLM: ...   • USDC: ...\n`;
-    }
-    message += `\n`;
+  if (activeChain === "solana" && solanaWallets.length > 0) {
+    const wallet = solanaWallets[activeWalletIndex] || solanaWallets[0];
+    const isMain = activeWalletIndex === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
+
+    message += `*🟣 Solana Wallet ${activeWalletIndex + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
+    message += `SOL: ⏳ ...   • USDC: ⏳ ...   • USDT: ⏳ ...\n`;
+  } else if (activeChain === "evm" && evmWallets.length > 0) {
+    const wallet = evmWallets[activeWalletIndex] || evmWallets[0];
+    const isMain = activeWalletIndex === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
+
+    message += `*🔵 EVM Wallet ${activeWalletIndex + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
+    message += `*Base:* ⏳ ... ETH • ⏳ ... USDC\n`;
+    message += `*Celo:* ⏳ ... ETH • ⏳ ... cUSD\n`;
+  } else if (activeChain === "stellar" && stellarWallets.length > 0) {
+    const wallet = stellarWallets[activeWalletIndex] || stellarWallets[0];
+    const isMain = activeWalletIndex === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
+
+    message += `*⭐ Stellar Wallet ${activeWalletIndex + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
+    message += `XLM: ⏳ ...   • USDC: ⏳ ...\n`;
+  } else {
+    message += `No active wallet found for ${activeChain.toUpperCase()}.\n`;
   }
 
   return message;
+}
+
+/**
+ * Calculate total portfolio value in USD
+ */
+function calculateTotalNetWorth(
+  solBalancesArray: any[],
+  evmBalancesArray: any[],
+  stellarBalancesArray: any[]
+): number {
+  let totalUsd = 0;
+
+  // Solana USD estimates (approx SOL=$180)
+  for (const bal of solBalancesArray) {
+    if (bal) {
+      totalUsd += (bal.sol || 0) * 180 + (bal.usdc || 0) + (bal.usdt || 0);
+    }
+  }
+
+  // EVM USD estimates (approx ETH=$3200)
+  for (const bal of evmBalancesArray) {
+    if (bal) {
+      const baseVal = ((bal.BASE?.eth || 0) * 3200) + (bal.BASE?.usdc || 0) + (bal.BASE?.usdt || 0);
+      const celoVal = ((bal.CELO?.eth || 0) * 3200) + (bal.CELO?.usdc || 0) + (bal.CELO?.usdt || 0);
+      totalUsd += baseVal + celoVal;
+    }
+  }
+
+  // Stellar USD estimates (approx XLM=$0.12)
+  for (const bal of stellarBalancesArray) {
+    if (bal) {
+      totalUsd += (bal.xlm || 0) * 0.12 + (bal.usdc || 0);
+    }
+  }
+
+  return totalUsd;
 }
 
 /**
@@ -64,78 +96,170 @@ function buildWalletComplete(
   user: any,
   solBalancesArray: any[],
   evmBalancesArray: any[],
-  stellarBalancesArray: any[] = []
+  stellarBalancesArray: any[],
+  activeChain: ChainType = "solana",
+  activeWalletIndex: number = 0
 ): string {
   let message = "*Your Wallets*\n\n";
 
-  // Solana wallets
+  const totalUsd = calculateTotalNetWorth(
+    solBalancesArray,
+    evmBalancesArray,
+    stellarBalancesArray
+  );
+  message += `*Total Value:* $${totalUsd.toFixed(2)} USD\n\n`;
+
   const solanaWallets = user.solanaWallets || [];
-  if (solanaWallets.length > 0) {
-    message += `*🟣 Solana Wallets (${solanaWallets.length}/3)*\n`;
-
-    for (let index = 0; index < solanaWallets.length; index++) {
-      const wallet = solanaWallets[index];
-      const balances = solBalancesArray[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
-
-      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
-
-      if (balances) {
-        message += `SOL: ${balances.sol.toFixed(2)}   • `;
-        message += `USDC: ${balances.usdc.toFixed(2)}   • `;
-        message += `USDT: ${balances.usdt.toFixed(2)}\n`;
-      } else {
-        message += `SOL: 0.00   • USDC: 0.00   • USDT: 0.00\n`;
-      }
-    }
-    message += `\n`;
-  }
-
-  // EVM wallets
   const evmWallets = user.evmWallets || [];
-  if (evmWallets.length > 0) {
-    message += `*🔵 EVM Wallets (${evmWallets.length}/3)*\n`;
-
-    for (let index = 0; index < evmWallets.length; index++) {
-      const wallet = evmWallets[index];
-      const balances = evmBalancesArray[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
-
-      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
-
-      if (balances) {
-        message += `*Base:* ${balances.BASE.eth.toFixed(2)} ETH • ${balances.BASE.usdc.toFixed(2)} USDC\n`;
-        message += `*Celo:* ${balances.CELO.eth.toFixed(2)} ETH • ${balances.CELO.usdc.toFixed(2)} cUSD\n`;
-      } else {
-        message += `*Base:* 0.00 ETH • 0.00 USDC\n`;
-        message += `*Celo:* 0.00 ETH • 0.00 cUSD\n`;
-      }
-    }
-    message += `\n`;
-  }
-
-  // Stellar wallets
   const stellarWallets = user.stellarWallets || [];
-  if (stellarWallets.length > 0) {
-    message += `*⭐ Stellar Wallets (${stellarWallets.length}/3)*\n`;
 
-    for (let index = 0; index < stellarWallets.length; index++) {
-      const wallet = stellarWallets[index];
-      const balances = stellarBalancesArray[index];
-      const defaultBadge = index === 0 ? " 🟢 *(Default)*\n" : "";
+  if (activeChain === "solana" && solanaWallets.length > 0) {
+    const idx = Math.min(activeWalletIndex, solanaWallets.length - 1);
+    const wallet = solanaWallets[idx];
+    const balances = solBalancesArray[idx];
+    const isMain = idx === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
 
-      message += `\n\`${wallet.address}\`${defaultBadge}\n`;
+    message += `*🟣 Solana Wallet ${idx + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
 
-      if (balances) {
-        message += `XLM: ${balances.xlm.toFixed(2)}   • USDC: ${balances.usdc.toFixed(2)}\n`;
-      } else {
-        message += `XLM: 0.00   • USDC: 0.00\n`;
-      }
+    if (balances) {
+      message += `SOL: ${balances.sol.toFixed(4)}   • USDC: ${balances.usdc.toFixed(2)}   • USDT: ${balances.usdt.toFixed(2)}\n`;
+    } else {
+      message += `SOL: 0.0000   • USDC: 0.00   • USDT: 0.00\n`;
     }
-    message += `\n`;
+  } else if (activeChain === "evm" && evmWallets.length > 0) {
+    const idx = Math.min(activeWalletIndex, evmWallets.length - 1);
+    const wallet = evmWallets[idx];
+    const balances = evmBalancesArray[idx];
+    const isMain = idx === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
+
+    message += `*🔵 EVM Wallet ${idx + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
+
+    if (balances) {
+      message += `*Base:* ${(balances.BASE?.eth || 0).toFixed(4)} ETH • ${(balances.BASE?.usdc || 0).toFixed(2)} USDC\n`;
+      message += `*Celo:* ${(balances.CELO?.eth || 0).toFixed(4)} ETH • ${(balances.CELO?.usdc || 0).toFixed(2)} cUSD\n`;
+    } else {
+      message += `*Base:* 0.0000 ETH • 0.00 USDC\n`;
+      message += `*Celo:* 0.0000 ETH • 0.00 cUSD\n`;
+    }
+  } else if (activeChain === "stellar" && stellarWallets.length > 0) {
+    const idx = Math.min(activeWalletIndex, stellarWallets.length - 1);
+    const wallet = stellarWallets[idx];
+    const balances = stellarBalancesArray[idx];
+    const isMain = idx === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
+
+    message += `*⭐ Stellar Wallet ${idx + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
+
+    if (balances) {
+      message += `XLM: ${balances.xlm.toFixed(4)}   • USDC: ${balances.usdc.toFixed(2)}\n`;
+    } else {
+      message += `XLM: 0.0000   • USDC: 0.00\n`;
+    }
+  } else {
+    message += `No wallet found for ${activeChain.toUpperCase()}.\n`;
   }
 
   return message;
+}
+
+/**
+ * Build wallet keyboard with Chain Tabs, Wallet Pills, and Contextual Actions
+ */
+export function buildWalletKeyboard(
+  user: any,
+  activeChain: ChainType = "solana",
+  activeWalletIndex: number = 0
+) {
+  const solanaWallets = user.solanaWallets || [];
+  const evmWallets = user.evmWallets || [];
+  const stellarWallets = user.stellarWallets || [];
+
+  const keyboardButtons: any[] = [];
+
+  // Row 1: Chain Switcher Tabs
+  const chainTabButtons = [];
+  if (solanaWallets.length > 0) {
+    const activeLabel = activeChain === "solana" ? "Solana ✅" : "Solana";
+    chainTabButtons.push(Markup.button.callback(activeLabel, "wallet_tab:solana:0"));
+  }
+  if (evmWallets.length > 0) {
+    const activeLabel = activeChain === "evm" ? "EVM ✅" : "EVM";
+    chainTabButtons.push(Markup.button.callback(activeLabel, "wallet_tab:evm:0"));
+  }
+  if (stellarWallets.length > 0) {
+    const activeLabel = activeChain === "stellar" ? "Stellar ✅" : "Stellar";
+    chainTabButtons.push(Markup.button.callback(activeLabel, "wallet_tab:stellar:0"));
+  }
+  if (chainTabButtons.length > 0) {
+    keyboardButtons.push(chainTabButtons);
+  }
+
+  // Row 2: Wallet Selector Pills for active ✅ chain
+  let currentWallets: any[] = [];
+  if (activeChain === "solana") currentWallets = solanaWallets;
+  else if (activeChain === "evm") currentWallets = evmWallets;
+  else if (activeChain === "stellar") currentWallets = stellarWallets;
+
+  if (currentWallets.length > 1) {
+    const pillButtons = currentWallets.map((_, idx) => {
+      const isSelected = idx === activeWalletIndex;
+      const isMain = idx === 0;
+      const chainTag = activeChain === "solana" ? "Sol" : activeChain === "evm" ? "EVM" : "Stellar";
+      const mainTag = isMain ? " (Default)" : "";
+      const label = `${isSelected ? "✅ " : ""}${chainTag} ${idx + 1}${mainTag}`;
+      return Markup.button.callback(label, `wallet_tab:${activeChain}:${idx}`);
+    });
+
+    keyboardButtons.push(pillButtons);
+  }
+
+  // Row 3: Action buttons for currently active wallet
+  const actionRow: any[] = [];
+  const isCurrentMain = activeWalletIndex === 0;
+
+  // CONDITIONAL SET MAIN: Only show if NOT already main wallet
+  if (!isCurrentMain && currentWallets.length > 1) {
+    if (activeChain === "solana") {
+      actionRow.push(Markup.button.callback("Set Default", `set_default_solana:${activeWalletIndex}`));
+    } else if (activeChain === "evm") {
+      actionRow.push(Markup.button.callback("Set Default", `set_default_evm:${activeWalletIndex}`));
+    } else if (activeChain === "stellar") {
+      actionRow.push(Markup.button.callback("Set Default", `set_default_stellar:${activeWalletIndex}`));
+    }
+  }
+
+  // Export Private Key button
+  const exportPrefix = activeChain === "solana" ? "sol" : activeChain;
+  actionRow.push(
+    Markup.button.callback("🔑 Export Key", `select_export_${exportPrefix}:${activeWalletIndex}`)
+  );
+
+  // Delete Wallet button
+  if (activeChain === "solana") {
+    actionRow.push(Markup.button.callback("🚮 Delete", `delete_solana_wallet:${activeWalletIndex}`));
+  } else if (activeChain === "evm") {
+    actionRow.push(Markup.button.callback("🚮 Delete", `delete_evm_wallet:${activeWalletIndex}`));
+  } else if (activeChain === "stellar") {
+    actionRow.push(Markup.button.callback("🚮 Delete", `delete_stellar_wallet:${activeWalletIndex}`));
+  }
+
+  if (actionRow.length > 0) {
+    keyboardButtons.push(actionRow);
+  }
+
+  // Row 4: Global Menu Buttons
+  keyboardButtons.push([
+    Markup.button.callback("🔄 Refresh", `refresh_wallet:${activeChain}:${activeWalletIndex}`),
+    Markup.button.callback("➕ Add Wallet", "add_wallet"),
+    Markup.button.callback("🔙 Menu", "back_to_menu"),
+  ]);
+
+  return Markup.inlineKeyboard(keyboardButtons);
 }
 
 /**
@@ -146,51 +270,32 @@ async function fetchAndUpdateWalletBalances(
   chatId: number,
   messageId: number,
   user: any,
+  activeChain: ChainType = "solana",
+  activeWalletIndex: number = 0,
   forceRefresh: boolean = false
 ): Promise<void> {
   try {
-    console.log(`🔄 Fetching wallet balances (forceRefresh: ${forceRefresh})`);
-
     const solanaWallets = user.solanaWallets || [];
     const evmWallets = user.evmWallets || [];
     const stellarWallets = user.stellarWallets || [];
 
-    // Fetch all balances in parallel
     const [solBalancesArray, evmBalancesArray, stellarBalancesArray] = await Promise.all([
-      // Fetch all Solana wallet balances
-      Promise.all(
-        solanaWallets.map((wallet: any) =>
-          getAllTokenBalances(wallet.address, forceRefresh)
-        )
-      ),
-      // Fetch all EVM wallet balances
-      Promise.all(
-        evmWallets.map((wallet: any) =>
-          getAllEvmBalances(wallet.address, forceRefresh)
-        )
-      ),
-      // Fetch all Stellar wallet balances
-      Promise.all(
-        stellarWallets.map((wallet: any) =>
-          getStellarBalances(wallet.address, forceRefresh)
-        )
-      )
+      Promise.all(solanaWallets.map((w: any) => getAllTokenBalances(w.address, forceRefresh))),
+      Promise.all(evmWallets.map((w: any) => getAllEvmBalances(w.address, forceRefresh))),
+      Promise.all(stellarWallets.map((w: any) => getStellarBalances(w.address, forceRefresh))),
     ]);
 
-    console.log("✅ Wallet balances fetched");
-
-    // Build complete message
     const completeMessage = buildWalletComplete(
       user,
       solBalancesArray,
       evmBalancesArray,
-      stellarBalancesArray
+      stellarBalancesArray,
+      activeChain,
+      activeWalletIndex
     );
 
-    // Build keyboard
-    const keyboard = buildWalletKeyboard(user);
+    const keyboard = buildWalletKeyboard(user, activeChain, activeWalletIndex);
 
-    // Update message
     try {
       await ctx.telegram.editMessageText(
         chatId,
@@ -199,14 +304,11 @@ async function fetchAndUpdateWalletBalances(
         completeMessage,
         {
           parse_mode: "Markdown",
-          ...keyboard
+          ...keyboard,
         }
       );
-      console.log("✅ Wallet view updated");
     } catch (error: any) {
-      if (error?.message?.includes("message is not modified")) {
-        console.log("Wallet content unchanged");
-      } else {
+      if (!error?.message?.includes("message is not modified")) {
         console.error("Failed to update wallet view:", error.message);
       }
     }
@@ -216,108 +318,13 @@ async function fetchAndUpdateWalletBalances(
 }
 
 /**
- * Build wallet keyboard with all buttons
+ * Main handleViewWallet function
  */
-function buildWalletKeyboard(user: any) {
-  const solanaWallets = user.solanaWallets || [];
-  const evmWallets = user.evmWallets || [];
-  const stellarWallets = user.stellarWallets || [];
-
-  const keyboardButtons = [
-    [
-      Markup.button.callback("🔄 Refresh Balance", "refresh_balance"),
-      Markup.button.callback("➕ Add Wallet", "add_wallet"),
-    ],
-  ];
-
-  // Add "Set as Default" buttons for Solana wallets (skip first one)
-  if (solanaWallets.length > 1) {
-    const solanaButtons = [];
-    for (let i = 1; i < solanaWallets.length; i++) {
-      solanaButtons.push(
-        Markup.button.callback(`Set SOL Wallet ${i + 1} as Main`, `set_default_solana:${i}`)
-      );
-    }
-    for (let i = 0; i < solanaButtons.length; i += 2) {
-      keyboardButtons.push(solanaButtons.slice(i, i + 2));
-    }
-  }
-
-  // Add "Set as Default" buttons for EVM wallets (skip first one)
-  if (evmWallets.length > 1) {
-    const evmButtons = [];
-    for (let i = 1; i < evmWallets.length; i++) {
-      evmButtons.push(
-        Markup.button.callback(`Set EVM ${i + 1} as Main`, `set_default_evm:${i}`)
-      );
-    }
-    for (let i = 0; i < evmButtons.length; i += 2) {
-      keyboardButtons.push(evmButtons.slice(i, i + 2));
-    }
-  }
-
-  // Add "Set as Default" buttons for Stellar wallets (skip first one)
-  if (stellarWallets.length > 1) {
-    const stellarButtons = [];
-    for (let i = 1; i < stellarWallets.length; i++) {
-      stellarButtons.push(
-        Markup.button.callback(`Set Stellar ${i + 1} as Main`, `set_default_stellar:${i}`)
-      );
-    }
-    for (let i = 0; i < stellarButtons.length; i += 2) {
-      keyboardButtons.push(stellarButtons.slice(i, i + 2));
-    }
-  }
-
-  // Add delete buttons for Solana wallets
-  if (solanaWallets.length > 0) {
-    const deleteButtons = [];
-    for (let i = 0; i < solanaWallets.length; i++) {
-      deleteButtons.push(
-        Markup.button.callback(`Delete Sol Wallet ${i + 1}`, `delete_solana_wallet:${i}`)
-      );
-    }
-    for (let i = 0; i < deleteButtons.length; i += 2) {
-      keyboardButtons.push(deleteButtons.slice(i, i + 2));
-    }
-  }
-
-  // Add delete buttons for EVM wallets
-  if (evmWallets.length > 0) {
-    const deleteButtons = [];
-    for (let i = 0; i < evmWallets.length; i++) {
-      deleteButtons.push(
-        Markup.button.callback(`🗑️ Delete EVM ${i + 1}`, `delete_evm_wallet:${i}`)
-      );
-    }
-    for (let i = 0; i < deleteButtons.length; i += 2) {
-      keyboardButtons.push(deleteButtons.slice(i, i + 2));
-    }
-  }
-
-  // Add delete buttons for Stellar wallets
-  if (stellarWallets.length > 0) {
-    const deleteButtons = [];
-    for (let i = 0; i < stellarWallets.length; i++) {
-      deleteButtons.push(
-        Markup.button.callback(`🗑️ Delete Stellar ${i + 1}`, `delete_stellar_wallet:${i}`)
-      );
-    }
-    for (let i = 0; i < deleteButtons.length; i += 2) {
-      keyboardButtons.push(deleteButtons.slice(i, i + 2));
-    }
-  }
-
-  keyboardButtons.push([
-    Markup.button.callback("📊 My Profile", "view_profile"),
-    Markup.button.callback("🔙 Back to Menu", "back_to_menu"),
-  ]);
-
-  return Markup.inlineKeyboard(keyboardButtons);
-}
-
-// Handle view wallet callback
-export async function handleViewWallet(ctx: Context): Promise<void> {
+export async function handleViewWallet(
+  ctx: Context,
+  requestedChain: ChainType = "solana",
+  requestedWalletIndex: number = 0
+): Promise<void> {
   try {
     const telegramId = ctx.from?.id;
     const username = ctx.from?.username || ctx.from?.first_name || "Unknown";
@@ -330,32 +337,23 @@ export async function handleViewWallet(ctx: Context): Promise<void> {
     const user = await getUser(telegramId, username);
 
     if (!user) {
-      await ctx.reply(
-        "❌ User not found. Please use /start to register first."
-      );
+      await ctx.reply("❌ User not found. Please use /start to register first.");
       return;
     }
 
     const solanaWallets = user.solanaWallets || [];
     const evmWallets = user.evmWallets || [];
-    const totalWallets = solanaWallets.length + evmWallets.length;
+    const stellarWallets = user.stellarWallets || [];
+    const totalWallets = solanaWallets.length + evmWallets.length + stellarWallets.length;
 
     if (totalWallets === 0) {
       const noWalletMessage = `*Your Wallets*\n\nYou don't have any wallets yet.\n\nSet up a wallet to start trading!`;
-
       const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback("🔑 Generate New Solana Wallet", "generate_wallet"),
-        ],
-        [
-          Markup.button.callback("📥 Import Existing Solana Wallet", "import_wallet"),
-        ],
-        [
-          Markup.button.callback("🔙 Back to Menu", "back_to_menu"),
-        ],
+        [Markup.button.callback("🔑 Create Solana Wallet", "generate_wallet")],
+        [Markup.button.callback("📥 Import Solana Wallet", "import_wallet")],
+        [Markup.button.callback("🔙 Back to Menu", "back_to_menu")],
       ]);
 
-      // Handle message sending/editing
       if (ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message) {
         await ctx.editMessageText(noWalletMessage, {
           parse_mode: "Markdown",
@@ -371,49 +369,78 @@ export async function handleViewWallet(ctx: Context): Promise<void> {
       return;
     }
 
-    // Build skeleton message
-    const skeletonMessage = buildWalletSkeleton(user);
-    const keyboard = buildWalletKeyboard(user);
+    // Determine default active chain if requested chain is empty
+    let activeChain = requestedChain;
+    if (activeChain === "solana" && solanaWallets.length === 0) {
+      if (evmWallets.length > 0) activeChain = "evm";
+      else if (stellarWallets.length > 0) activeChain = "stellar";
+    } else if (activeChain === "evm" && evmWallets.length === 0) {
+      if (solanaWallets.length > 0) activeChain = "solana";
+      else if (stellarWallets.length > 0) activeChain = "stellar";
+    } else if (activeChain === "stellar" && stellarWallets.length === 0) {
+      if (solanaWallets.length > 0) activeChain = "solana";
+      else if (evmWallets.length > 0) activeChain = "evm";
+    }
 
-    // Send or edit message
+    const activeWalletIndex = Math.max(0, requestedWalletIndex);
+
+    // Build skeleton message
+    const skeletonMessage = buildWalletSkeleton(user, activeChain, activeWalletIndex);
+    const keyboard = buildWalletKeyboard(user, activeChain, activeWalletIndex);
+
     let chatId: number;
     let messageId: number;
 
     if (ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message) {
-      // Edit existing message for callbacks
       await ctx.editMessageText(skeletonMessage, {
         parse_mode: "Markdown",
         ...keyboard,
       });
       chatId = ctx.callbackQuery.message.chat.id;
       messageId = ctx.callbackQuery.message.message_id;
-      await ctx.answerCbQuery?.("🔑 Loading wallets...");
-      console.log("✅ Wallet skeleton edited (callback)");
+      await ctx.answerCbQuery?.();
     } else {
-      // Send new message for commands
       const sent = await ctx.reply(skeletonMessage, {
         parse_mode: "Markdown",
         ...keyboard,
       });
       chatId = sent.chat.id;
       messageId = sent.message_id;
-      console.log("✅ Wallet skeleton sent (command)");
     }
 
-    // Fetch balances in background (fire-and-forget)
+    // Fetch balances in background
     fetchAndUpdateWalletBalances(
       ctx,
       chatId,
       messageId,
       user,
-      false // forceRefresh
-    ).catch(error => {
+      activeChain,
+      activeWalletIndex,
+      false
+    ).catch((error) => {
       console.error("Background wallet fetch error:", error);
     });
-
   } catch (error) {
     console.error("View wallet error:", error);
     await ctx.answerCbQuery?.("❌ Failed to load wallets.");
-    await ctx.reply("❌ An error occurred while loading your wallets.");
+  }
+}
+
+/**
+ * Handle tab switching callback: wallet_tab:chain:index
+ */
+export async function handleWalletTabSwitch(ctx: Context): Promise<void> {
+  try {
+    const cb = ctx.callbackQuery as any;
+    if (!cb || !cb.data) return;
+
+    const parts = cb.data.split(":");
+    const chain = (parts[1] || "solana") as ChainType;
+    const walletIndex = parseInt(parts[2] || "0", 10);
+
+    await handleViewWallet(ctx, chain, walletIndex);
+  } catch (error) {
+    console.error("Wallet tab switch error:", error);
+    await ctx.answerCbQuery?.("❌ Failed to switch tab.");
   }
 }

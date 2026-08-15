@@ -58,7 +58,7 @@ export async function handleWalletCommand(ctx: Context): Promise<void> {
 
     const keyboard = Markup.inlineKeyboard([
       [
-        Markup.button.callback("🔄 Refresh Balance", "refresh_balance"),
+        Markup.button.callback("🔄 Refresh Balance", "refresh_wallet"),
       ],
       [
         Markup.button.callback("🔐 Export Private Key", "show_private_key"),

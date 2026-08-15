@@ -33,6 +33,7 @@ import {
 } from "@features/wallets/callbacks/WalletCallbackHandlers";
 import {
   handleViewWallet,
+  handleWalletTabSwitch,
   handleViewProfile,
   handleShowHelp,
   handleShowAbout,
@@ -112,7 +113,8 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   bot.command(referralCommandConfig.name, handleReferralCommand);
 
   // Register callback handlers for start command
-  bot.action("view_wallet", handleViewWallet);
+  bot.action("view_wallet", (ctx) => handleViewWallet(ctx));
+  bot.action(/^wallet_tab:(solana|evm|stellar):(\d+)$/, handleWalletTabSwitch);
   bot.action("view_profile", handleViewProfile);
   bot.action("show_help", handleShowHelp);
   bot.action("show_about", handleShowAbout);
@@ -169,7 +171,7 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   // Register callback handlers for wallet command
   bot.action("withdraw_sol", handleWithdraw);
   bot.action("withdraw_to_bank", handleWithdrawToBank);
-  bot.action("refresh_balance", handleRefreshBalance);
+  bot.action(/^refresh_wallet(?::(solana|evm|stellar):(\d+))?$/, handleRefreshBalance);
   bot.action(
     /^withdraw_currency:(?!.*ai_)/,
     handleWithdrawCurrencySelection
@@ -220,7 +222,7 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
     }
   });
 
-  bot.action("wallet_details", handleViewWallet);
+  bot.action("wallet_details", (ctx) => handleViewWallet(ctx));
 
   // Register token carousel handlers
   bot.action("manage_tokens", handleManageTokens);

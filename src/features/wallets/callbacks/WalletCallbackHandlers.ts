@@ -11,7 +11,7 @@ import { ethers } from 'ethers';
 import { PublicKey } from '@solana/web3.js';
 import { safeDeleteMessage } from "@shared/utils/messageUtils";
 import { clearWithdrawalState, getWithdrawalState, setWithdrawalState, SupportedChain, SupportedCurrency } from "@shared/state";
-import { handleViewWallet } from "@features/onboarding/callbacks/WalletViewHandlers";
+import { handleViewWallet, ChainType } from "@features/onboarding/callbacks/WalletViewHandlers";
 import { getUserBalances, formatBalances } from "@features/onboarding/utils/getUserBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
 import { generateTransactionReceipt } from "@shared/utils/receiptGenerator";
@@ -869,6 +869,18 @@ export async function handleRefreshBalance(ctx: Context): Promise<void> {
     return;
   }
 
+  // Extract requested chain and wallet index from callback query data (e.g. refresh_wallet:stellar:2)
+  let requestedChain: ChainType = "solana";
+  let requestedWalletIndex: number = 0;
+
+  if (ctx.callbackQuery && "data" in ctx.callbackQuery && typeof ctx.callbackQuery.data === "string") {
+    const parts = ctx.callbackQuery.data.split(":");
+    if (parts.length >= 3) {
+      requestedChain = parts[1] as ChainType;
+      requestedWalletIndex = parseInt(parts[2], 10) || 0;
+    }
+  }
+
   try {
     const getBalance = (await import("@shared/utils/getBalance")).default;
     const { getAllTokenBalances } = await import("@shared/utils/getTokenBalances");
@@ -896,9 +908,9 @@ export async function handleRefreshBalance(ctx: Context): Promise<void> {
     }
 
     await Promise.all(promises);
-    await handleViewWallet(ctx);
+    await handleViewWallet(ctx, requestedChain, requestedWalletIndex);
   } catch (error) {
     console.error("Refresh balance error:", error);
-    await ctx.reply("❌ Failed to refresh balances. Please try again later.");
+    //fail silently, dont message the user again
   }
 }

@@ -41,8 +41,8 @@ export async function handleSetDefaultSolanaWallet(ctx: Context): Promise<void> 
 
     await ctx.answerCbQuery("✅ Default wallet updated!");
 
-    // Re-render updated wallet view cleanly
-    await handleViewWallet(ctx);
+    // Re-render updated wallet view cleanly (defaults to solana 0)
+    await handleViewWallet(ctx, "solana", 0);
   } catch (error) {
     console.error("Set default Solana wallet error:", error);
     await ctx.answerCbQuery("❌ Failed to set default wallet.");
@@ -87,8 +87,8 @@ export async function handleSetDefaultEVMWallet(ctx: Context): Promise<void> {
 
     await ctx.answerCbQuery("✅ Default wallet updated!");
 
-    // Re-render updated wallet view cleanly
-    await handleViewWallet(ctx);
+    // Re-render updated wallet view cleanly (defaults to EVM 0)
+    await handleViewWallet(ctx, "evm", 0);
   } catch (error) {
     console.error("Set default EVM wallet error:", error);
     await ctx.answerCbQuery("❌ Failed to set default wallet.");
@@ -309,8 +309,8 @@ export async function handleSetDefaultStellarWallet(ctx: Context): Promise<void>
 
     await ctx.answerCbQuery("✅ Default wallet updated!");
 
-    // Re-render updated wallet view cleanly
-    await handleViewWallet(ctx);
+    // Re-render updated wallet view cleanly (defaults to Stellar 0)
+    await handleViewWallet(ctx, "stellar", 0);
   } catch (error) {
     console.error("Set default Stellar wallet error:", error);
     await ctx.answerCbQuery("❌ Failed to set default wallet.");
