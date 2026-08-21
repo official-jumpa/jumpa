@@ -466,7 +466,7 @@ async function executeSingleTransferSilent(
           account_number: recipientNumber,
           bank_code: switchBankCode,
         },
-        sender_name: "Jumpa",
+        sender_name: "Jumpa Holdings",
         reference,
       });
 

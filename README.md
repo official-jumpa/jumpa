@@ -292,7 +292,7 @@ ISC License
 ## Meet the Team
 
 - CEO and Co-founder - **Anita Ndukwe**
-- COO and Co-founder - **Udoma Christian**
+- COO and Co-founder - **Ismail Mohammed**
 - CTO and Fullstack Developer - [Damian Olebuezie](https://github.com/czDamian)
 
 
