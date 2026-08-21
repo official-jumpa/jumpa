@@ -22,6 +22,7 @@ import {
   formatAssetCode,
   isOfframpSupported,
   InitiateOfframpPayload,
+  sanitizeName,
 } from "@features/payments/services/switchService";
 import crypto from "crypto";
 
@@ -506,11 +507,11 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
       currency: "NGN",
       beneficiary: {
         holder_type: "INDIVIDUAL",
-        holder_name: user.username || "User",
+        holder_name: sanitizeName(user.username || "User"),
         account_number: user.bank_details.account_number,
         bank_code: bankCode,
       },
-      sender_name: "AnitaNdukwe",
+      sender_name: sanitizeName("AnitaNdukwe"),
       reference,
     };
 

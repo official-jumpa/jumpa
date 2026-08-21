@@ -1,5 +1,6 @@
 import { config } from "@core/config/environment";
 import User from "@core/database/models/user";
+import { sanitizeName } from "@features/payments/services/switchService";
 
 export interface OnRampResponse {
   success: boolean;
@@ -67,7 +68,7 @@ export async function initiateOnRamp(
       asset: asset,
       beneficiary: {
         holder_type: "INDIVIDUAL",
-        holder_name: user.username || `User ${user.telegram_id}`,
+        holder_name: sanitizeName(user.username || "User"),
         wallet_address: getWalletAddressForAsset(asset, user),
       },
       exact_output: false,

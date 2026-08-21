@@ -29,6 +29,7 @@ import {
   formatAssetCode,
   isOfframpSupported,
   InitiateOfframpPayload,
+  sanitizeName,
 } from "@features/payments/services/switchService";
 import crypto from "crypto";
 import { processUserQuery } from "@src/ai-agent/agent.config";
@@ -463,11 +464,11 @@ async function executeSingleTransferSilent(
         currency: "NGN",
         beneficiary: {
           holder_type: "INDIVIDUAL",
-          holder_name: user.username || "User",
+          holder_name: sanitizeName(user.username || "User"),
           account_number: recipientNumber,
           bank_code: switchBankCode,
         },
-        sender_name: "AnitaNdukwe",
+        sender_name: sanitizeName("AnitaNdukwe"),
         reference,
       };
 

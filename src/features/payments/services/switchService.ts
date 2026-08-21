@@ -240,12 +240,30 @@ export async function getOnrampQuote(
 }
 
 /**
+ * Sanitize name to contain ONLY letters (A-Z, a-z).
+ * Strips spaces, numbers, underscores, and special characters to satisfy API requirements.
+ */
+export function sanitizeName(name?: string, fallback: string = "User"): string {
+  if (!name) return fallback;
+  const cleaned = name.replace(/[^a-zA-Z]/g, "");
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+/**
  * Initiate an offramp (crypto -> fiat) transaction
  */
 export async function initiateOfframp(payload: InitiateOfframpPayload): Promise<SwitchApiResponse> {
+  const sanitizedPayload: InitiateOfframpPayload = {
+    ...payload,
+    sender_name: payload.sender_name ? sanitizeName(payload.sender_name, "AnitaNdukwe") : undefined,
+    beneficiary: {
+      ...payload.beneficiary,
+      holder_name: sanitizeName(payload.beneficiary?.holder_name, "User"),
+    },
+  };
   return switchRequest('/offramp/initiate', {
     method: 'POST',
-    body: payload,
+    body: sanitizedPayload,
   });
 }
 
@@ -253,9 +271,16 @@ export async function initiateOfframp(payload: InitiateOfframpPayload): Promise<
  * Initiate an onramp (fiat -> crypto) transaction
  */
 export async function initiateOnramp(payload: InitiateOnrampPayload): Promise<SwitchApiResponse> {
+  const sanitizedPayload: InitiateOnrampPayload = {
+    ...payload,
+    beneficiary: {
+      ...payload.beneficiary,
+      holder_name: sanitizeName(payload.beneficiary?.holder_name, "User"),
+    },
+  };
   return switchRequest('/onramp/initiate', {
     method: 'POST',
-    body: payload,
+    body: sanitizedPayload,
   });
 }
 
@@ -294,6 +319,7 @@ export const switchService = {
   initiateOnramp,
   confirmDeposit,
   getStatus,
+  sanitizeName,
 };
 
 export default switchService;
