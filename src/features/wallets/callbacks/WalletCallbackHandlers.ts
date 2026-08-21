@@ -509,7 +509,7 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
         account_number: user.bank_details.account_number,
         bank_code: bankCode,
       },
-      sender_name: "Jumpa Holdings",
+      sender_name: "Anita N",
       reference,
     });
 
