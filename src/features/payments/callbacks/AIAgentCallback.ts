@@ -28,6 +28,7 @@ import {
   confirmDeposit,
   formatAssetCode,
   isOfframpSupported,
+  InitiateOfframpPayload,
 } from "@features/payments/services/switchService";
 import crypto from "crypto";
 import { processUserQuery } from "@src/ai-agent/agent.config";
@@ -455,7 +456,7 @@ async function executeSingleTransferSilent(
       const reference = crypto.randomUUID();
       const assetCode = formatAssetCode(data.chain, data.currency);
 
-      const offrampRes = await initiateOfframp({
+      const offrampPayload: InitiateOfframpPayload = {
         amount: Number(data.cryptoAmount),
         country: "NG",
         asset: assetCode,
@@ -466,9 +467,13 @@ async function executeSingleTransferSilent(
           account_number: recipientNumber,
           bank_code: switchBankCode,
         },
-        sender_name: "Anita N",
+        sender_name: "AnitaNdukwe",
         reference,
-      });
+      };
+
+      console.log("[Silent Transfer] Offramp payload:", offrampPayload);
+
+      const offrampRes = await initiateOfframp(offrampPayload);
 
       if (!offrampRes.success || !offrampRes.data?.deposit?.address) {
         console.error("[Silent Transfer] Switch offramp error:", offrampRes);

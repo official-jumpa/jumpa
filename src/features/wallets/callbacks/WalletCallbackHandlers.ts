@@ -21,6 +21,7 @@ import {
   confirmDeposit,
   formatAssetCode,
   isOfframpSupported,
+  InitiateOfframpPayload,
 } from "@features/payments/services/switchService";
 import crypto from "crypto";
 
@@ -498,7 +499,7 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
       }
     }
 
-    const offrampRes = await initiateOfframp({
+    const offrampPayload: InitiateOfframpPayload = {
       amount: Number(amount),
       country: "NG",
       asset: assetCode,
@@ -509,9 +510,13 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
         account_number: user.bank_details.account_number,
         bank_code: bankCode,
       },
-      sender_name: "Anita N",
+      sender_name: "AnitaNdukwe",
       reference,
-    });
+    };
+
+    console.log("[WITHDRAWAL] Offramp payload:", offrampPayload);
+
+    const offrampRes = await initiateOfframp(offrampPayload);
 
     if (!offrampRes.success || !offrampRes.data?.deposit?.address) {
       console.error("[WITHDRAWAL] Switch offramp initiation error:", offrampRes);
