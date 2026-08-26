@@ -54,7 +54,7 @@ export async function convertNGNToCrypto(
  * @param chain - Blockchain (SOLANA, BASE, CELO, STELLAR)
  * @returns Array of supported currencies
  */
-export function getCurrenciesForChain(chain: 'SOLANA' | 'BASE' | 'CELO' | 'STELLAR'): string[] {
+export function getCurrenciesForChain(chain: 'SOLANA' | 'BASE' | 'CELO' | 'STELLAR' | 'TON'): string[] {
   if (chain === 'SOLANA') {
     return ['SOL', 'USDC', 'USDT'];
   } else if (chain === 'CELO') {
@@ -63,6 +63,8 @@ export function getCurrenciesForChain(chain: 'SOLANA' | 'BASE' | 'CELO' | 'STELL
     return ['ETH', 'USDC', 'USDT'];
   } else if (chain === 'STELLAR') {
     return ['XLM', 'USDC'];
+  } else if (chain === 'TON') {
+    return ['TON', 'USDT'];
   }
   return [];
 }

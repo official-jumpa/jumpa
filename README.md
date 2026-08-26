@@ -30,13 +30,16 @@ Jumpa is a Telegram-based trading bot that enables users to trade cryptocurrency
 - **Blockchain**:
   - Solana (web3.js, Anchor, SPL Token)
   - EVM (ethers.js)
+  - Stellar (@stellar/stellar-sdk)
+  - TON (@ton/ton, @ton/crypto, @ton/core)
 
 ### Key Libraries
 
 - `@solana/web3.js` - Solana blockchain interaction
 - `@coral-xyz/anchor` - Solana smart contract framework
-- `@modelcontextprotocol/sdk` - Model Context Protocol client
-- `@anthropic-ai/sdk` - Claude AI agent
+- `@ton/ton` / `@ton/crypto` - TON blockchain interaction & wallet cryptography
+- `@stellar/stellar-sdk` - Stellar blockchain interaction
+- `openai` - DeepSeek AI banking & withdrawal agent
 - `telegraf` - Telegram bot development
 - `ethers` - Ethereum wallet & transactions
 - `mongoose` - MongoDB object modeling
