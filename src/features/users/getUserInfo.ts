@@ -151,4 +151,49 @@ export async function addStellarWalletToUser(
   return user;
 }
 
+// Helper function to add a TON wallet to user
+export async function addTonWalletToUser(
+  telegram_id: number,
+  address: string,
+  encryptedPrivateKey: string,
+  encryptedMnemonic?: string,
+  rawAddress?: string,
+  version: string = "v4r2"
+) {
+  const user = await User.findOne({ telegram_id });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (!user.tonWallets) {
+    user.tonWallets = [] as any;
+  }
+
+  // Check if wallet already exists
+  const existingWallet = user.tonWallets.find(
+    (wallet) =>
+      wallet.address === address ||
+      (wallet.rawAddress && rawAddress && wallet.rawAddress === rawAddress)
+  );
+  if (existingWallet) {
+    throw new Error("Wallet already exists");
+  }
+
+  // Add new wallet
+  user.tonWallets.push({
+    address,
+    rawAddress,
+    encryptedPrivateKey,
+    encryptedMnemonic,
+    version,
+    balance: 0,
+    usdtBalance: 0,
+    last_updated_balance: new Date(),
+    last_updated_ton_balance: new Date(0),
+  });
+
+  await user.save();
+  return user;
+}
+
 export default getUser;

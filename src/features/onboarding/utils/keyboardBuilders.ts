@@ -47,5 +47,9 @@ export function buildWalletSetupKeyboard(): {
       Markup.button.callback("Generate Stellar Wallet", "generate_stellar_wallet"),
       Markup.button.callback("Import Stellar Wallet", "add_wallet_stellar"),
     ],
+    [
+      Markup.button.callback("Generate TON Wallet", "generate_ton_wallet"),
+      Markup.button.callback("Import TON Wallet", "add_wallet_ton"),
+    ],
   ]);
 }

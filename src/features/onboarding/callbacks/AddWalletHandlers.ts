@@ -3,6 +3,7 @@ import getUser, {
   addSolanaWalletToUser,
   addEVMWalletToUser,
   addStellarWalletToUser,
+  addTonWalletToUser,
 } from "@features/users/getUserInfo";
 import { Markup } from "telegraf";
 import { encryptPrivateKey } from "@shared/utils/encryption";
@@ -10,6 +11,10 @@ import { Keypair } from "@solana/web3.js";
 import { Wallet } from "ethers";
 import { Keypair as StellarKeypair, StrKey } from "@stellar/stellar-sdk";
 import createNewStellarWallet from "@shared/utils/createStellarWallet";
+import createNewTonWallet, {
+  deriveTonWalletFromMnemonic,
+  deriveTonWalletFromPrivateKey,
+} from "@shared/utils/createTonWallet";
 import {
   setUserActionState,
   clearUserActionState,
@@ -52,17 +57,23 @@ export async function handleAddWallet(ctx: Context): Promise<void> {
 
     const message = `➕ **Add Wallet**
 
-Choose the wallet type you want to add. Solana, Stellar or EVM (for Base, Celo, Polygon, Arbitrum etc). If you don't have an existing one already, you can generate one by clicking on the generate button below.`;
+Choose the wallet type you want to add: Solana, Stellar, TON, or EVM (Base, Celo, Polygon, Arbitrum). If you don't have an existing wallet, generate one using the buttons below.`;
 
     const keyboard = Markup.inlineKeyboard([
       [
         Markup.button.callback("Solana", "add_wallet_solana"),
         Markup.button.callback("EVM", "add_wallet_evm"),
+      ],
+      [
         Markup.button.callback("Stellar", "add_wallet_stellar"),
+        Markup.button.callback("TON (Gram)", "add_wallet_ton"),
       ],
       [
         Markup.button.callback("Generate EVM", "generate_evm_wallet"),
         Markup.button.callback("Generate Stellar", "generate_stellar_wallet"),
+      ],
+      [
+        Markup.button.callback("💎 Generate TON", "generate_ton_wallet"),
       ],
       [Markup.button.callback("🔙 Back", "view_wallet")],
     ]);
@@ -668,5 +679,224 @@ Here's your new Stellar Wallet
   } catch (error) {
     console.error("Stellar wallet generation error:", error);
     await ctx.reply("⚠️ An unexpected error occurred while generating your Stellar wallet.");
+  }
+}
+
+// Handle add TON wallet callback
+export async function handleAddTonWallet(ctx: Context): Promise<void> {
+  try {
+    const telegramId = ctx.from?.id;
+
+    if (!telegramId) {
+      await ctx.answerCbQuery("❌ Invalid account.");
+      return;
+    }
+
+    await ctx.answerCbQuery("💎 Add TON Wallet");
+
+    const user = await getUser(
+      telegramId,
+      ctx.from?.username || ctx.from?.first_name || "Unknown"
+    );
+    if (!user) {
+      await ctx.reply("❌ User not found. Please use /start to register first.");
+      return;
+    }
+
+    if (user.tonWallets && user.tonWallets.length >= 3) {
+      await ctx.reply("❌ You have reached the maximum limit of 3 TON wallets.");
+      return;
+    }
+
+    setUserActionState(telegramId, {
+      action: "awaiting_add_ton_private_key",
+    });
+
+    const message = `**Import TON Wallet**
+
+Reply with your **24-word recovery phrase** or your **64/128-character private key hex**.
+
+⚠️ **To keep your wallet safe:**
+• Make sure no one is watching your screen
+• Delete your message after sending it
+
+Type /cancel to cancel this operation.`;
+
+    await ctx.reply(message, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("Add TON wallet error:", error);
+    await ctx.answerCbQuery("❌ Failed to initiate TON wallet import.");
+    await ctx.reply("❌ An error occurred. Please try again.");
+  }
+}
+
+// Handle TON private key or mnemonic input from user text message
+export async function handleAddTonPrivateKeyInput(
+  ctx: Context,
+  input: string
+): Promise<void> {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  try {
+    const cleanInput = input.trim();
+    let tonWalletData: {
+      address: string;
+      rawAddress: string;
+      encryptedPrivateKey: string;
+      encryptedMnemonic?: string;
+      version: string;
+    };
+
+    // Check if input is a 24-word mnemonic (or 12-word)
+    const words = cleanInput.split(/\s+/);
+    if (words.length === 24 || words.length === 12) {
+      const derived = await deriveTonWalletFromMnemonic(words);
+      tonWalletData = {
+        address: derived.address,
+        rawAddress: derived.rawAddress,
+        encryptedPrivateKey: derived.encryptedPrivateKey,
+        encryptedMnemonic: derived.encryptedMnemonic,
+        version: derived.version,
+      };
+    } else {
+      // Hex private key format
+      const hexKey = cleanInput.replace(/^0x/, "");
+      if (!/^[0-9a-fA-F]{64}$/.test(hexKey) && !/^[0-9a-fA-F]{128}$/.test(hexKey)) {
+        await ctx.reply("❌ Invalid format. Please provide a valid 24-word recovery phrase or hex private key.");
+        clearUserActionState(telegramId);
+        return;
+      }
+
+      const derived = deriveTonWalletFromPrivateKey(hexKey);
+      tonWalletData = {
+        address: derived.address,
+        rawAddress: derived.rawAddress,
+        encryptedPrivateKey: derived.encryptedPrivateKey,
+        version: derived.version,
+      };
+    }
+
+    const user = await getUser(
+      telegramId,
+      ctx.from?.username || ctx.from?.first_name || "Unknown"
+    );
+    if (!user) {
+      await ctx.reply("❌ User not found.");
+      clearUserActionState(telegramId);
+      return;
+    }
+
+    const existingWallet = user.tonWallets?.find(
+      (w) => w.address === tonWalletData.address || w.rawAddress === tonWalletData.rawAddress
+    );
+    if (existingWallet) {
+      await ctx.reply("⚠️ This TON wallet is already added to your account.");
+      clearUserActionState(telegramId);
+      return;
+    }
+
+    await addTonWalletToUser(
+      telegramId,
+      tonWalletData.address,
+      tonWalletData.encryptedPrivateKey,
+      tonWalletData.encryptedMnemonic,
+      tonWalletData.rawAddress,
+      tonWalletData.version
+    );
+
+    clearUserActionState(telegramId);
+
+    const successMessage = `✅ **TON Wallet Added Successfully!**
+
+📍 **Wallet Address:**
+\`${tonWalletData.address}\`
+
+Your TON wallet has been added to your account!`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("🔙 Back to Wallets", "view_wallet")],
+    ]);
+
+    await sendOrEdit(ctx, successMessage, {
+      parse_mode: "Markdown",
+      ...keyboard,
+    });
+  } catch (error) {
+    console.error("Add TON private key error:", error);
+    clearUserActionState(telegramId);
+
+    if (error instanceof Error && error.message === "Wallet already exists") {
+      await ctx.reply("⚠️ This TON wallet is already added to your account.");
+    } else {
+      await ctx.reply("❌ An error occurred while adding your TON wallet. Please try again.");
+    }
+  }
+}
+
+// Handle generate TON wallet callback
+export async function handleGenerateTonWallet(ctx: Context): Promise<void> {
+  try {
+    const telegramId = ctx.from?.id;
+
+    if (!telegramId) {
+      await ctx.answerCbQuery("❌ Unable to identify your account.");
+      return;
+    }
+
+    await ctx.answerCbQuery("💎 Generating New TON Wallet...");
+
+    const user = await getUser(
+      telegramId,
+      ctx.from?.username || ctx.from?.first_name || "Unknown"
+    );
+
+    if (!user) {
+      await ctx.reply("❌ User not found. Please use /start to register first.");
+      return;
+    }
+
+    if (user.tonWallets && user.tonWallets.length >= 3) {
+      await ctx.reply("❌ You have reached the maximum limit of 3 TON wallets.");
+      return;
+    }
+
+    const newWallet = await createNewTonWallet(telegramId);
+
+    await addTonWalletToUser(
+      telegramId,
+      newWallet.address,
+      newWallet.private_key_encrypted,
+      newWallet.mnemonic_encrypted,
+      newWallet.rawAddress,
+      newWallet.version
+    );
+
+    const replyMessage = `
+💎 **Here's your new TON (Gram) Wallet**
+
+**Address (Non-bounceable):**
+\`${newWallet.address}\`
+
+📝 **24-Word Recovery Phrase:**
+\`${newWallet.mnemonic}\`
+
+⚠️ **Private Key (Hex):**
+\`${newWallet.private_key}\`
+
+🔐 *Never share your recovery phrase or secret key with anyone. Delete this message after backing up your wallet. You can export your credentials anytime.*
+`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("🔙 Back", "view_wallet")],
+    ]);
+
+    await sendOrEdit(ctx, replyMessage, {
+      parse_mode: "Markdown",
+      ...keyboard,
+    });
+  } catch (error) {
+    console.error("TON wallet generation error:", error);
+    await ctx.reply("⚠️ An unexpected error occurred while generating your TON wallet.");
   }
 }

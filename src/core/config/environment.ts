@@ -23,5 +23,7 @@ export const config = {
   usdcAddress: process.env.USDC_ADDRESS || "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   usdtAddress: process.env.USDT_ADDRESS || "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
   alchemyBaseMainnetRpc: process.env.ALCHEMY_BASE_MAINNET_RPC || "",
-
+  tonRpcUrl: process.env.TON_RPC_URL || "https://toncenter.com/api/v2/jsonRPC",
+  tonApiKey: process.env.TON_API_KEY || "",
+  tonTestnetRpcUrl: process.env.TON_TESTNET_RPC_URL || "https://testnet.toncenter.com/api/v2/jsonRPC",
 };

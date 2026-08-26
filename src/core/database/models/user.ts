@@ -111,6 +111,45 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    tonWallets: [
+      {
+        address: {
+          type: String,
+          required: true,
+          index: true,
+        },
+        rawAddress: {
+          type: String,
+        },
+        encryptedPrivateKey: {
+          type: String,
+          required: true,
+        },
+        encryptedMnemonic: {
+          type: String,
+        },
+        version: {
+          type: String,
+          default: "v4r2",
+        },
+        balance: {
+          type: Number,
+          default: 0,
+        },
+        usdtBalance: {
+          type: Number,
+          default: 0,
+        },
+        last_updated_balance: {
+          type: Date,
+          default: Date.now,
+        },
+        last_updated_ton_balance: {
+          type: Date,
+          default: () => new Date(0),
+        },
+      },
+    ],
     referrals: {
       referralCode: {
         type: String,

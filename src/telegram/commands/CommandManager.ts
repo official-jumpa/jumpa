@@ -47,16 +47,21 @@ import {
   handleGenerateEVMWallet,
   handleAddStellarWallet,
   handleGenerateStellarWallet,
+  handleAddTonWallet,
+  handleGenerateTonWallet,
   handleSetDefaultSolanaWallet,
   handleSetDefaultEVMWallet,
   handleSetDefaultStellarWallet,
+  handleSetDefaultTonWallet,
   handleDeleteSolanaWallet,
   handleDeleteEVMWallet,
   handleDeleteStellarWallet,
+  handleDeleteTonWallet,
   handlePrivateKeyImport,
   handleAddSolanaPrivateKeyInput,
   handleAddEVMPrivateKeyInput,
   handleAddStellarPrivateKeyInput,
+  handleAddTonPrivateKeyInput,
 } from "@features/onboarding/callbacks/StartCallbackHandlers";
 import {
   handleFromBank as handleDepositFromBank,
@@ -114,7 +119,7 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
 
   // Register callback handlers for start command
   bot.action("view_wallet", (ctx) => handleViewWallet(ctx));
-  bot.action(/^wallet_tab:(solana|evm|stellar):(\d+)$/, handleWalletTabSwitch);
+  bot.action(/^wallet_tab:(solana|evm|stellar|ton):(\d+)$/, handleWalletTabSwitch);
   bot.action("view_profile", handleViewProfile);
   bot.action("show_help", handleShowHelp);
   bot.action("show_about", handleShowAbout);
@@ -128,15 +133,20 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   bot.action("generate_evm_wallet", handleGenerateEVMWallet);
   bot.action("add_wallet_stellar", handleAddStellarWallet);
   bot.action("generate_stellar_wallet", handleGenerateStellarWallet);
+  bot.action("add_wallet_ton", handleAddTonWallet);
+  bot.action("generate_ton_wallet", handleGenerateTonWallet);
   bot.action(/set_default_solana:/, handleSetDefaultSolanaWallet);
   bot.action(/set_default_evm:/, handleSetDefaultEVMWallet);
   bot.action(/set_default_stellar:/, handleSetDefaultStellarWallet);
+  bot.action(/set_default_ton:/, handleSetDefaultTonWallet);
   bot.action(/delete_solana_wallet:/, handleDeleteSolanaWallet);
   bot.action(/delete_evm_wallet:/, handleDeleteEVMWallet);
   bot.action(/delete_stellar_wallet:/, handleDeleteStellarWallet);
+  bot.action(/delete_ton_wallet:/, handleDeleteTonWallet);
   bot.action(/confirm_delete_solana:/, handleDeleteSolanaWallet);
   bot.action(/confirm_delete_evm:/, handleDeleteEVMWallet);
   bot.action(/confirm_delete_stellar:/, handleDeleteStellarWallet);
+  bot.action(/confirm_delete_ton:/, handleDeleteTonWallet);
 
   // Register deposit callback handlers
   bot.action("deposit_sol", handleDepositCommand);
@@ -162,7 +172,7 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   bot.action("export_private_key", handleExportPrivateKey);
   bot.action("show_private_key", handleExportPrivateKey);
   bot.action(
-    /^select_export_(sol|evm|stellar):\d+$/,
+    /^select_export_(sol|evm|stellar|ton):\d+$/,
     handleSelectWalletForExport
   );
   bot.action("cancel_export", handleCancelExport);
@@ -171,7 +181,7 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
   // Register callback handlers for wallet command
   bot.action("withdraw_sol", handleWithdraw);
   bot.action("withdraw_to_bank", handleWithdrawToBank);
-  bot.action(/^refresh_wallet(?::(solana|evm|stellar):(\d+))?$/, handleRefreshBalance);
+  bot.action(/^refresh_wallet(?::(solana|evm|stellar|ton):(\d+))?$/, handleRefreshBalance);
   bot.action(
     /^withdraw_currency:(?!.*ai_)/,
     handleWithdrawCurrencySelection
@@ -320,6 +330,16 @@ export function setupCommandManager(bot: Telegraf<Context>): void {
         return;
       }
       await handleAddStellarPrivateKeyInput(ctx, text);
+      return;
+    }
+
+    if (userAction?.action === "awaiting_add_ton_private_key") {
+      if (text.toLowerCase().trim() === "/cancel") {
+        clearUserActionState(userId);
+        await ctx.reply("❌ Add wallet cancelled.");
+        return;
+      }
+      await handleAddTonPrivateKeyInput(ctx, text);
       return;
     }
 

@@ -255,7 +255,7 @@ export function sanitizeName(name?: string, fallback: string = "User"): string {
 export async function initiateOfframp(payload: InitiateOfframpPayload): Promise<SwitchApiResponse> {
   const sanitizedPayload: InitiateOfframpPayload = {
     ...payload,
-    sender_name: payload.sender_name ? sanitizeName(payload.sender_name, "AnitaNdukwe") : undefined,
+    sender_name: payload.sender_name ? sanitizeName(payload.sender_name, "Jumpa") : undefined,
     beneficiary: {
       ...payload.beneficiary,
       holder_name: sanitizeName(payload.beneficiary?.holder_name, "User"),

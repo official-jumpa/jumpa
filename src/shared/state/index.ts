@@ -3,8 +3,8 @@
  * Unifies AI withdrawal, bank update, deposit, order, token carousel, trade, user action, and withdrawal states.
  */
 
-export type SupportedChain = 'SOLANA' | 'BASE' | 'CELO' | 'STELLAR';
-export type SupportedCurrency = 'SOL' | 'USDC' | 'USDT' | 'ETH' | 'CELO' | 'XLM';
+export type SupportedChain = 'SOLANA' | 'BASE' | 'CELO' | 'STELLAR' | 'TON';
+export type SupportedCurrency = 'SOL' | 'USDC' | 'USDT' | 'ETH' | 'CELO' | 'XLM' | 'TON';
 
 // ==========================================
 // 1. AI Withdrawal State
@@ -238,9 +238,9 @@ export function clearTradeState(id: string) {
 // 7. User Action State
 // ==========================================
 export interface UserActionState {
-  action: 'awaiting_custom_buy_amount' | 'awaiting_export_pin' | 'awaiting_import_private_key' | 'awaiting_add_solana_private_key' | 'awaiting_add_evm_private_key' | 'awaiting_add_stellar_private_key';
+  action: 'awaiting_custom_buy_amount' | 'awaiting_export_pin' | 'awaiting_import_private_key' | 'awaiting_add_solana_private_key' | 'awaiting_add_evm_private_key' | 'awaiting_add_stellar_private_key' | 'awaiting_add_ton_private_key';
   tradeId?: string;
-  walletType?: 'sol' | 'evm' | 'stellar';
+  walletType?: 'sol' | 'evm' | 'stellar' | 'ton';
   walletIndex?: number;
 }
 

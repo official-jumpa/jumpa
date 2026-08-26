@@ -5,8 +5,11 @@ import Withdrawal from "@core/database/models/withdrawal";
 import { executeSolTransfer, executeUSDCTransfer, executeUSDTTransfer } from "@features/payments/utils/solWithdrawTx";
 import { executeETHTransfer, executeUSDCTransferEVM, executeUSDTTransferEVM } from "@features/payments/utils/evmWithdrawTx";
 import { sendStellarTransaction } from "@shared/utils/sendStellarTransaction";
+import { sendTonTransaction } from "@shared/utils/sendTonTransaction";
 import { StrKey } from "@stellar/stellar-sdk";
+import { Address as TonAddress } from "@ton/core";
 import getStellarBalances from "@shared/utils/getStellarBalances";
+import getTonBalances from "@shared/utils/getTonBalances";
 import { ethers } from 'ethers';
 import { PublicKey } from '@solana/web3.js';
 import { safeDeleteMessage } from "@shared/utils/messageUtils";
@@ -511,7 +514,7 @@ export async function handleWithdrawPinVerification(ctx: Context): Promise<void>
         account_number: user.bank_details.account_number,
         bank_code: bankCode,
       },
-      sender_name: sanitizeName("AnitaNdukwe"),
+      sender_name: sanitizeName("Jumpa"),
       reference,
     };
 
@@ -661,6 +664,9 @@ export async function handleWithdrawOnChain(ctx: Context): Promise<void> {
       Markup.button.callback("XLM (Stellar)", "withdraw_onchain_asset:XLM:STELLAR"),
       Markup.button.callback("USDC (Stellar)", "withdraw_onchain_asset:USDC:STELLAR"),
     ],
+    [
+      Markup.button.callback("💎 TON (Gram)", "withdraw_onchain_asset:TON:TON"),
+    ],
     [Markup.button.callback("❌ Cancel", "delete_message")]
   ]);
 
@@ -705,6 +711,13 @@ export async function handleWithdrawAddressInput(ctx: Context): Promise<void> {
     } catch (e) { isValid = false; }
   } else if (chain === 'STELLAR') {
     isValid = StrKey.isValidEd25519PublicKey(address);
+  } else if (chain === 'TON') {
+    try {
+      TonAddress.parse(address);
+      isValid = true;
+    } catch (e) {
+      isValid = false;
+    }
   } else {
     isValid = ethers.isAddress(address);
   }
@@ -840,6 +853,13 @@ export async function handleWithdrawOnChainPinVerification(ctx: Context): Promis
         amount: amountNum,
         currency: currency as "XLM" | "USDC"
       });
+    } else if (chain === 'TON') {
+      result = await sendTonTransaction({
+        user,
+        recipientAddress: destination_address!,
+        amount: amountNum,
+        currency: currency as "TON" | "USDT"
+      });
     } else {
       if (currency === 'ETH') result = await executeETHTransfer(user, destination_address!, amountNum, chain as 'BASE' | 'CELO');
       else if (currency === 'USDC') result = await executeUSDCTransferEVM(user, destination_address!, amountNum, chain as 'BASE' | 'CELO');
@@ -910,6 +930,12 @@ export async function handleRefreshBalance(ctx: Context): Promise<void> {
     if (user.stellarWallets) {
       for (const wallet of user.stellarWallets) {
         promises.push(getStellarBalances(wallet.address, true));
+      }
+    }
+
+    if (user.tonWallets) {
+      for (const wallet of user.tonWallets) {
+        promises.push(getTonBalances(wallet.address, true));
       }
     }
 

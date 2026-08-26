@@ -60,6 +60,19 @@ export const handleExportPrivateKey = async (ctx) => {
       });
     }
 
+    // Add TON wallet export buttons
+    if (user.tonWallets && user.tonWallets.length > 0) {
+      user.tonWallets.forEach((wallet, index) => {
+        const label =
+          index === 0
+            ? `🔑 Export TON Wallet ${index + 1} (Default)`
+            : `🔑 Export TON Wallet ${index + 1}`;
+        buttons.push([
+          Markup.button.callback(label, `select_export_ton:${index}`),
+        ]);
+      });
+    }
+
     // Add cancel button
     buttons.push([Markup.button.callback("❌ Cancel", "cancel_export")]);
 
@@ -87,7 +100,7 @@ export const handleSelectWalletForExport = (ctx) => {
   ctx.answerCbQuery();
 
   // Extract wallet type and index from callback data
-  // Format: "select_export_sol:0" or "select_export_evm:1"
+  // Format: "select_export_sol:0", "select_export_evm:1", "select_export_ton:0"
   const callbackData = ctx.callbackQuery.data;
   console.log("Callback data:", callbackData);
 
@@ -95,7 +108,7 @@ export const handleSelectWalletForExport = (ctx) => {
   console.log("Split parts:", parts);
 
   // Extract wallet type from the first part (e.g., "select_export_sol" -> "sol")
-  const walletType = parts[0].replace("select_export_", ""); // 'sol' or 'evm'
+  const walletType = parts[0].replace("select_export_", ""); // 'sol', 'evm', 'stellar', 'ton'
   const walletIndex = parseInt(parts[1], 10);
 
   console.log("Wallet type:", walletType, "Wallet index:", walletIndex);
@@ -108,7 +121,7 @@ export const handleSelectWalletForExport = (ctx) => {
 
   setUserActionState(ctx.from.id, {
     action: "awaiting_export_pin",
-    walletType: walletType as "sol" | "evm" | "stellar",
+    walletType: walletType as "sol" | "evm" | "stellar" | "ton",
     walletIndex: walletIndex,
   });
 };
@@ -168,6 +181,7 @@ export const handlePinForExport = async (ctx) => {
       let wallet: any;
       let walletLabel: string;
       let privateKey: string;
+      let mnemonicPhrase: string | undefined;
 
       if (walletType === "sol") {
         if (!user.solanaWallets || walletIndex >= user.solanaWallets.length) {
@@ -197,6 +211,20 @@ export const handlePinForExport = async (ctx) => {
         walletLabel = `Stellar Wallet ${walletIndex + 1}`;
         const decryptedHex = decryptPrivateKey(wallet.encryptedPrivateKey);
         privateKey = StellarKeypair.fromRawEd25519Seed(Buffer.from(decryptedHex, "hex")).secret();
+      } else if (walletType === "ton") {
+        if (!user.tonWallets || walletIndex >= user.tonWallets.length) {
+          ctx.reply("❌ TON wallet not found. Please try again.");
+          clearUserActionState(userId);
+          return;
+        }
+        wallet = user.tonWallets[walletIndex];
+        walletLabel = `TON Wallet ${walletIndex + 1}`;
+        privateKey = decryptPrivateKey(wallet.encryptedPrivateKey);
+
+        if (wallet.encryptedMnemonic) {
+          const decryptedMnemonicHex = decryptPrivateKey(wallet.encryptedMnemonic);
+          mnemonicPhrase = Buffer.from(decryptedMnemonicHex, "hex").toString("utf-8");
+        }
       } else {
         ctx.reply("❌ Invalid wallet type. Please try again.");
         clearUserActionState(userId);
@@ -209,13 +237,15 @@ export const handlePinForExport = async (ctx) => {
         return;
       }
 
-      const message = await ctx.reply(
-        `🔑 *${walletLabel} Private Key*\n\n` +
-          `\`${privateKey}\`\n\n` +
-          `📍 Address: \`${wallet.address}\`\n\n` +
-          `⏱️ *This message will be deleted in 15 seconds.*`,
-        { parse_mode: "Markdown" }
-      );
+      let exportDetails = `🔑 *${walletLabel} Export*\n\n`;
+      if (mnemonicPhrase) {
+        exportDetails += `📝 *24-Word Recovery Phrase:*\n\`${mnemonicPhrase}\`\n\n`;
+      }
+      exportDetails += `🔐 *Private Key (Hex):*\n\`${privateKey}\`\n\n`;
+      exportDetails += `📍 *Address:*\n\`${wallet.address}\`\n\n`;
+      exportDetails += `⏱️ *This message will be deleted in 15 seconds.*`;
+
+      const message = await ctx.reply(exportDetails, { parse_mode: "Markdown" });
 
       // Delete the user's PIN message for security
       try {

@@ -3,6 +3,7 @@ import getUser from "@features/users/getUserInfo";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
 import getStellarBalances from "@shared/utils/getStellarBalances";
+import getTonBalances from "@shared/utils/getTonBalances";
 import { sendOrEdit } from "@shared/utils/messageHelper";
 import {
   buildPrivateChatKeyboard,
@@ -24,7 +25,8 @@ function buildSkeletonMessage(
   tokenHoldings: any[] | null,
   hasSolanaWallet: boolean,
   hasEvmWallet: boolean,
-  hasStellarWallet: boolean = false
+  hasStellarWallet: boolean = false,
+  hasTonWallet: boolean = false
 ): string {
   let message = `Welcome to Jumpa Bot, ${firstName}!\n`;
 
@@ -82,6 +84,16 @@ XLM: ⏳ ...   • USDC: ⏳ ...
 `;
   }
 
+  if (hasTonWallet && user.tonWallets && user.tonWallets.length > 0) {
+    message += `
+*--- Your TON (Gram) Wallet ---*
+
+\`${user.tonWallets[0].address}\`
+
+TON: ⏳ ...   • USDT: ⏳ ...
+`;
+  }
+
   message += `\n`;
   return message;
 }
@@ -101,7 +113,9 @@ function buildCompleteMessage(
   tokenBalances: any,
   evmBalances: any,
   hasStellarWallet: boolean = false,
-  stellarBalances: any = null
+  stellarBalances: any = null,
+  hasTonWallet: boolean = false,
+  tonBalances: any = null
 ): string {
   let message = `Welcome to Jumpa Bot, ${firstName}!\n`;
 
@@ -176,6 +190,16 @@ XLM: ${stellarBalances.xlm.toFixed(4)}   • USDC: ${stellarBalances.usdc.toFixe
 `;
   }
 
+  if (hasTonWallet && tonBalances && user.tonWallets && user.tonWallets.length > 0) {
+    message += `
+*--- Your TON (Gram) Wallet ---*
+
+\`${user.tonWallets[0].address}\`
+
+TON: ${tonBalances.ton.toFixed(4)}   • USDT: ${tonBalances.usdt.toFixed(2)}
+`;
+  }
+
   message += `\n`;
   return message;
 }
@@ -196,6 +220,7 @@ async function fetchAndUpdateBalances(
   hasSolanaWallet: boolean,
   hasEvmWallet: boolean,
   hasStellarWallet: boolean = false,
+  hasTonWallet: boolean = false,
   forceRefresh: boolean = false
 ): Promise<void> {
   try {
@@ -206,7 +231,7 @@ async function fetchAndUpdateBalances(
     const hasTokenHoldings = tokenHoldings && tokenHoldings.length > 0;
 
     // Fetch balances in parallel with force refresh flag
-    const [tokenBalances, evmBalances, stellarBalances] = await Promise.all([
+    const [tokenBalances, evmBalances, stellarBalances, tonBalances] = await Promise.all([
       hasSolanaWallet
         ? getAllTokenBalances(user.solanaWallets[0].address, forceRefresh)
         : Promise.resolve(null),
@@ -215,6 +240,9 @@ async function fetchAndUpdateBalances(
         : Promise.resolve(null),
       hasStellarWallet
         ? getStellarBalances(user.stellarWallets[0].address, forceRefresh)
+        : Promise.resolve(null),
+      hasTonWallet
+        ? getTonBalances(user.tonWallets[0].address, forceRefresh)
         : Promise.resolve(null),
     ]);
 
@@ -233,7 +261,9 @@ async function fetchAndUpdateBalances(
       tokenBalances,
       evmBalances,
       hasStellarWallet,
-      stellarBalances
+      stellarBalances,
+      hasTonWallet,
+      tonBalances
     );
 
     const baseKeyboard = buildPrivateChatKeyboard();
@@ -319,13 +349,17 @@ export async function displayMainMenu(
   const hasStellarWallet = !!(
     user.stellarWallets && user.stellarWallets.length > 0 && user.stellarWallets[0].address
   );
+  const hasTonWallet = !!(
+    user.tonWallets && user.tonWallets.length > 0 && user.tonWallets[0].address
+  );
 
   console.log("Has Solana Wallet:", hasSolanaWallet);
   console.log("Has EVM Wallet:", hasEvmWallet);
   console.log("Has Stellar Wallet:", hasStellarWallet);
+  console.log("Has TON Wallet:", hasTonWallet);
 
   // Scenario 1: No wallet - show setup options (instant, no changes needed)
-  if (!hasSolanaWallet && !hasEvmWallet && !hasStellarWallet) {
+  if (!hasSolanaWallet && !hasEvmWallet && !hasStellarWallet && !hasTonWallet) {
     const firstName = ctx.from?.first_name || username;
     const setupMessage = `Welcome to Jumpa Bot, ${firstName}!
 
@@ -363,7 +397,8 @@ Choose an option below to get started:`;
     basicTokenHoldings,
     hasSolanaWallet,
     hasEvmWallet,
-    hasStellarWallet
+    hasStellarWallet,
+    hasTonWallet
   );
 
   const baseKeyboard = buildPrivateChatKeyboard();
@@ -416,6 +451,7 @@ Choose an option below to get started:`;
     hasSolanaWallet,
     hasEvmWallet,
     hasStellarWallet,
+    hasTonWallet,
     forceRefresh
   ).catch(error => {
     console.error("Background balance fetch error:", error);

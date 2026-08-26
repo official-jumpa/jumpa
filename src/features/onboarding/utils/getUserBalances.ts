@@ -2,6 +2,7 @@ import getUser from "@features/users/getUserInfo";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
 import getStellarBalances from "@shared/utils/getStellarBalances";
+import getTonBalances from "@shared/utils/getTonBalances";
 
 export interface UserBalances {
   solana: {
@@ -28,13 +29,18 @@ export interface UserBalances {
     usdc: number;
     address: string;
   } | null;
+  ton: {
+    ton: number;
+    usdt: number;
+    address: string;
+  } | null;
 }
 
 /**
  * Fetch user's wallet balances across all chains
  * @param telegramId - User's telegram ID
  * @param username - User's username
- * @returns Object containing Solana, EVM, and Stellar balances
+ * @returns Object containing Solana, EVM, Stellar, and TON balances
  */
 export async function getUserBalances(
   telegramId: number,
@@ -50,6 +56,7 @@ export async function getUserBalances(
     solana: null,
     evm: null,
     stellar: null,
+    ton: null,
   };
 
   // Fetch Solana balances if wallet exists
@@ -111,6 +118,22 @@ export async function getUserBalances(
     };
   }
 
+  // Fetch TON balances if wallet exists
+  const hasTonWallet =
+    user.tonWallets &&
+    user.tonWallets.length > 0 &&
+    user.tonWallets[0].address;
+
+  if (hasTonWallet) {
+    const tonBals = await getTonBalances(user.tonWallets[0].address);
+
+    balances.ton = {
+      ton: tonBals.ton,
+      usdt: tonBals.usdt,
+      address: user.tonWallets[0].address,
+    };
+  }
+
   return balances;
 }
 
@@ -141,6 +164,12 @@ export function formatBalances(balances: UserBalances): string {
     message += `\n<b>--- Your Stellar Wallet ---</b>\n\n`;
     message += `<code>${balances.stellar.address}</code>\n\n`;
     message += `XLM: ${balances.stellar.xlm.toFixed(4)}   • USDC: ${balances.stellar.usdc.toFixed(2)}\n`;
+  }
+
+  if (balances.ton) {
+    message += `\n<b>--- Your TON (Gram) Wallet ---</b>\n\n`;
+    message += `<code>${balances.ton.address}</code>\n\n`;
+    message += `TON: ${balances.ton.ton.toFixed(4)}   • USDT: ${balances.ton.usdt.toFixed(2)}\n`;
   }
 
   return message;

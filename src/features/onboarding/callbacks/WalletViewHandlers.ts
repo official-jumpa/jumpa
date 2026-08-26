@@ -3,8 +3,9 @@ import getUser from "@features/users/getUserInfo";
 import { getAllTokenBalances } from "@shared/utils/getTokenBalances";
 import { getAllEvmBalances } from "@shared/utils/getEvmBalances";
 import getStellarBalances from "@shared/utils/getStellarBalances";
+import getTonBalances from "@shared/utils/getTonBalances";
 
-export type ChainType = "solana" | "evm" | "stellar";
+export type ChainType = "solana" | "evm" | "stellar" | "ton";
 
 /**
  * Build skeleton wallet view with loading indicators
@@ -20,6 +21,7 @@ function buildWalletSkeleton(
   const solanaWallets = user.solanaWallets || [];
   const evmWallets = user.evmWallets || [];
   const stellarWallets = user.stellarWallets || [];
+  const tonWallets = user.tonWallets || [];
 
   if (activeChain === "solana" && solanaWallets.length > 0) {
     const wallet = solanaWallets[activeWalletIndex] || solanaWallets[0];
@@ -46,6 +48,14 @@ function buildWalletSkeleton(
     message += `*⭐ Stellar Wallet ${activeWalletIndex + 1}*\n`;
     message += `\`${wallet.address}\`${defaultBadge}\n\n`;
     message += `XLM: ⏳ ...   • USDC: ⏳ ...\n`;
+  } else if (activeChain === "ton" && tonWallets.length > 0) {
+    const wallet = tonWallets[activeWalletIndex] || tonWallets[0];
+    const isMain = activeWalletIndex === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
+
+    message += `*💎 TON Wallet ${activeWalletIndex + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
+    message += `TON: ⏳ ...   • USDT: ⏳ ...\n`;
   } else {
     message += `No active wallet found for ${activeChain.toUpperCase()}.\n`;
   }
@@ -59,7 +69,8 @@ function buildWalletSkeleton(
 function calculateTotalNetWorth(
   solBalancesArray: any[],
   evmBalancesArray: any[],
-  stellarBalancesArray: any[]
+  stellarBalancesArray: any[],
+  tonBalancesArray: any[] = []
 ): number {
   let totalUsd = 0;
 
@@ -86,6 +97,13 @@ function calculateTotalNetWorth(
     }
   }
 
+  // TON USD estimates (approx TON=$5.50)
+  for (const bal of tonBalancesArray) {
+    if (bal) {
+      totalUsd += (bal.ton || 0) * 5.5 + (bal.usdt || 0);
+    }
+  }
+
   return totalUsd;
 }
 
@@ -97,6 +115,7 @@ function buildWalletComplete(
   solBalancesArray: any[],
   evmBalancesArray: any[],
   stellarBalancesArray: any[],
+  tonBalancesArray: any[] = [],
   activeChain: ChainType = "solana",
   activeWalletIndex: number = 0
 ): string {
@@ -105,13 +124,15 @@ function buildWalletComplete(
   const totalUsd = calculateTotalNetWorth(
     solBalancesArray,
     evmBalancesArray,
-    stellarBalancesArray
+    stellarBalancesArray,
+    tonBalancesArray
   );
   message += `*Total Value:* $${totalUsd.toFixed(2)} USD\n\n`;
 
   const solanaWallets = user.solanaWallets || [];
   const evmWallets = user.evmWallets || [];
   const stellarWallets = user.stellarWallets || [];
+  const tonWallets = user.tonWallets || [];
 
   if (activeChain === "solana" && solanaWallets.length > 0) {
     const idx = Math.min(activeWalletIndex, solanaWallets.length - 1);
@@ -160,6 +181,21 @@ function buildWalletComplete(
     } else {
       message += `XLM: 0.0000   • USDC: 0.00\n`;
     }
+  } else if (activeChain === "ton" && tonWallets.length > 0) {
+    const idx = Math.min(activeWalletIndex, tonWallets.length - 1);
+    const wallet = tonWallets[idx];
+    const balances = tonBalancesArray[idx];
+    const isMain = idx === 0;
+    const defaultBadge = isMain ? " 🟢 *(Default)*" : "";
+
+    message += `*💎 TON Wallet ${idx + 1}*\n`;
+    message += `\`${wallet.address}\`${defaultBadge}\n\n`;
+
+    if (balances) {
+      message += `TON: ${balances.ton.toFixed(4)}   • USDT: ${balances.usdt.toFixed(2)}\n`;
+    } else {
+      message += `TON: 0.0000   • USDT: 0.00\n`;
+    }
   } else {
     message += `No wallet found for ${activeChain.toUpperCase()}.\n`;
   }
@@ -178,6 +214,7 @@ export function buildWalletKeyboard(
   const solanaWallets = user.solanaWallets || [];
   const evmWallets = user.evmWallets || [];
   const stellarWallets = user.stellarWallets || [];
+  const tonWallets = user.tonWallets || [];
 
   const keyboardButtons: any[] = [];
 
@@ -195,6 +232,10 @@ export function buildWalletKeyboard(
     const activeLabel = activeChain === "stellar" ? "Stellar ✅" : "Stellar";
     chainTabButtons.push(Markup.button.callback(activeLabel, "wallet_tab:stellar:0"));
   }
+  if (tonWallets.length > 0) {
+    const activeLabel = activeChain === "ton" ? "TON ✅" : "TON";
+    chainTabButtons.push(Markup.button.callback(activeLabel, "wallet_tab:ton:0"));
+  }
   if (chainTabButtons.length > 0) {
     keyboardButtons.push(chainTabButtons);
   }
@@ -204,12 +245,20 @@ export function buildWalletKeyboard(
   if (activeChain === "solana") currentWallets = solanaWallets;
   else if (activeChain === "evm") currentWallets = evmWallets;
   else if (activeChain === "stellar") currentWallets = stellarWallets;
+  else if (activeChain === "ton") currentWallets = tonWallets;
 
   if (currentWallets.length > 1) {
     const pillButtons = currentWallets.map((_, idx) => {
       const isSelected = idx === activeWalletIndex;
       const isMain = idx === 0;
-      const chainTag = activeChain === "solana" ? "Sol" : activeChain === "evm" ? "EVM" : "Stellar";
+      const chainTag =
+        activeChain === "solana"
+          ? "Sol"
+          : activeChain === "evm"
+          ? "EVM"
+          : activeChain === "stellar"
+          ? "Stellar"
+          : "TON";
       const mainTag = isMain ? " (Default)" : "";
       const label = `${isSelected ? "✅ " : ""}${chainTag} ${idx + 1}${mainTag}`;
       return Markup.button.callback(label, `wallet_tab:${activeChain}:${idx}`);
@@ -230,6 +279,8 @@ export function buildWalletKeyboard(
       actionRow.push(Markup.button.callback("Set Default", `set_default_evm:${activeWalletIndex}`));
     } else if (activeChain === "stellar") {
       actionRow.push(Markup.button.callback("Set Default", `set_default_stellar:${activeWalletIndex}`));
+    } else if (activeChain === "ton") {
+      actionRow.push(Markup.button.callback("Set Default", `set_default_ton:${activeWalletIndex}`));
     }
   }
 
@@ -246,6 +297,8 @@ export function buildWalletKeyboard(
     actionRow.push(Markup.button.callback("🚮 Delete", `delete_evm_wallet:${activeWalletIndex}`));
   } else if (activeChain === "stellar") {
     actionRow.push(Markup.button.callback("🚮 Delete", `delete_stellar_wallet:${activeWalletIndex}`));
+  } else if (activeChain === "ton") {
+    actionRow.push(Markup.button.callback("🚮 Delete", `delete_ton_wallet:${activeWalletIndex}`));
   }
 
   if (actionRow.length > 0) {
@@ -278,11 +331,13 @@ async function fetchAndUpdateWalletBalances(
     const solanaWallets = user.solanaWallets || [];
     const evmWallets = user.evmWallets || [];
     const stellarWallets = user.stellarWallets || [];
+    const tonWallets = user.tonWallets || [];
 
-    const [solBalancesArray, evmBalancesArray, stellarBalancesArray] = await Promise.all([
+    const [solBalancesArray, evmBalancesArray, stellarBalancesArray, tonBalancesArray] = await Promise.all([
       Promise.all(solanaWallets.map((w: any) => getAllTokenBalances(w.address, forceRefresh))),
       Promise.all(evmWallets.map((w: any) => getAllEvmBalances(w.address, forceRefresh))),
       Promise.all(stellarWallets.map((w: any) => getStellarBalances(w.address, forceRefresh))),
+      Promise.all(tonWallets.map((w: any) => getTonBalances(w.address, forceRefresh))),
     ]);
 
     const completeMessage = buildWalletComplete(
@@ -290,6 +345,7 @@ async function fetchAndUpdateWalletBalances(
       solBalancesArray,
       evmBalancesArray,
       stellarBalancesArray,
+      tonBalancesArray,
       activeChain,
       activeWalletIndex
     );
@@ -344,7 +400,8 @@ export async function handleViewWallet(
     const solanaWallets = user.solanaWallets || [];
     const evmWallets = user.evmWallets || [];
     const stellarWallets = user.stellarWallets || [];
-    const totalWallets = solanaWallets.length + evmWallets.length + stellarWallets.length;
+    const tonWallets = user.tonWallets || [];
+    const totalWallets = solanaWallets.length + evmWallets.length + stellarWallets.length + tonWallets.length;
 
     if (totalWallets === 0) {
       const noWalletMessage = `*Your Wallets*\n\nYou don't have any wallets yet.\n\nSet up a wallet to start trading!`;
@@ -374,12 +431,19 @@ export async function handleViewWallet(
     if (activeChain === "solana" && solanaWallets.length === 0) {
       if (evmWallets.length > 0) activeChain = "evm";
       else if (stellarWallets.length > 0) activeChain = "stellar";
+      else if (tonWallets.length > 0) activeChain = "ton";
     } else if (activeChain === "evm" && evmWallets.length === 0) {
       if (solanaWallets.length > 0) activeChain = "solana";
       else if (stellarWallets.length > 0) activeChain = "stellar";
+      else if (tonWallets.length > 0) activeChain = "ton";
     } else if (activeChain === "stellar" && stellarWallets.length === 0) {
       if (solanaWallets.length > 0) activeChain = "solana";
       else if (evmWallets.length > 0) activeChain = "evm";
+      else if (tonWallets.length > 0) activeChain = "ton";
+    } else if (activeChain === "ton" && tonWallets.length === 0) {
+      if (solanaWallets.length > 0) activeChain = "solana";
+      else if (evmWallets.length > 0) activeChain = "evm";
+      else if (stellarWallets.length > 0) activeChain = "stellar";
     }
 
     const activeWalletIndex = Math.max(0, requestedWalletIndex);

@@ -40,9 +40,14 @@ export async function handleDepositCommand(ctx: Context): Promise<void> {
       user.stellarWallets.length > 0 &&
       user.stellarWallets[0].address;
 
+    const hasTonWallet =
+      user.tonWallets &&
+      user.tonWallets.length > 0 &&
+      user.tonWallets[0].address;
+
     let message = "*Deposit Funds*\n\n";
 
-    if (!hasSolanaWallet && !hasEvmWallet && !hasStellarWallet) {
+    if (!hasSolanaWallet && !hasEvmWallet && !hasStellarWallet && !hasTonWallet) {
       message += "You haven't set up any wallets yet. Please use the /start command to create a wallet first.\n\n";
     } else {
       message += "You can deposit funds by sending crypto to your wallet addresses below:\n\n";
@@ -60,6 +65,11 @@ export async function handleDepositCommand(ctx: Context): Promise<void> {
       if (hasStellarWallet) {
         message += "*Stellar*\n";
         message += `\`${user.stellarWallets[0].address}\`\n\n`;
+      }
+
+      if (hasTonWallet) {
+        message += "*TON (Gram)*\n";
+        message += `\`${user.tonWallets[0].address}\`\n\n`;
       }
     }
 

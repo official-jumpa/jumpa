@@ -468,7 +468,7 @@ async function executeSingleTransferSilent(
           account_number: recipientNumber,
           bank_code: switchBankCode,
         },
-        sender_name: sanitizeName("AnitaNdukwe"),
+        sender_name: sanitizeName("Jumpa"),
         reference,
       };
 
