@@ -8,7 +8,7 @@ import { Address as TonAddress } from "@ton/core";
 export const tools = [
   {
     name: "get_supported_chains_and_currencies",
-    description: "Get the list of supported blockchains and their respective currencies.",
+    description: "Get the list of supported blockchains and their respective currencies",
     input_schema: {
       type: "object" as const,
       properties: {},
